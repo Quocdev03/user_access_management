@@ -4,13 +4,13 @@
 
 | Công cụ | Phiên bản | Mô tả |
 |---------|-----------|-------|
-| Go | 1.24+ | Ngôn ngữ lập trình |
-| MySQL | 8.0+ | Cơ sở dữ liệu |
-| Redis | 7.0+ | Cache & session store |
-| Docker | 24.0+ | Container runtime |
-| Docker Compose | 2.20+ | Quản lý multi-container |
-| Make | 4.0+ | Task runner |
-| Git | 2.40+ | Quản lý mã nguồn |
+| Go | latest | Ngôn ngữ lập trình |
+| MySQL | latest | Cơ sở dữ liệu |
+| Redis | latest | Cache & session store |
+| Docker | latest | Container runtime |
+| Docker Compose | latest | Quản lý multi-container |
+| Make | latest | Task runner |
+| Git | latest | Quản lý mã nguồn |
 
 ---
 
@@ -127,7 +127,7 @@ services:
     restart: unless-stopped
 
   mysql:
-    image: mysql:8.0
+    image: mysql:latest
     ports:
       - "3306:3306"
     environment:
@@ -145,7 +145,7 @@ services:
     restart: unless-stopped
 
   redis:
-    image: redis:7-alpine
+    image: redis:alpine
     ports:
       - "6379:6379"
     command: redis-server --appendonly yes
@@ -168,7 +168,7 @@ volumes:
 
 ```dockerfile
 # Build stage
-FROM golang:1.24-alpine AS builder
+FROM golang:alpine AS builder
 WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
@@ -220,12 +220,12 @@ docker compose exec redis redis-cli
 Tải và cài đặt Go từ [https://go.dev/dl/](https://go.dev/dl/)
 
 ```bash
-go version   # Kiểm tra: go1.24+
+go version   # Kiểm tra: bản mới nhất (latest)
 ```
 
 ### Bước 2: Cài đặt MySQL
 
-Cài MySQL 8.0+ và tạo database:
+Cài MySQL bản mới nhất (latest) và tạo database:
 
 ```sql
 CREATE DATABASE uam_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -236,7 +236,7 @@ FLUSH PRIVILEGES;
 
 ### Bước 3: Cài đặt Redis
 
-Cài Redis 7.0+ và khởi chạy:
+Cài Redis bản mới nhất (latest) và khởi chạy:
 
 ```bash
 redis-server
