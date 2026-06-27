@@ -28,6 +28,7 @@ erDiagram
         varchar full_name
         varchar phone
         varchar avatar_url
+        date date_of_birth
         enum status "active/inactive/locked"
         boolean email_verified
         int failed_login_attempts
@@ -142,6 +143,7 @@ erDiagram
 | `full_name` | VARCHAR(100) | | Họ tên đầy đủ |
 | `phone` | VARCHAR(20) | | Số điện thoại |
 | `avatar_url` | VARCHAR(500) | | Đường dẫn ảnh đại diện |
+| `date_of_birth` | DATE | NULL | Ngày tháng năm sinh |
 | `status` | ENUM('active','inactive','locked') | DEFAULT 'inactive' | Trạng thái tài khoản |
 | `email_verified` | BOOLEAN | DEFAULT FALSE | Đã xác thực email chưa |
 | `failed_login_attempts` | INT | DEFAULT 0 | Số lần đăng nhập thất bại liên tiếp |
