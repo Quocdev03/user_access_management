@@ -2,19 +2,12 @@
 
 ## Bước 1: Kiểm tra Skills (BẮT BUỘC)
 
-Trước khi thực hiện bất kỳ tác vụ nào (nhất là viết/sửa code), **bạn phải tự động tìm và đọc file SKILL.md** tương ứng trong thư mục `.agents/skills/`:
+Hệ thống đã tự động nạp danh sách các kỹ năng (Skills) từ `.agents/skills/` vào bộ nhớ hệ thống (thẻ `<skills>`). Bạn không cần phải liệt kê cứng ở đây.
 
-| Loại task | Skill cần đọc |
-|-----------|--------------|
-| Viết/review code Go | `golang-code-style` |
-| Goroutine, channel, sync | `golang-concurrency` |
-| Truy vấn DB, transaction, migration | `golang-database` + `mysql-best-practices` |
-| Dependency injection, khởi tạo service | `golang-dependency-injection` |
-| Thêm/nâng cấp package | `golang-dependency-management` |
-| Chọn design pattern | `golang-design-patterns` |
-| Tối ưu hiệu năng | `golang-performance` |
-| Tạo/sắp xếp package mới | `golang-project-layout` |
-| Nâng cấp Go version, dùng feature mới | `golang-modernize` |
+**Quy trình động bắt buộc:**
+1. Phân tích task hiện tại.
+2. Đối chiếu với danh sách các skills đã biết trong bộ nhớ.
+3. Bất cứ khi nào task chạm đến một domain có skill tương ứng (ví dụ: cần thiết kế logic thì dùng `brainstorming`, thao tác DB thì dùng `golang-database`...), **BẠN BẮT BUỘC PHẢI DÙNG `view_file` ĐỂ ĐỌC FILE `SKILL.md` ĐÓ TRƯỚC TIÊN.**
 
 > **QUY TẮC TỐI THƯỢNG**: TUYỆT ĐỐI KHÔNG bắt đầu viết code nếu chưa đọc skill liên quan. Vi phạm điều này là lỗi nghiêm trọng.
 

@@ -1,6 +1,18 @@
 {
   "version": 1,
   "skills": {
+    "brainstorming": {
+      "source": "obra/superpowers",
+      "sourceType": "github",
+      "skillPath": "skills/brainstorming/SKILL.md",
+      "computedHash": "0c877c8521ec97a5d55fa682d33122b811aebddd4788b92ac008efe85cd305cd"
+    },
+    "devops-engineer": {
+      "source": "jeffallan/claude-skills",
+      "sourceType": "github",
+      "skillPath": "skills/devops-engineer/SKILL.md",
+      "computedHash": "b5fefdd43470cf510937c882440fb0759327adfe4a21b511829e545e5faa988e"
+    },
     "find-skills": {
       "source": "vercel-labs/skills",
       "sourceType": "github",
@@ -61,11 +73,23 @@
       "skillPath": "skills/golang-project-layout/SKILL.md",
       "computedHash": "18c14e622ce17ad41b854960ab6f290112838a25af128f37dcf27471e1636cbe"
     },
+    "golang-security": {
+      "source": "samber/cc-skills-golang",
+      "sourceType": "github",
+      "skillPath": "skills/golang-security/SKILL.md",
+      "computedHash": "b659ea79d3ac50de466b086ab18252ca427117936e5c6364f511157693c855c3"
+    },
     "mysql-best-practices": {
       "source": "mindrally/skills",
       "sourceType": "github",
       "skillPath": "mysql-best-practices/SKILL.md",
       "computedHash": "c393d46f0b1a4fec9795fd95c6f465f40528889b21451643ca7fd3c17ed89e3a"
+    },
+    "security-review": {
+      "source": "getsentry/skills",
+      "sourceType": "github",
+      "skillPath": "skills/security-review/SKILL.md",
+      "computedHash": "1eee1e41aa0a0e75dbbe0cac387e3d61bedf51af1888f184301a173731e6973e"
     }
   }
 }
