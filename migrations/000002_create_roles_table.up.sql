@@ -1,0 +1,10 @@
+CREATE TABLE IF NOT EXISTS `roles` (
+    `id`          BIGINT       NOT NULL AUTO_INCREMENT,
+    `name`        VARCHAR(50)  NOT NULL,
+    `description` VARCHAR(255) NULL DEFAULT NULL,
+    `created_at`  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at`  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_roles_name` (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

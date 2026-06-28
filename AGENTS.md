@@ -1,60 +1,107 @@
 # AI Project Instructions
 
-## Bước 1: Kiểm tra Skills (BẮT BUỘC)
+## Bước 1: Load Skills Index (BẮT BUỘC, chạy đầu mỗi phiên)
 
-Hệ thống đã tự động nạp danh sách các kỹ năng (Skills) từ `.agents/skills/` vào bộ nhớ hệ thống (thẻ `<skills>`). Bạn không cần phải liệt kê cứng ở đây.
+Không có skills nào được tự động inject. Bạn **phải đọc index** bằng cách:
 
-**Quy trình động bắt buộc:**
-1. Phân tích task hiện tại.
-2. Đối chiếu với danh sách các skills đã biết trong bộ nhớ.
-3. Bất cứ khi nào task chạm đến một domain có skill tương ứng (ví dụ: cần thiết kế logic thì dùng `brainstorming`, thao tác DB thì dùng `golang-database`...), **BẠN BẮT BUỘC PHẢI DÙNG `view_file` ĐỂ ĐỌC FILE `SKILL.md` ĐÓ TRƯỚC TIÊN.**
+```
+view_file .agents/skills/INDEX.md
+```
 
-> **QUY TẮC TỐI THƯỢNG**: TUYỆT ĐỐI KHÔNG bắt đầu viết code nếu chưa đọc skill liên quan. Vi phạm điều này là lỗi nghiêm trọng.
+File này chứa toàn bộ danh sách skills và trigger tương ứng. **Chỉ đọc 1 file duy nhất này** — không `list_directory`, không đọc từng SKILL.md trước.
+
+**Quy trình bắt buộc:**
+
+1. `view_file .agents/skills/INDEX.md` → đọc bảng mapping.
+2. Phân tích task hiện tại → đối chiếu với cột "Đọc khi task liên quan đến...".
+3. Với mỗi skill match → `view_file <path>` SKILL.md tương ứng **trước khi làm bất cứ việc gì**.
+
+> **QUY TẮC**: Không được bắt đầu viết code hoặc sửa file nếu chưa đọc SKILL.md của domain liên quan. Nếu không có skill phù hợp → tiếp tục bình thường, không đọc skill không liên quan để tiết kiệm token.
+
+---
 
 ## Bước 2: Đọc Docs theo ngữ cảnh
 
-Mỗi phiên mới, sau khi kiểm tra skills, hãy đọc docs theo thứ tự ưu tiên — **chỉ đọc file liên quan đến task**, không đọc hết:
+Sau khi đọc skills, đọc docs theo thứ tự ưu tiên — **chỉ đọc file liên quan đến task**.
 
-| Ưu tiên | File | Khi nào đọc |
-|---------|------|-------------|
-| 1 | `docs/01-overview.md` | Luôn đọc (ngắn, chứa context dự án) |
-| 2 | `docs/02-architecture.md` | Khi tạo/sửa code ở bất kỳ tầng nào |
-| 3 | `docs/03-coding-conventions.md` | Khi viết code mới |
-| 4 | `docs/04-api-design.md` | Khi làm việc với handler/endpoint |
-| 5 | `docs/05-database-design.md` | Khi làm việc với model/repository/migration |
-| 6 | `docs/06-authentication-flow.md` | Khi làm việc với auth/session/RBAC |
-| 7 | `docs/07-use-cases.md` | Khi cần hiểu nghiệp vụ UC cụ thể |
-| 8 | `docs/08-environment-setup.md` | Khi cấu hình/Docker/deployment |
+| Ưu tiên | File                             | Trigger cụ thể                                                         |
+| ------- | -------------------------------- | ---------------------------------------------------------------------- |
+| 1       | `docs/01-overview.md`            | Luôn đọc (bắt buộc, file ngắn)                                         |
+| 2       | `docs/02-architecture.md`        | Task tạo/sửa file bất kỳ trong `internal/`, `pkg/`, `cmd/`             |
+| 3       | `docs/03-coding-conventions.md`  | Task viết code mới hoặc refactor                                       |
+| 4       | `docs/04-api-design.md`          | File path chứa `/handler/` hoặc liên quan đến endpoint/response format |
+| 5       | `docs/05-database-design.md`     | File path chứa `/model/`, `/repository/`, hoặc migration               |
+| 6       | `docs/06-authentication-flow.md` | Task liên quan đến login, token, middleware auth, RBAC                 |
+| 7       | `docs/07-use-cases.md`           | Task mô tả nghiệp vụ (UC), cần hiểu flow người dùng                    |
+| 8       | `docs/08-environment-setup.md`   | Task liên quan đến Docker, `.env`, CI/CD, deployment                   |
 
-## Quy tắc bắt buộc
+---
 
-### Kiến trúc & Code
+## Bước 3: Plan trước khi implement
 
-1. Tuân thủ Clean Architecture: Handler → Service → Repository. Không bỏ tầng, không gọi ngược.
-2. Không thay đổi cấu trúc thư mục đã định nghĩa trong `docs/architecture.md`.
-3. Không thay đổi API response format, error codes đã định nghĩa trong `docs/api-design.md`.
-4. Giữ naming nhất quán theo `docs/coding-conventions.md`.
-5. Không duplicate code — tìm và mở rộng code có sẵn trước khi tạo mới.
+Với task liên quan đến **nhiều hơn 1 file** hoặc **tính năng mới**:
 
-### Trước khi implement tính năng
+1. **Outline plan ngắn** gồm:
+    - Các file sẽ tạo mới / sửa (kèm lý do).
+    - UC liên quan trong `docs/07-use-cases.md`.
+    - Có code tương tự trong codebase không? (xem Bước 4)
+2. **Trình bày plan** cho user, chờ confirm trước khi code.
 
-1. Xác định UC liên quan trong `docs/use-cases.md`.
-2. Tìm handler/service/repository/DTO tương tự đã có trong codebase.
-3. Nếu code có sẵn có thể mở rộng → mở rộng, không tạo file mới.
+Với task nhỏ (fix bug, sửa 1 chỗ trong 1 file) → không cần plan, làm luôn.
 
-### Tối ưu token
+---
 
-1. Không đọc toàn bộ file lớn — dùng grep/search tìm đúng phần cần.
-2. Không liệt kê lại nội dung docs trong response — trả lời trực tiếp.
-3. Không giải thích code khi không được hỏi — chỉ viết code + comment ngắn.
-4. Khi sửa file, dùng replace chính xác đoạn cần sửa, không rewrite toàn file.
-5. Gom nhiều thay đổi nhỏ trong 1 file thành 1 lần sửa.
+## Bước 4: Scan Codebase trước khi tạo file mới
 
-### Documentation
+Trước khi tạo handler/service/repository/DTO mới, bắt buộc chạy:
 
-- Cập nhật docs khi thay đổi: thêm endpoint, thêm bảng, đổi luồng xử lý.
-- Không cập nhật docs cho thay đổi nhỏ (fix bug, refactor nội bộ).
+```bash
+# Tìm pattern tương tự
+grep -r "func.*Handler" internal/handler/ --include="*.go" -l
+grep -r "type.*Request struct" internal/dto/ --include="*.go" -l
+
+# Tìm theo tên entity
+grep -r "<TênEntity>" internal/ --include="*.go" -l
+```
+
+**Quy tắc:**
+
+- Nếu tìm thấy code tương tự → **mở rộng**, không tạo file mới.
+- Nếu chưa có → tạo file mới, đặt tên theo convention trong `docs/03-coding-conventions.md`.
+- Không duplicate logic — extract thành shared function nếu dùng lại từ 2 nơi trở lên.
+
+---
+
+## Quy tắc kiến trúc & code
+
+1. Tuân thủ Clean Architecture: `Handler → Service → Repository`. Không bỏ tầng, không gọi ngược.
+2. Không thay đổi cấu trúc thư mục đã định nghĩa trong `docs/02-architecture.md`.
+3. Không thay đổi API response format, error codes đã định nghĩa trong `docs/04-api-design.md`.
+4. Giữ naming nhất quán theo `docs/03-coding-conventions.md`.
+
+---
+
+## Quy tắc tối ưu token (áp dụng xuyên suốt)
+
+1. Dùng `grep`/`search` tìm đúng đoạn cần đọc — không đọc toàn bộ file lớn.
+2. Khi sửa file → dùng replace chính xác đoạn cần sửa, không rewrite toàn file.
+3. Gom nhiều thay đổi nhỏ trong cùng 1 file thành 1 lần sửa duy nhất.
+4. Không liệt kê lại nội dung docs trong response — dùng làm context nội bộ.
+5. Không giải thích code khi không được hỏi — chỉ viết code + comment ngắn inline.
+
+---
+
+## Quy tắc documentation
+
+- **Cập nhật docs** khi: thêm endpoint mới, thêm bảng DB, đổi luồng xử lý chính.
+- **Không cập nhật docs** khi: fix bug nhỏ, refactor nội bộ không đổi interface.
+
+---
 
 ## Khi không chắc chắn
 
-Hỏi thay vì giả định.
+Hỏi thay vì giả định. Đặc biệt khi:
+
+- Không rõ UC nào áp dụng.
+- Có 2+ cách implement và không có convention sẵn.
+- Task yêu cầu thay đổi file docs hoặc cấu trúc thư mục.

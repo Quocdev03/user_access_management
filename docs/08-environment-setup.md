@@ -77,17 +77,21 @@ OTP_MAX_ATTEMPTS=5
 ### Bước 3: Khởi chạy
 
 ```bash
-# Khởi chạy tất cả services (app + mysql + redis)
+# Khởi chạy hạ tầng (MySQL, Redis, Mailpit, v.v) bằng Docker
 docker compose up -d
 
-# Xem logs
-docker compose logs -f app
+# Cài đặt các công cụ phát triển (chỉ cần chạy lần đầu)
+go install github.com/air-verse/air@latest
+go install github.com/swaggo/swag/cmd/swag@latest
+go install -tags 'mysql' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
 
-# Chạy migration
-docker compose exec app make migrate-up
+# Chạy migration để nạp cấu trúc database
+make migrate-up
+# Lưu ý: nếu dùng Windows không có make, chạy:
+# migrate -path migrations -database "mysql://uam_user:uam_password@tcp(127.0.0.1:3306)/uam_db" -verbose up
 
-# Tạo dữ liệu mẫu
-docker compose exec app make seed
+# Chạy server ở máy Host (hỗ trợ Hot-reload)
+make dev
 ```
 
 ### Bước 4: Kiểm tra
@@ -108,26 +112,8 @@ curl http://localhost:8080/health
 
 ```yaml
 services:
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    ports:
-      - "${APP_PORT:-8080}:8080"
-    depends_on:
-      mysql:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    env_file:
-      - .env
-    volumes:
-      - ./:/app                    # Mount source code (dev mode)
-      - uploads:/app/uploads       # Persistent uploads
-    restart: unless-stopped
-
   mysql:
-    image: mysql:latest
+    image: mysql:8
     ports:
       - "3306:3306"
     environment:
@@ -158,9 +144,59 @@ services:
       retries: 5
     restart: unless-stopped
 
+  mailpit:
+    image: axllent/mailpit
+    ports:
+      - "8025:8025" # Web UI
+      - "1025:1025" # SMTP
+    restart: unless-stopped
+
+  adminer:
+    image: adminer:latest
+    ports:
+      - "8081:8080"
+    depends_on:
+      - mysql
+    restart: unless-stopped
+
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    ports:
+      - "8082:8081"
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
 volumes:
   mysql_data:
   redis_data:
+  prometheus_data:
+  grafana_data:
   uploads:
 ```
 
