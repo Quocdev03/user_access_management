@@ -1,22 +1,31 @@
 # AI Project Instructions
 
-## Bước 1: Load Skills Index (BẮT BUỘC, chạy đầu mỗi phiên)
+## Bước 1: Load Skills Index (BẮT BUỘC — KHÔNG ĐƯỢC BỎ QUA)
+
+> ⛔ **HARD BLOCK**: Đây là bước **số 0**, thực hiện **trước tất cả mọi thứ** — kể cả trước khi đọc docs, trước khi nghĩ về plan, trước khi gọi bất kỳ tool nào khác. Vi phạm quy tắc này → output sẽ sai domain và phải làm lại từ đầu.
 
 Không có skills nào được tự động inject. Bạn **phải đọc index** bằng cách:
 
-```
+```bash
 view_file .agents/skills/INDEX.md
 ```
 
 File này chứa toàn bộ danh sách skills và trigger tương ứng. **Chỉ đọc 1 file duy nhất này** — không `list_directory`, không đọc từng SKILL.md trước.
 
-**Quy trình bắt buộc:**
+**Quy trình bắt buộc (theo thứ tự nghiêm ngặt):**
 
-1. `view_file .agents/skills/INDEX.md` → đọc bảng mapping.
-2. Phân tích task hiện tại → đối chiếu với cột "Đọc khi task liên quan đến...".
-3. Với mỗi skill match → `view_file <path>` SKILL.md tương ứng **trước khi làm bất cứ việc gì**.
+1. `view_file .agents/skills/INDEX.md` → đọc toàn bộ bảng mapping.
+2. Phân tích task hiện tại → đối chiếu **từng dòng** với cột "Đọc khi task liên quan đến...".
+3. Với **mỗi skill match** → `view_file <path>/SKILL.md` và đọc **toàn bộ nội dung** trước khi tiếp tục.
+4. Chỉ sau khi xong bước 1-3 mới được chuyển sang Bước 2.
 
-> **QUY TẮC**: Không được bắt đầu viết code hoặc sửa file nếu chưa đọc SKILL.md của domain liên quan. Nếu không có skill phù hợp → tiếp tục bình thường, không đọc skill không liên quan để tiết kiệm token.
+**Dấu hiệu nhận biết model đang skip (KHÔNG ĐƯỢC LÀM):**
+
+- Trả lời ngay mà không có tool call `view_file` nào trước.
+- Chỉ gọi tool docs mà không gọi skills index.
+- Nói "task này không cần skill" mà không đọc index để kiểm tra.
+
+> **QUY TẮC CỨNG**: Nếu không có skill phù hợp sau khi đọc index → tiếp tục bình thường, **nhưng vẫn phải đọc index trước**. Không được skip bước đọc index dù task có vẻ đơn giản.
 
 ---
 
@@ -88,6 +97,7 @@ grep -r "<TênEntity>" internal/ --include="*.go" -l
 3. Gom nhiều thay đổi nhỏ trong cùng 1 file thành 1 lần sửa duy nhất.
 4. Không liệt kê lại nội dung docs trong response — dùng làm context nội bộ.
 5. Không giải thích code khi không được hỏi — chỉ viết code + comment ngắn inline.
+6. **Không được ngắt nội dung giữa chừng**. Nếu code block hoặc nội dung response quá dài, phải dùng tool `write_to_file` / `replace_file_content` để áp thẳng vào file — không cắt rồi đẩy lên chat từng phần.
 
 ---
 
@@ -95,6 +105,32 @@ grep -r "<TênEntity>" internal/ --include="*.go" -l
 
 - **Cập nhật docs** khi: thêm endpoint mới, thêm bảng DB, đổi luồng xử lý chính.
 - **Không cập nhật docs** khi: fix bug nhỏ, refactor nội bộ không đổi interface.
+
+### Cập nhật PROGRESS.md (BẮT BUỘC)
+
+File `PROGRESS.md` là nhật ký tiến độ dự án, **phải được cập nhật sau mỗi task hoàn thành**:
+
+- **Cập nhật khi**: hoàn thành UC mới, tạo file mới, sửa API/DB, fix bug quan trọng.
+- **Không cập nhật khi**: fix typo, sửa comment, thay đổi không ảnh hưởng behavior.
+
+**Format cập nhật:**
+1. Chuyển UC từ bảng `🚧 Chưa làm` → `✅ Đã hoàn thành`.
+2. Thêm file mới vào bảng tương ứng trong phần đã hoàn thành.
+3. Ghi ngắn gọn: tên file, method/logic chính — **không viết dài**.
+
+> **QUY TẮC CỨNG**: Nếu một task tạo hoặc sửa ít nhất 1 file Go/SQL, bắt buộc cập nhật `PROGRESS.md` trước khi kết thúc turn.
+
+---
+
+## Quy tắc output đầy đủ — chống truncate
+
+> **ÁP DỤNG BẮT BUỘC cho mọi model.**
+
+1. **Không được viết code rồi để "..." hoặc "// rest of code"** trong bất kỳ hoàn cảnh nào.
+2. Nếu nội dung code dài → **dùng tool ghi thẳng vào file**, không paste lên chat.
+3. Nếu cần giải thích + code trong cùng 1 response → giải thích ngắn trước, ghi code vào file sau bằng tool.
+4. Không chia code thành nhiều phần "Phần 1... Phần 2..." — gom thành 1 lần ghi file duy nhất.
+5. Sau mỗi lần ghi file, chạy `go build ./...` để xác nhận không có lỗi compile — báo kết quả cho user.
 
 ---
 

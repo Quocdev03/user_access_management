@@ -7,12 +7,23 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
+	"github.com/quocdev03/user-access-management/internal/handler"
+	"github.com/quocdev03/user-access-management/internal/repository"
+	"github.com/quocdev03/user-access-management/internal/service"
 	"github.com/redis/go-redis/v9"
+	"go.uber.org/zap"
 )
 
 // Setup creates and configures the Gin engine with all routes
-func Setup(db *sqlx.DB, redisClient *redis.Client) *gin.Engine {
+func Setup(db *sqlx.DB, redisClient *redis.Client, logger *zap.Logger) *gin.Engine {
 	r := gin.Default()
+
+	// Khởi tạo các dependencies cho Auth
+	userRepo := repository.NewUserRepository(db)
+	otpRepo := repository.NewOTPRepository(db)
+	roleRepo := repository.NewRoleRepository(db)
+	authService := service.NewAuthService(userRepo, otpRepo, roleRepo, logger)
+	authHandler := handler.NewAuthHandler(authService)
 
 	health := r.Group("/health")
 	{
@@ -36,6 +47,17 @@ func Setup(db *sqlx.DB, redisClient *redis.Client) *gin.Engine {
 			}
 			c.JSON(http.StatusOK, gin.H{"status": "UP", "mysql": "UP", "redis": "UP"})
 		})
+	}
+
+	// Group API v1
+	v1 := r.Group("/api/v1")
+	{
+		auth := v1.Group("/auth")
+		{
+			auth.POST("/register", authHandler.Register)
+			auth.POST("/verify-email", authHandler.VerifyEmail)
+			auth.POST("/login", authHandler.Login)
+		}
 	}
 
 	return r

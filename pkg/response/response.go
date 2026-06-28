@@ -10,10 +10,10 @@ import (
 
 // Response format chuẩn
 type Response struct {
-	Success bool        `json:"success"`
-	Message string      `json:"message,omitempty"`
 	Data    interface{} `json:"data,omitempty"`
 	Error   interface{} `json:"error,omitempty"`
+	Message string      `json:"message,omitempty"`
+	Success bool        `json:"success"`
 }
 
 // Success returns a standardized success response
