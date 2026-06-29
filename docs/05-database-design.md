@@ -2,7 +2,7 @@
 
 ## 1. Tổng quan
 
-Hệ thống sử dụng **MySQL 8** làm cơ sở dữ liệu chính, **Redis** làm cache và session store. Quản lý migration bằng **golang-migrate**.
+Hệ thống sử dụng **MySQL 8** làm cơ sở dữ liệu chính (bao gồm lưu trữ session phiên đăng nhập), **Redis** làm cache và lưu trữ danh sách thu hồi token (blacklist). Quản lý migration bằng **golang-migrate**.
 
 ---
 
@@ -21,7 +21,7 @@ erDiagram
     users ||--o{ password_reset_tokens : "yêu cầu"
 
     users {
-        bigint unsigned id PK
+        bigint id PK
         varchar username UK
         varchar email UK
         varchar password_hash
@@ -32,32 +32,32 @@ erDiagram
         enum status "active/inactive/locked"
         boolean email_verified
         int failed_login_attempts
-        timestamp locked_until
-        timestamp last_login_at
-        timestamp created_at
-        timestamp updated_at
+        datetime locked_until
+        datetime last_login_at
+        datetime created_at
+        datetime updated_at
     }
 
     roles {
-        bigint unsigned id PK
+        bigint id PK
         varchar name UK
         varchar description
-        timestamp created_at
-        timestamp updated_at
+        datetime created_at
+        datetime updated_at
     }
 
     permissions {
-        bigint unsigned id PK
+        bigint id PK
         varchar name UK
         varchar description
         varchar resource
         varchar action
-        timestamp created_at
+        datetime created_at
     }
 
     user_roles {
-        bigint unsigned id PK
-        bigint unsigned user_id FK
+        bigint id PK
+        bigint user_id FK
         bigint unsigned role_id FK
         timestamp assigned_at
     }
@@ -141,9 +141,9 @@ erDiagram
 | `email` | VARCHAR(255) | UNIQUE, NOT NULL | Email |
 | `password_hash` | VARCHAR(255) | NOT NULL | Mật khẩu đã mã hóa (bcrypt) |
 | `full_name` | VARCHAR(100) | | Họ tên đầy đủ |
-| `phone` | VARCHAR(20) | | Số điện thoại |
+| `phone` | VARCHAR(20) | NOT NULL | Số điện thoại |
 | `avatar_url` | VARCHAR(500) | | Đường dẫn ảnh đại diện |
-| `date_of_birth` | DATE | NULL | Ngày tháng năm sinh |
+| `date_of_birth` | DATE | NOT NULL | Ngày tháng năm sinh |
 | `status` | ENUM('active','inactive','locked') | DEFAULT 'inactive' | Trạng thái tài khoản |
 | `email_verified` | BOOLEAN | DEFAULT FALSE | Đã xác thực email chưa |
 | `failed_login_attempts` | TINYINT UNSIGNED | DEFAULT 0 | Số lần đăng nhập thất bại liên tiếp |
@@ -305,16 +305,11 @@ CREATE INDEX idx_audit_logs_resource ON audit_logs(resource, resource_id);
 
 ## 5. Redis — Dữ liệu lưu trữ
 
-Redis không lưu dữ liệu lâu dài. Chỉ dùng cho cache và dữ liệu tạm:
+Redis không lưu dữ liệu lâu dài. Chỉ dùng cho việc lưu trữ tạm thời các token đã bị thu hồi (blacklist):
 
 | Key Pattern | Kiểu | TTL | Mô tả |
 |-------------|------|-----|-------|
-| `session:{user_id}:{token_hash}` | String | 15 phút | Access token session |
-| `refresh:{user_id}:{refresh_hash}` | String | 7 ngày | Refresh token |
-| `user_sessions:{user_id}` | Set | 7 ngày | Tập hợp session IDs của user |
-| `rate_limit:{ip}:{endpoint}` | String (counter) | 1 phút | Đếm số request cho rate limiting |
-| `otp:{user_id}:{type}` | String | 5 phút | Cache OTP đang active |
-| `blacklist:{token_hash}` | String | Bằng TTL token gốc | Token đã bị revoke |
+| `blacklist:{jti}` | String | Bằng TTL còn lại của access token gốc | Access token ID (JTI) đã bị revoke khi người dùng logout |
 
 ---
 

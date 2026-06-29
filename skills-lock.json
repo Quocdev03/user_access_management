@@ -55,6 +55,12 @@
       "skillPath": "skills/golang-design-patterns/SKILL.md",
       "computedHash": "9f54891f8736a7e35905ec1cf8dc5a6a95b50596b89c4693570db7c70929c753"
     },
+    "golang-documentation": {
+      "source": "samber/cc-skills-golang",
+      "sourceType": "github",
+      "skillPath": "skills/golang-documentation/SKILL.md",
+      "computedHash": "d1600160c279219d78b0838b800d351ad656fabe13702ba61187eff584c51790"
+    },
     "golang-modernize": {
       "source": "samber/cc-skills-golang",
       "sourceType": "github",

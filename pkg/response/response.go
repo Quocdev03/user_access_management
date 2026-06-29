@@ -16,7 +16,7 @@ type Response struct {
 	Success bool        `json:"success"`
 }
 
-// Success returns a standardized success response
+// Success trả về dữ liệu response thành công theo định dạng chuẩn hóa
 func Success(c *gin.Context, statusCode int, message string, data interface{}) {
 	c.JSON(statusCode, Response{
 		Success: true,
@@ -25,7 +25,7 @@ func Success(c *gin.Context, statusCode int, message string, data interface{}) {
 	})
 }
 
-// Error handles application errors and formats them properly
+// Error xử lý các lỗi ứng dụng và định dạng chúng phù hợp theo chuẩn hóa
 func Error(c *gin.Context, err error) {
 	var appErr *apperror.AppError
 	if errors.As(err, &appErr) {
@@ -39,18 +39,18 @@ func Error(c *gin.Context, err error) {
 		return
 	}
 
-	// Fallback for unhandled internal errors
+	// Xử lý mặc định (Fallback) cho các lỗi nội bộ hệ thống chưa được phân loại
 	c.JSON(http.StatusInternalServerError, Response{
 		Success: false,
 		Error: gin.H{
 			"code":    "INTERNAL_SERVER_ERROR",
 			"message": "Đã xảy ra lỗi hệ thống",
-			"details": err.Error(), // In production, consider hiding details based on env
+			"details": err.Error(), // Trong môi trường production, có thể cân nhắc ẩn chi tiết này dựa trên cấu hình môi trường
 		},
 	})
 }
 
-// ValidationError handles request validation errors specifically
+// ValidationError xử lý riêng các lỗi kiểm tra tính hợp lệ dữ liệu đầu vào (Validation)
 func ValidationError(c *gin.Context, err error) {
 	c.JSON(http.StatusBadRequest, Response{
 		Success: false,

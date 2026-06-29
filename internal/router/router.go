@@ -7,23 +7,29 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
+	"github.com/quocdev03/user-access-management/internal/config"
 	"github.com/quocdev03/user-access-management/internal/handler"
+	"github.com/quocdev03/user-access-management/internal/middleware"
 	"github.com/quocdev03/user-access-management/internal/repository"
 	"github.com/quocdev03/user-access-management/internal/service"
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 )
 
-// Setup creates and configures the Gin engine with all routes
-func Setup(db *sqlx.DB, redisClient *redis.Client, logger *zap.Logger) *gin.Engine {
+// Setup khởi tạo và cấu hình bộ định tuyến (Gin engine) cùng toàn bộ các routes của hệ thống
+func Setup(db *sqlx.DB, redisClient *redis.Client, logger *zap.Logger, cfg *config.Config) *gin.Engine {
 	r := gin.Default()
 
 	// Khởi tạo các dependencies cho Auth
 	userRepo := repository.NewUserRepository(db)
 	otpRepo := repository.NewOTPRepository(db)
 	roleRepo := repository.NewRoleRepository(db)
-	authService := service.NewAuthService(userRepo, otpRepo, roleRepo, logger)
+	sessionRepo := repository.NewSessionRepository(db, redisClient)
+	
+	authService := service.NewAuthService(userRepo, otpRepo, roleRepo, sessionRepo, cfg, logger)
 	authHandler := handler.NewAuthHandler(authService)
+
+	authMiddleware := middleware.AuthMiddleware(cfg, sessionRepo, logger)
 
 	health := r.Group("/health")
 	{
@@ -57,8 +63,11 @@ func Setup(db *sqlx.DB, redisClient *redis.Client, logger *zap.Logger) *gin.Engi
 			auth.POST("/register", authHandler.Register)
 			auth.POST("/verify-email", authHandler.VerifyEmail)
 			auth.POST("/login", authHandler.Login)
+			auth.POST("/refresh-token", authHandler.RefreshToken)
+			auth.POST("/logout", authMiddleware, authHandler.Logout)
 		}
 	}
 
 	return r
 }
+

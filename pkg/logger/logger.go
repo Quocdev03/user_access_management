@@ -5,7 +5,7 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-// New creates a new zap.Logger based on the environment
+// New khởi tạo cấu hình zap.Logger tương ứng dựa trên môi trường chạy (development / production)
 func New(env string) (*zap.Logger, error) {
 	var config zap.Config
 

@@ -14,7 +14,7 @@ Hệ thống UAM bao gồm **39 Use Cases** chia thành **6 nhóm** chức năng
 - **Mô tả**: Người dùng tạo tài khoản bằng username, email và mật khẩu.
 - **Endpoint**: `POST /api/v1/auth/register`
 - **Luồng chính**:
-  1. Người dùng nhập username, email, mật khẩu, họ tên.
+  1. Người dùng nhập username, email, mật khẩu, họ tên, số điện thoại, ngày sinh.
   2. Hệ thống validate dữ liệu (email hợp lệ, mật khẩu đủ mạnh, username/email chưa tồn tại).
   3. Hệ thống tạo tài khoản với trạng thái `inactive`.
   4. Gán role mặc định `user`.

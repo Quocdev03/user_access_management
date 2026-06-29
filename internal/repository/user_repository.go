@@ -33,8 +33,8 @@ func NewUserRepository(db *sqlx.DB) UserRepository {
 
 // Tạo user mới
 func (r *userRepository) Create(ctx context.Context, user *model.User) error {
-	query := `INSERT INTO users (username, email, password_hash, full_name, status, email_verified, created_at, updated_at)
-		VALUES (:username, :email, :password_hash, :full_name, :status, :email_verified, NOW(), NOW())`
+	query := `INSERT INTO users (username, email, password_hash, full_name, phone, date_of_birth, status, email_verified, created_at, updated_at)
+		VALUES (:username, :email, :password_hash, :full_name, :phone, :date_of_birth, :status, :email_verified, NOW(), NOW())`
 	result, err := r.db.NamedExecContext(ctx, query, user)
 	if err != nil {
 		return err

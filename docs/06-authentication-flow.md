@@ -98,7 +98,7 @@ sequenceDiagram
 
 ```json
 {
-  "sub": "1",
+  "sub": 1,
   "username": "nguyenvana",
   "email": "nguyenvana@example.com",
   "roles": ["user"],
@@ -109,7 +109,7 @@ sequenceDiagram
 
 | Claim | Mô tả |
 |-------|-------|
-| `sub` | User ID (string) |
+| `sub` | User ID (uint64) |
 | `username` | Tên đăng nhập |
 | `email` | Email |
 | `roles` | Danh sách vai trò |
@@ -131,31 +131,24 @@ sequenceDiagram
 sequenceDiagram
     participant U as Client
     participant S as Server
-    participant R as Redis
+    participant DB as MySQL
 
-    U->>S: POST /auth/refresh (refresh_token)
-    S->>R: Kiểm tra refresh token
-    R-->>S: Token hợp lệ, chưa bị revoke
+    U->>S: POST /auth/refresh-token (refresh_token)
+    S->>S: Parse & Validate JWT signature
+    S->>DB: Tìm session theo hash của refresh_token
+    DB-->>S: Session hợp lệ, chưa hết hạn
 
     S->>S: Sinh Access Token mới
     S->>S: Sinh Refresh Token mới (rotation)
-    S->>R: Lưu session mới
-    S->>R: Vô hiệu refresh token cũ
-    S-->>U: 200 - {access_token, refresh_token, expires_in}
-
-    Note over U,R: Nếu refresh token cũ bị tái sử dụng:
-
-    U->>S: POST /auth/refresh (refresh_token_cũ_đã_dùng)
-    S->>R: Phát hiện token đã bị sử dụng
-    S->>R: REVOKE tất cả session của user
-    S-->>U: 401 - TOKEN_INVALID (nghi bị đánh cắp)
+    S->>DB: UPDATE session hiện tại với các hash mới và expires_at mới
+    S-->>U: 200 - {access_token, refresh_token}
 ```
 
 ### Refresh Token Rotation
 
-- Mỗi lần refresh → tạo refresh token mới, token cũ bị vô hiệu ngay lập tức.
-- Nếu token cũ bị tái sử dụng → dấu hiệu token bị đánh cắp → revoke toàn bộ session.
-- Đảm bảo mỗi refresh token chỉ dùng được **1 lần duy nhất**.
+- Mỗi lần refresh → tạo access & refresh token mới, cập nhật trực tiếp session cũ trong MySQL bằng query UPDATE (chuyển đổi nguyên tử).
+- Nếu refresh token bị sử dụng trái phép hoặc bị thu hồi (không tìm thấy session nào khớp), server trả về lỗi `ERR_REFRESH_INVALID` (401).
+- Đảm bảo tính toàn vẹn dữ liệu (ACID) bằng cơ chế cập nhật trực tiếp thay vì xóa rồi tạo mới.
 
 ---
 
@@ -308,6 +301,6 @@ flowchart TD
 | Biện pháp | Mô tả |
 |-----------|-------|
 | Hash token trước khi lưu DB | Dùng SHA-256, không lưu token plaintext |
-| Refresh Token Rotation | Token cũ bị vô hiệu ngay sau khi dùng |
+| Refresh Token Rotation | Token cũ bị vô hiệu ngay sau khi dùng bằng câu lệnh UPDATE |
 | Blacklist khi logout | Token bị blacklist trong Redis đến khi hết hạn |
-| Phát hiện tái sử dụng | Revoke toàn bộ session nếu token cũ bị dùng lại |
+| Redis Fail-Open | Nếu Redis sập, hệ thống ghi log warning/error và bỏ qua kiểm tra blacklist (vẫn cho phép request đi qua nếu chữ ký JWT hợp lệ) |

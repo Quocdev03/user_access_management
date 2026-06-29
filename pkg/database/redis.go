@@ -9,12 +9,12 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-// ConnectRedis initializes a connection to Redis
+// ConnectRedis khởi tạo một kết nối tới máy chủ cơ sở dữ liệu Redis
 func ConnectRedis(cfg config.RedisConfig) (*redis.Client, error) {
 	client := redis.NewClient(&redis.Options{
 		Addr:     fmt.Sprintf("%s:%s", cfg.Host, cfg.Port),
-		Password: cfg.Password, // no password set
-		DB:       0,            // use default DB
+		Password: cfg.Password, // mật khẩu kết nối Redis (nếu có)
+		DB:       0,            // sử dụng cơ sở dữ liệu mặc định (DB 0)
 		PoolSize: 100,
 	})
 

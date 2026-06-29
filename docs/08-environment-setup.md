@@ -87,12 +87,14 @@ go install -tags 'mysql' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
 
 # Chạy migration để nạp cấu trúc database
 make migrate-up
-# Lưu ý: nếu dùng Windows không có make, chạy:
-# migrate -path migrations -database "mysql://uam_user:uam_password@tcp(127.0.0.1:3306)/uam_db" -verbose up
+# Lưu ý: Nếu dùng Windows (CMD/PowerShell), thay chữ `make` bằng `.\make.cmd`
+# Ví dụ: .\make.cmd migrate-up
 
 # Chạy server ở máy Host (hỗ trợ Hot-reload)
 make dev
 ```
+
+> **Lưu ý CSDL:** Adminer và Redis-Commander đã được gỡ khỏi cấu hình mặc định để tối ưu tài nguyên. Bạn nên sử dụng các Desktop App như **DBeaver** (MySQL) và **Redis Insight** (Redis) để quản lý trực tiếp qua port 3306 / 6379.
 
 ### Bước 4: Kiểm tra
 
@@ -103,6 +105,10 @@ curl http://localhost:8080/health
 # Xem Swagger UI
 # Mở trình duyệt: http://localhost:8080/swagger/index.html
 ```
+
+> **Tài khoản Super Admin:** Sau khi chạy `migrate-up` thành công, hệ thống đã tự động tạo tài khoản có quyền Admin cao nhất để bạn test ngay.
+> - Username: `admin_quocdev`
+> - Mật khẩu: `Quocdev@2026`
 
 ---
 
@@ -151,23 +157,7 @@ services:
       - "1025:1025" # SMTP
     restart: unless-stopped
 
-  adminer:
-    image: adminer:latest
-    ports:
-      - "8081:8080"
-    depends_on:
-      - mysql
-    restart: unless-stopped
 
-  redis-commander:
-    image: rediscommander/redis-commander:latest
-    environment:
-      - REDIS_HOSTS=local:redis:6379
-    ports:
-      - "8082:8081"
-    depends_on:
-      - redis
-    restart: unless-stopped
 
   prometheus:
     image: prom/prometheus:latest

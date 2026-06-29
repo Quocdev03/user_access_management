@@ -9,9 +9,9 @@ import (
 	"github.com/quocdev03/user-access-management/internal/config"
 )
 
-// ConnectMySQL initializes a connection pool to MySQL
+// ConnectMySQL khởi tạo một connection pool kết nối tới cơ sở dữ liệu MySQL
 func ConnectMySQL(cfg config.DatabaseConfig) (*sqlx.DB, error) {
-	// DSN format: username:password@protocol(address)/dbname?param=value
+	// Định dạng DSN: username:password@protocol(address)/dbname?param=value
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=UTC&timeout=10s",
 		cfg.User,
 		cfg.Password,
@@ -25,7 +25,7 @@ func ConnectMySQL(cfg config.DatabaseConfig) (*sqlx.DB, error) {
 		return nil, fmt.Errorf("failed to connect to MySQL: %w", err)
 	}
 
-	// Recommended connection pool settings for Go
+	// Thiết lập cấu hình connection pool khuyến nghị cho Go
 	db.SetMaxOpenConns(25)
 	db.SetMaxIdleConns(10)
 	db.SetConnMaxLifetime(5 * time.Minute)

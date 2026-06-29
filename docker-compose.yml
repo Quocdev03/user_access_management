@@ -38,23 +38,6 @@ services:
       - "1025:1025" # SMTP
     restart: unless-stopped
 
-  adminer:
-    image: adminer:latest
-    ports:
-      - "8081:8080"
-    depends_on:
-      - mysql
-    restart: unless-stopped
-
-  redis-commander:
-    image: rediscommander/redis-commander:latest
-    environment:
-      - REDIS_HOSTS=local:redis:6379
-    ports:
-      - "8082:8081"
-    depends_on:
-      - redis
-    restart: unless-stopped
 
   prometheus:
     image: prom/prometheus:latest

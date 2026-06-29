@@ -31,7 +31,7 @@ func main() {
 		log.Fatalf("Failed to initialize logger: %v", err)
 	}
 	defer logr.Sync()
-	
+
 	zap.ReplaceGlobals(logr) // Replace global zap logger
 
 	logr.Info("Starting User Access Management Service...", zap.String("env", cfg.App.Env))
@@ -56,7 +56,7 @@ func main() {
 	if cfg.App.Env == "production" {
 		gin.SetMode(gin.ReleaseMode)
 	}
-	r := router.Setup(db, redisClient, logr)
+	r := router.Setup(db, redisClient, logr, cfg)
 
 	// 6. Start HTTP Server with Graceful Shutdown
 	srv := &http.Server{
@@ -77,7 +77,7 @@ func main() {
 	<-quit
 	logr.Info("Shutting down server...")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
 	if err := srv.Shutdown(ctx); err != nil {

@@ -59,20 +59,20 @@ type SecurityConfig struct {
 	OTPMaxAttempts    int
 }
 
-// Load reads configuration from file or environment variables.
+// Load đọc cấu hình từ file .env hoặc từ các biến môi trường
 func Load(path string) (*Config, error) {
 	viper.AddConfigPath(path)
 	viper.SetConfigFile(path + "/.env")
 
 	viper.AutomaticEnv()
-	// Replace dot with underscore for env variables if needed, though with .env file it maps directly.
+	// Thay thế dấu chấm bằng dấu gạch dưới cho biến môi trường nếu cần thiết
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
 			return nil, fmt.Errorf("failed to read config file: %w", err)
 		}
-		// If file not found, we rely completely on environment variables.
+		// Nếu không tìm thấy file config .env, hệ thống sẽ sử dụng hoàn toàn các biến môi trường của hệ điều hành
 	}
 
 	cfg := &Config{

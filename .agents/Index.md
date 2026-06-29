@@ -12,6 +12,7 @@
 | `golang-dependency-injection`  | wire, DI container, constructor injection, provider, interface binding             | `.agents/skills/golang-dependency-injection/SKILL.md`  |
 | `golang-dependency-management` | go.mod, go.sum, `go get`, vendor, module version, upgrade package                  | `.agents/skills/golang-dependency-management/SKILL.md` |
 | `golang-design-patterns`       | repository pattern, factory, singleton, middleware chain, clean architecture       | `.agents/skills/golang-design-patterns/SKILL.md`       |
+| `golang-documentation`         | Viết hoặc review tài liệu, doc comments, godoc, README, CHANGELOG, API docs, llms.txt | `.agents/skills/golang-documentation/SKILL.md`         |
 | `golang-modernize`             | refactor legacy code, upgrade Go version, replace deprecated API, idiomatic Go     | `.agents/skills/golang-modernize/SKILL.md`             |
 | `golang-performance`           | profiling, pprof, benchmark, memory leak, allocation, optimize query               | `.agents/skills/golang-performance/SKILL.md`           |
 | `golang-project-layout`        | cấu trúc thư mục, `internal/`, `pkg/`, `cmd/`, tạo file mới, đặt file đúng chỗ     | `.agents/skills/golang-project-layout/SKILL.md`        |
