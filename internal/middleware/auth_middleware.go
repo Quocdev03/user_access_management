@@ -14,27 +14,23 @@ import (
 	"go.uber.org/zap"
 )
 
-// AuthMiddleware kiểm tra và xác thực access token của người dùng trên các route yêu cầu bảo mật
-func AuthMiddleware(cfg *config.Config, sessionRepo repository.SessionRepository, logger *zap.Logger) gin.HandlerFunc {
+func AuthMiddleware(cfg *config.Config, sessionRepo *repository.SessionRepository, logger *zap.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Lấy Authorization header từ request
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
-			response.Error(c, apperror.NewAppError("ERR_UNAUTHORIZED", "Thiếu header ủy quyền (Authorization header)", http.StatusUnauthorized))
+			response.Error(c, apperror.ErrMissingAuthHeader)
 			c.Abort()
 			return
 		}
 
-		// Định dạng token phải là: Bearer <token>
 		parts := strings.SplitN(authHeader, " ", 2)
 		if !(len(parts) == 2 && parts[0] == "Bearer") {
-			response.Error(c, apperror.NewAppError("ERR_INVALID_TOKEN", "Định dạng header ủy quyền không hợp lệ", http.StatusUnauthorized))
+			response.Error(c, apperror.ErrInvalidAuthHeader)
 			c.Abort()
 			return
 		}
 
 		tokenStr := parts[1]
-		// Phân tích cú pháp và xác thực chữ ký token
 		claims, err := jwt.ParseToken(tokenStr, cfg.JWT.Secret)
 		if err != nil {
 			errCode := "ERR_INVALID_TOKEN"
@@ -48,25 +44,30 @@ func AuthMiddleware(cfg *config.Config, sessionRepo repository.SessionRepository
 			return
 		}
 
-		// Kiểm tra loại token (phải là access token)
 		if claims.Type != "access" {
-			response.Error(c, apperror.NewAppError("ERR_INVALID_TOKEN", "Mã xác thực không phải là access token", http.StatusUnauthorized))
+			response.Error(c, apperror.ErrNotAccessToken)
 			c.Abort()
 			return
 		}
 
-		// Kiểm tra danh sách thu hồi token (blacklist) trên Redis. Áp dụng cơ chế Fail-Open
 		blacklisted, err := sessionRepo.IsBlacklisted(c.Request.Context(), claims.ID)
 		if err != nil {
-			// Fail-Open: Ghi nhận cảnh báo khi Redis lỗi nhưng không chặn người dùng hợp lệ
 			logger.Error("Lỗi kết nối Redis khi check blacklist, bỏ qua kiểm tra", zap.Error(err), zap.String("jti", claims.ID))
 		} else if blacklisted {
-			response.Error(c, apperror.NewAppError("ERR_TOKEN_REVOKED", "Mã token xác thực đã bị thu hồi", http.StatusUnauthorized))
+			response.Error(c, apperror.ErrTokenRevoked)
 			c.Abort()
 			return
 		}
 
-		// Lưu trữ các thông tin hữu ích vào context của request cho các handler phía sau sử dụng
+		revokedEpoch, err := sessionRepo.GetUserRevokedEpoch(c.Request.Context(), claims.UserID)
+		if err == nil && revokedEpoch > 0 {
+			if claims.IssuedAt.Unix() <= revokedEpoch {
+				response.Error(c, apperror.ErrSessionRevokedGlobal)
+				c.Abort()
+				return
+			}
+		}
+
 		c.Set("userID", claims.UserID)
 		c.Set("jti", claims.ID)
 		c.Set("token", tokenStr)

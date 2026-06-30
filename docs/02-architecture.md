@@ -25,8 +25,7 @@ graph TB
     end
 
     subgraph "Tầng 3 — Repository (Data Access)"
-        R[Repository Interface]
-        RI[Repository Implementation]
+        R[Repository Implementation]
     end
 
     subgraph "Tầng 4 — Infrastructure"
@@ -36,10 +35,9 @@ graph TB
     end
 
     H -->|request/response DTO| S
-    S -->|gọi qua interface| R
-    R -.->|implement| RI
-    RI --> DB
-    RI --> RD
+    S -->|gọi qua struct| R
+    R --> DB
+    R --> RD
     S --> SM
 ```
 
@@ -49,7 +47,7 @@ graph TB
 |------|-----------|-------------|
 | **Handler** | HTTP Controller, Middleware | Nhận request, validate input, gọi Service, trả response |
 | **Service** | Business Logic, Use Case | Xử lý nghiệp vụ, orchestrate giữa các Repository |
-| **Repository** | Interface + Implementation | Truy xuất và thao tác dữ liệu (MySQL, Redis) |
+| **Repository** | Implementation | Truy xuất và thao tác dữ liệu (MySQL, Redis) |
 | **Infrastructure** | Database, Cache, Mail | Hạ tầng kỹ thuật bên ngoài |
 
 ---
@@ -127,11 +125,11 @@ user_access_management/
 │   │   ├── session_repository.go
 │   │   └── audit_repository.go
 │   ├── model/                      # Entity / Domain Model
-│   │   ├── user.go
-│   │   ├── role.go
-│   │   ├── permission.go
-│   │   ├── session.go
-│   │   └── audit_log.go
+│   │   ├── user_model.go
+│   │   ├── role_model.go
+│   │   ├── permission_model.go
+│   │   ├── session_model.go
+│   │   └── audit_log_model.go
 │   ├── dto/                        # Data Transfer Objects (Request/Response)
 │   │   ├── auth_dto.go
 │   │   ├── user_dto.go
@@ -145,6 +143,8 @@ user_access_management/
 │       └── config.go
 ├── pkg/                            # Shared utilities (có thể tái sử dụng)
 │   ├── response/                   # Response format chuẩn
+│   ├── apperror/                   # Tập trung định nghĩa lỗi (Errors)
+│   ├── database/                   # Quản lý Connection pool và Transaction Manager
 │   ├── validator/                  # Custom validators
 │   ├── jwt/                        # JWT helper
 │   ├── hash/                       # bcrypt helper
@@ -167,7 +167,7 @@ user_access_management/
 |---------|--------|
 | `cmd/server/` | Entry point — khởi tạo dependency injection, cấu hình router, start HTTP server |
 | `internal/handler/` | Nhận HTTP request, validate, gọi service, trả JSON response |
-| `internal/service/` | Chứa toàn bộ business logic, gọi repository qua interface |
+| `internal/service/` | Chứa toàn bộ business logic, gọi repository qua con trỏ struct |
 | `internal/repository/` | Thao tác database (MySQL) và cache (Redis) |
 | `internal/model/` | Định nghĩa entity/domain model tương ứng với bảng database |
 | `internal/dto/` | Định nghĩa cấu trúc request/response, tách biệt với model |
@@ -183,25 +183,27 @@ user_access_management/
 Tất cả dependency được khởi tạo tại `cmd/server/main.go` và inject qua constructor:
 
 ```
-main.go
+main.go (qua router.Setup)
   ├── config.Load()
-  ├── db.Connect()          → *sql.DB
+  ├── db.Connect()          → *sqlx.DB
   ├── redis.Connect()       → *redis.Client
+  ├── NewTxManager(db)      → *database.TxManager
   │
-  ├── NewUserRepository(db)           → UserRepository (interface)
-  ├── NewRoleRepository(db)           → RoleRepository (interface)
-  ├── NewSessionRepository(redis)     → SessionRepository (interface)
+  ├── NewUserRepository(db)           → *repository.UserRepository
+  ├── NewRoleRepository(db)           → *repository.RoleRepository
+  ├── NewSessionRepository(redis)     → *repository.SessionRepository
   │
-  ├── NewAuthService(userRepo, sessionRepo, mailService)   → AuthService
-  ├── NewUserService(userRepo)                              → UserService
-  ├── NewAdminService(userRepo, roleRepo)                   → AdminService
+  ├── NewAuthService(...)             → *service.AuthService
+  ├── NewPasswordService(...)         → *service.PasswordService
+  ├── NewUserService(userRepo)        → *service.UserService
+  ├── NewAdminService(...)            → *service.AdminService
   │
-  ├── NewAuthHandler(authService)     → AuthHandler
-  ├── NewUserHandler(userService)     → UserHandler
-  ├── NewAdminHandler(adminService)   → AdminHandler
+  ├── NewAuthHandler(authSvc, pwdSvc) → *handler.AuthHandler
+  ├── NewUserHandler(userService)     → *handler.UserHandler
+  ├── NewAdminHandler(adminService)   → *handler.AdminHandler
   │
-  └── router.Setup(handlers, middlewares)
-        └── server.Run()
+  └── router.Setup(db, redisClient, logger, cfg)
+        └── srv.ListenAndServe()
 ```
 
-> **Lưu ý**: Không sử dụng DI framework. Inject thủ công qua constructor đảm bảo rõ ràng, dễ debug.
+> **Lưu ý**: Không sử dụng DI framework. Inject thủ công qua constructor bằng con trỏ struct (Concrete Types) đảm bảo rõ ràng, tránh rườm rà (Interface Sprawl) và dễ debug.

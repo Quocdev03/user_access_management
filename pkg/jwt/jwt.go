@@ -18,18 +18,20 @@ var (
 
 // Claims định nghĩa các thông tin payload được lưu trữ trong JWT
 type Claims struct {
-	UserID uint64 `json:"sub"`  // ID của người dùng
-	Type   string `json:"type"` // Loại token: "access" hoặc "refresh"
-	golangjwt.RegisteredClaims   // Các claims chuẩn đăng ký sẵn theo RFC 7519
+	UserID uint64   `json:"sub"`   // ID của người dùng
+	Type   string   `json:"type"`  // Loại token: "access" hoặc "refresh"
+	Roles  []string `json:"roles"` // Danh sách vai trò của người dùng (dành cho RBAC)
+	golangjwt.RegisteredClaims     // Các claims chuẩn đăng ký sẵn theo RFC 7519
 }
 
-// GenerateToken sinh JWT token mới dựa trên ID người dùng, loại token, thời hạn và khóa bí mật
-func GenerateToken(userID uint64, tokenType string, expiry time.Duration, secret string) (string, string, error) {
+// GenerateToken sinh JWT token mới dựa trên ID người dùng, roles, loại token, thời hạn và khóa bí mật
+func GenerateToken(userID uint64, roles []string, tokenType string, expiry time.Duration, secret string) (string, string, error) {
 	jti := uuid.New().String() // Tạo mã ID duy nhất cho token (JTI)
 	now := time.Now()
 	claims := Claims{
 		UserID: userID,
 		Type:   tokenType,
+		Roles:  roles,
 		RegisteredClaims: golangjwt.RegisteredClaims{
 			ID:        jti,
 			ExpiresAt: golangjwt.NewNumericDate(now.Add(expiry)),

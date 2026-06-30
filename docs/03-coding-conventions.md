@@ -10,14 +10,15 @@
 ### File
 
 - Viết thường, dùng dấu gạch dưới: `auth_handler.go`, `user_service.go`, `audit_repository.go`.
+- File trong thư mục model luôn kết thúc bằng `_model.go`: `user_model.go`, `role_model.go`.
+- Không lồng ghép quá sâu tên file (ưu tiên `password_repository.go` thay vì `password_reset_repository.go`).
 - File test: thêm hậu tố `_test.go`: `auth_service_test.go`.
 
 ### Struct & Interface
 
 - PascalCase: `UserService`, `AuthHandler`, `AuditLog`.
-- Interface đặt tên theo hành vi, không thêm tiền tố `I`:
-  - ✅ `UserRepository`, `MailSender`
-  - ❌ `IUserRepository`, `UserRepositoryInterface`
+- **YAGNI (You Aren't Gonna Need It)**: KHÔNG tạo Interface cho Service hay Repository trừ khi có ít nhất 2 implementation thực tế. Sử dụng con trỏ Struct (Concrete Type) để truyền dependency.
+- Nếu cần viết mock cho Unit Test, hãy định nghĩa Interface tại nơi sử dụng (Consumer-driven contract) bên trong file test.
 
 ### Hàm & Method
 
@@ -70,7 +71,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 ### Service (Business Logic)
 
 ```go
-// Chứa toàn bộ business logic, gọi repository qua interface
+// Chứa toàn bộ business logic, gọi repository qua con trỏ struct
 func (s *AuthService) Login(ctx context.Context, req dto.LoginRequest) (*dto.LoginResponse, error) {
     user, err := s.userRepo.FindByEmail(ctx, req.Email)
     if err != nil {
@@ -93,22 +94,15 @@ func (s *AuthService) Login(ctx context.Context, req dto.LoginRequest) (*dto.Log
 
 **Quy tắc Service:**
 - Chứa toàn bộ nghiệp vụ.
-- Gọi repository qua interface (không import implementation).
+- Bắt buộc dùng `database.TxManager` bọc trong `RunInTx` nếu nghiệp vụ ghi/sửa nhiều bảng hoặc nhiều dòng dữ liệu.
+- Gọi repository qua con trỏ struct (không tạo interface thừa).
 - Nhận context.Context ở tham số đầu tiên.
 - Trả error có ý nghĩa (custom error, không dùng string).
 
 ### Repository (Data Access)
 
 ```go
-// Interface
-type UserRepository interface {
-    Create(ctx context.Context, user *model.User) error
-    FindByID(ctx context.Context, id int64) (*model.User, error)
-    FindByEmail(ctx context.Context, email string) (*model.User, error)
-    Update(ctx context.Context, user *model.User) error
-}
 
-// Implementation
 func (r *userRepository) FindByEmail(ctx context.Context, email string) (*model.User, error) {
     var user model.User
     query := "SELECT id, username, email, password_hash, status FROM users WHERE email = ?"
@@ -123,8 +117,9 @@ func (r *userRepository) FindByEmail(ctx context.Context, email string) (*model.
 ```
 
 **Quy tắc Repository:**
-- Định nghĩa interface trong package riêng hoặc cùng package service.
+- Không định nghĩa interface tại tầng Repository. Chỉ dùng struct.
 - Implementation chỉ xử lý data access, không chứa business logic.
+- Dùng `database.GetDB(ctx, r.db)` thay vì `r.db` trực tiếp để hỗ trợ Transaction (Unit of Work).
 - Dùng parameterized queries (chống SQL injection).
 - Trả model/entity, không trả DTO.
 
@@ -205,8 +200,8 @@ type RegisterRequest struct {
 
 | Loại | Tầng | Cách test |
 |------|------|-----------|
-| Unit Test | Service | Mock repository (interface) |
-| Unit Test | Handler | Mock service, dùng `httptest` |
+| Unit Test | Service | Định nghĩa Interface tại file test để mock, hoặc dùng Testcontainer |
+| Unit Test | Handler | Định nghĩa Interface tại file test để mock, dùng `httptest` |
 | Integration Test | Repository | Database thật (test container) |
 | API Test | Toàn bộ | HTTP client gọi API thật |
 
@@ -219,6 +214,9 @@ type RegisterRequest struct {
 
 ```go
 func TestAuthService_Login_Success(t *testing.T) {
+    // Để mock, định nghĩa interface cục bộ tại đây nếu cần thiết
+    // type mockUserRepo interface { ... }
+    
     // Arrange
     mockRepo := &mockUserRepository{...}
     service := NewAuthService(mockRepo)

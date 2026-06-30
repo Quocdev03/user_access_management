@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UAM Premium API Tester</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: "#4f46e5", /* Indigo 600 */
+                        secondary: "#3b82f6", /* Blue 500 */
+                        accent: "#06b6d4", /* Cyan 500 */
+                        dark: "#030712",
+                        glass: "rgba(255, 255, 255, 0.03)",
+                        glassBorder: "rgba(255, 255, 255, 0.08)",
+                    },
+                    animation: {
+                        'blob': "blob 7s infinite",
+                        'fade-in': "fadeIn 0.5s ease-out forwards",
+                    },
+                    keyframes: {
+                        blob: {
+                            "0%": { transform: "translate(0px, 0px) scale(1)" },
+                            "33%": { transform: "translate(30px, -50px) scale(1.1)" },
+                            "66%": { transform: "translate(-20px, 20px) scale(0.9)" },
+                            "100%": { transform: "translate(0px, 0px) scale(1)" },
+                        },
+                        fadeIn: {
+                            "0%": { opacity: "0", transform: "translateY(10px)" },
+                            "100%": { opacity: "1", transform: "translateY(0)" },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #0f172a; /* Nền xám xanh sáng nhẹ hơn (slate-900) */
+            color: #ffffff; /* Trắng tinh cho dễ đọc */
+            overflow-x: hidden;
+        }
+
+        .bg-glow-1 {
+            position: fixed;
+            top: -20%; left: -10%;
+            width: 70vw; height: 70vw;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(99,102,241,0.15) 0%, rgba(0,0,0,0) 70%);
+            z-index: -1;
+            filter: blur(80px);
+        }
+        
+        .bg-glow-2 {
+            position: fixed;
+            bottom: -20%; right: -10%;
+            width: 70vw; height: 70vw;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(236,72,153,0.15) 0%, rgba(0,0,0,0) 70%);
+            z-index: -1;
+            filter: blur(80px);
+            animation-delay: 2s;
+        }
+
+        .glass-card {
+            background: linear-gradient(145deg, rgba(30, 41, 59, 0.4) 0%, rgba(15, 23, 42, 0.4) 100%); /* Sáng hơn một chút so với nền đen */
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 1.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex;
+            flex-direction: column;
+            animation: fadeIn 0.6s ease-out backwards;
+        }
+        
+        .glass-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 30px 60px -12px rgba(168, 85, 247, 0.2);
+        }
+
+        .glass-input {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 0.75rem;
+            padding: 0.85rem 1rem;
+            color: #ffffff;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+        }
+        
+        .glass-input:focus {
+            outline: none;
+            border-color: theme('colors.secondary');
+            background: rgba(0, 0, 0, 0.5);
+            box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.3);
+        }
+
+        .glass-input::placeholder {
+            color: #94a3b8; /* Placeholder sáng hơn (slate-400) */
+        }
+        
+        .glass-input:disabled, .glass-input[readonly] {
+            background: rgba(0, 0, 0, 0.5);
+            color: #cbd5e1; /* Text readonly sáng hơn */
+            cursor: not-allowed;
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .gradient-btn {
+            width: 100%;
+            background: linear-gradient(135deg, theme('colors.primary'), theme('colors.secondary'));
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 0.75rem;
+            padding: 0.75rem 1.5rem;
+            color: #ffffff;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 1.5rem;
+            box-shadow: 0 4px 15px -3px rgba(59, 130, 246, 0.3);
+        }
+        
+        .gradient-btn::before {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: all 0.5s ease;
+        }
+        
+        .gradient-btn:hover {
+            box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.5);
+            transform: translateY(-2px);
+            background: linear-gradient(135deg, #4338ca, #2563eb); /* Đậm hơn khi hover */
+        }
+        
+        .gradient-btn:hover::before {
+            left: 100%;
+        }
+
+        .glass-label {
+            display: block;
+            font-size: 0.85rem; /* Text to hơn */
+            font-weight: 600;
+            color: #e2e8f0; /* Label sáng hơn (slate-200) */
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .method-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.35rem 0.85rem;
+            border-radius: 9999px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            background: rgba(16, 185, 129, 0.15);
+            color: #6ee7b7; /* Xanh ngọc sáng hơn */
+            border: 1px solid rgba(52, 211, 153, 0.3);
+            box-shadow: 0 0 10px rgba(52, 211, 153, 0.15);
+        }
+
+        .auth-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            background: rgba(245, 158, 11, 0.1);
+            color: #fbbf24;
+            border: 1px solid rgba(245, 158, 11, 0.2);
+        }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.3); }
+
+        .response-box {
+            font-family: 'Consolas', monospace;
+            font-size: 0.9rem; /* Text response to hơn */
+            background: rgba(0,0,0,0.7);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 0.75rem;
+            padding: 1.25rem;
+            max-height: 250px;
+            overflow-y: auto;
+            display: none;
+            margin-top: 1.5rem;
+            white-space: pre-wrap;
+            word-break: break-all;
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);
+            color: #f8fafc;
+        }
+        .response-box.success { border-left: 4px solid #34d399; color: #a7f3d0; }
+        .response-box.error { border-left: 4px solid #f87171; color: #fecaca; }
+
+        /* Cascading entrance animation for cards */
+        .glass-card:nth-child(1) { animation-delay: 0.1s; }
+        .glass-card:nth-child(2) { animation-delay: 0.2s; }
+        .glass-card:nth-child(3) { animation-delay: 0.3s; }
+        .glass-card:nth-child(4) { animation-delay: 0.4s; }
+        .glass-card:nth-child(5) { animation-delay: 0.5s; }
+        .glass-card:nth-child(6) { animation-delay: 0.6s; }
+        .glass-card:nth-child(7) { animation-delay: 0.7s; }
+        .glass-card:nth-child(8) { animation-delay: 0.8s; }
+        .glass-card:nth-child(9) { animation-delay: 0.9s; }
+    </style>
+</head>
+<body class="relative min-h-screen">
+    
+    <!-- Animated background glowing orbs -->
+    <div class="bg-glow-1 animate-blob"></div>
+    <div class="bg-glow-2 animate-blob"></div>
+
+    <div class="relative z-10 mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+        
+        <!-- Header -->
+        <div class="mb-16 text-center animate-fade-in">
+            <div class="inline-flex items-center justify-center p-3 mb-4 rounded-2xl bg-white/5 border border-white/10 shadow-xl backdrop-blur-sm">
+                <i data-lucide="shield-check" class="w-10 h-10 text-primary"></i>
+            </div>
+            <h1 class="text-4xl md:text-5xl font-bold tracking-tight mb-4">
+                <span class="text-transparent bg-clip-text bg-gradient-to-r from-primary via-secondary to-accent">User Access Management</span>
+            </h1>
+            <p class="text-lg text-gray-200 font-medium max-w-2xl mx-auto">
+                Premium API Testing Interface v1.0
+            </p>
+        </div>
+
+        <div class="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
+            
+            <!-- Register -->
+            <div class="glass-card">
+                <div class="p-6 border-b border-white/5 flex items-center justify-between">
+                    <h3 class="text-lg font-semibold flex items-center gap-3 text-white">
+                        <i data-lucide="user-plus" class="w-5 h-5 text-primary"></i>
+                        Register
+                    </h3>
+                    <span class="method-badge">POST</span>
+                </div>
+                <div class="p-6 space-y-4 flex-1 flex flex-col">
+                    <div>
+                        <label class="glass-label">Username</label>
+                        <input class="glass-input" id="reg-username" placeholder="johndoe">
+                    </div>
+                    <div>
+                        <label class="glass-label">Email</label>
+                        <input class="glass-input" type="email" id="reg-email" placeholder="user@example.com">
+                    </div>
+                    <div>
+                        <label class="glass-label">Password</label>
+                        <input class="glass-input" type="password" id="reg-password" placeholder="••••••••">
+                    </div>
+                    <div>
+                        <label class="glass-label">Full Name</label>
+                        <input class="glass-input" id="reg-full-name" placeholder="John Doe">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="glass-label">Phone</label>
+                            <input class="glass-input" id="reg-phone" placeholder="0123456789">
+                        </div>
+                        <div>
+                            <label class="glass-label">Date of Birth</label>
+                            <input class="glass-input" type="date" id="reg-dob">
+                        </div>
+                    </div>
+                    <div class="mt-auto">
+                        <button class="gradient-btn" onclick="handleRequest('register', 'POST', '/api/v1/auth/register', {username: getVal('reg-username'), email: getVal('reg-email'), password: getVal('reg-password'), full_name: getVal('reg-full-name'), phone: getVal('reg-phone'), date_of_birth: getVal('reg-dob')})">
+                            <span>Register Account</span>
+                            <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                        </button>
+                        <div id="res-register" class="response-box"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Verify Email -->
+            <div class="glass-card">
+                <div class="p-6 border-b border-white/5 flex items-center justify-between">
+                    <h3 class="text-lg font-semibold flex items-center gap-3 text-white">
+                        <i data-lucide="mail-check" class="w-5 h-5 text-primary"></i>
+                        Verify Email
+                    </h3>
+                    <span class="method-badge">POST</span>
+                </div>
+                <div class="p-6 space-y-4 flex-1 flex flex-col">
+                    <div>
+                        <label class="glass-label">Email</label>
+                        <input class="glass-input" type="email" id="ve-email" placeholder="user@example.com">
+                    </div>
+                    <div>
+                        <label class="glass-label">OTP Code</label>
+                        <input class="glass-input" id="ve-otp" placeholder="123456">
+                    </div>
+                    <div class="mt-auto">
+                        <button class="gradient-btn" onclick="handleRequest('verify-email', 'POST', '/api/v1/auth/verify-email', {email: getVal('ve-email'), otp: getVal('ve-otp')})">
+                            <span>Verify Email</span>
+                        </button>
+                        <div id="res-verify-email" class="response-box"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Resend Verification Email -->
+            <div class="glass-card">
+                <div class="p-6 border-b border-white/5 flex items-center justify-between">
+                    <h3 class="text-lg font-semibold flex items-center gap-3 text-white">
+                        <i data-lucide="send" class="w-5 h-5 text-primary"></i>
+                        Resend OTP
+                    </h3>
+                    <span class="method-badge">POST</span>
+                </div>
+                <div class="p-6 space-y-4 flex-1 flex flex-col">
+                    <div>
+                        <label class="glass-label">Email</label>
+                        <input class="glass-input" type="email" id="rve-email" placeholder="user@example.com">
+                    </div>
+                    <div class="mt-auto">
+                        <button class="gradient-btn" onclick="handleRequest('resend-verify', 'POST', '/api/v1/auth/resend-verification-email', {email: getVal('rve-email')})">
+                            <span>Resend Email</span>
+                        </button>
+                        <div id="res-resend-verify" class="response-box"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Login -->
+            <div class="glass-card md:col-span-2 lg:col-span-1">
+                <div class="p-6 border-b border-white/5 flex items-center justify-between">
+                    <h3 class="text-lg font-semibold flex items-center gap-3 text-white">
+                        <i data-lucide="log-in" class="w-5 h-5 text-secondary"></i>
+                        Login
+                    </h3>
+                    <span class="method-badge">POST</span>
+                </div>
+                <div class="p-6 space-y-4 flex-1 flex flex-col">
+                    <div>
+                        <label class="glass-label">Email</label>
+                        <input class="glass-input" type="email" id="log-email" placeholder="user@example.com">
+                    </div>
+                    <div>
+                        <label class="glass-label">Password</label>
+                        <input class="glass-input" type="password" id="log-password" placeholder="••••••••">
+                    </div>
+                    <button class="gradient-btn" onclick="handleLogin()">
+                        <span>Sign In</span>
+                        <i data-lucide="key-round" class="w-4 h-4"></i>
+                    </button>
+                    <div id="res-login" class="response-box"></div>
+                    
+                    <div class="mt-6 pt-6 border-t border-white/10 space-y-4">
+                        <h4 class="text-sm font-bold text-gray-200 uppercase tracking-wider mb-2">Auto-filled Tokens</h4>
+                        <div>
+                            <label class="glass-label">Access Token</label>
+                            <input class="glass-input" id="log-access-token" readonly>
+                        </div>
+                        <div>
+                            <label class="glass-label">Refresh Token</label>
+                            <input class="glass-input" id="log-refresh-token" readonly>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Refresh Token -->
+            <div class="glass-card md:col-span-2 lg:col-span-1">
+                <div class="p-6 border-b border-white/5 flex items-center justify-between">
+                    <h3 class="text-lg font-semibold flex items-center gap-3 text-white">
+                        <i data-lucide="refresh-cw" class="w-5 h-5 text-secondary"></i>
+                        Refresh Token
+                    </h3>
+                    <span class="method-badge">POST</span>
+                </div>
+                <div class="p-6 space-y-4 flex-1 flex flex-col">
+                    <div>
+                        <label class="glass-label">Current Refresh Token</label>
+                        <input class="glass-input" id="ref-token" placeholder="Paste refresh token...">
+                    </div>
+                    <button class="gradient-btn" onclick="handleRefresh()">
+                        <span>Renew Session</span>
+                    </button>
+                    <div id="res-refresh" class="response-box"></div>
+                    
+                    <div class="mt-6 pt-6 border-t border-white/10 space-y-4">
+                        <h4 class="text-sm font-bold text-gray-200 uppercase tracking-wider mb-2">New Tokens</h4>
+                        <div>
+                            <label class="glass-label">New Access Token</label>
+                            <input class="glass-input" id="ref-access-token" readonly>
+                        </div>
+                        <div>
+                            <label class="glass-label">New Refresh Token</label>
+                            <input class="glass-input" id="ref-new-refresh-token" readonly>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Forgot Password -->
+            <div class="glass-card">
+                <div class="p-6 border-b border-white/5 flex items-center justify-between">
+                    <h3 class="text-lg font-semibold flex items-center gap-3 text-white">
+                        <i data-lucide="unlock" class="w-5 h-5 text-accent"></i>
+                        Forgot Password
+                    </h3>
+                    <span class="method-badge">POST</span>
+                </div>
+                <div class="p-6 space-y-4 flex-1 flex flex-col">
+                    <div>
+                        <label class="glass-label">Email</label>
+                        <input class="glass-input" type="email" id="fp-email" placeholder="user@example.com">
+                    </div>
+                    <div class="mt-auto">
+                        <button class="gradient-btn" onclick="handleRequest('forgot-pwd', 'POST', '/api/v1/auth/forgot-password', {email: getVal('fp-email')})">
+                            <span>Request Reset</span>
+                        </button>
+                        <div id="res-forgot-pwd" class="response-box"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reset Password -->
+            <div class="glass-card">
+                <div class="p-6 border-b border-white/5 flex items-center justify-between">
+                    <h3 class="text-lg font-semibold flex items-center gap-3 text-white">
+                        <i data-lucide="key" class="w-5 h-5 text-accent"></i>
+                        Reset Password
+                    </h3>
+                    <span class="method-badge">POST</span>
+                </div>
+                <div class="p-6 space-y-4 flex-1 flex flex-col">
+                    <div>
+                        <label class="glass-label">Reset Token</label>
+                        <input class="glass-input" id="rp-token" placeholder="Token from email...">
+                    </div>
+                    <div>
+                        <label class="glass-label">New Password</label>
+                        <input class="glass-input" type="password" id="rp-new-pwd" placeholder="••••••••">
+                    </div>
+                    <div class="mt-auto">
+                        <button class="gradient-btn" onclick="handleRequest('reset-pwd', 'POST', '/api/v1/auth/reset-password', {token: getVal('rp-token'), new_password: getVal('rp-new-pwd')})">
+                            <span>Confirm Reset</span>
+                        </button>
+                        <div id="res-reset-pwd" class="response-box"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Logout -->
+            <div class="glass-card">
+                <div class="p-6 border-b border-white/5 flex items-center justify-between flex-wrap gap-2">
+                    <h3 class="text-lg font-semibold flex items-center gap-3 text-white">
+                        <i data-lucide="log-out" class="w-5 h-5 text-gray-400"></i>
+                        Logout
+                    </h3>
+                    <div class="flex items-center gap-2">
+                        <span class="auth-badge">🔒 Auth</span>
+                        <span class="method-badge">POST</span>
+                    </div>
+                </div>
+                <div class="p-6 space-y-4 flex-1 flex flex-col">
+                    <div>
+                        <label class="glass-label">Access Token</label>
+                        <input class="glass-input" id="out-token" placeholder="Access token...">
+                    </div>
+                    <div class="mt-auto">
+                        <button class="gradient-btn !bg-none !bg-gray-700 hover:!bg-gray-600" onclick="handleRequest('logout', 'POST', '/api/v1/auth/logout', {}, getVal('out-token'))">
+                            <span>Logout Current</span>
+                        </button>
+                        <div id="res-logout" class="response-box"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Logout All -->
+            <div class="glass-card">
+                <div class="p-6 border-b border-white/5 flex items-center justify-between flex-wrap gap-2">
+                    <h3 class="text-lg font-semibold flex items-center gap-3 text-white text-red-400">
+                        <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+                        Logout All
+                    </h3>
+                    <div class="flex items-center gap-2">
+                        <span class="auth-badge">🔒 Auth</span>
+                        <span class="method-badge">POST</span>
+                    </div>
+                </div>
+                <div class="p-6 space-y-4 flex-1 flex flex-col">
+                    <div>
+                        <label class="glass-label">Access Token</label>
+                        <input class="glass-input" id="out-all-token" placeholder="Access token...">
+                    </div>
+                    <div class="mt-auto">
+                        <button class="gradient-btn !bg-none !bg-red-600/80 hover:!bg-red-600 border border-red-500/30" onclick="handleRequest('logout-all', 'POST', '/api/v1/auth/logout-all', {}, getVal('out-all-token'))">
+                            <span>Logout All Devices</span>
+                        </button>
+                        <div id="res-logout-all" class="response-box"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Change Password -->
+            <div class="glass-card md:col-span-2 lg:col-span-3">
+                <div class="p-6 border-b border-white/5 flex items-center justify-between flex-wrap gap-2">
+                    <h3 class="text-lg font-semibold flex items-center gap-3 text-white">
+                        <i data-lucide="shield-alert" class="w-5 h-5 text-accent"></i>
+                        Change Password
+                    </h3>
+                    <div class="flex items-center gap-2">
+                        <span class="auth-badge">🔒 Auth Required</span>
+                        <span class="method-badge">POST</span>
+                    </div>
+                </div>
+                <div class="p-6 space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div>
+                            <label class="glass-label">Access Token</label>
+                            <input class="glass-input" id="cp-token" placeholder="Access token...">
+                        </div>
+                        <div>
+                            <label class="glass-label">Old Password</label>
+                            <input class="glass-input" type="password" id="cp-old" placeholder="••••••••">
+                        </div>
+                        <div>
+                            <label class="glass-label">New Password</label>
+                            <input class="glass-input" type="password" id="cp-new" placeholder="••••••••">
+                        </div>
+                    </div>
+                    <div class="pt-4 flex justify-end">
+                        <button class="gradient-btn md:w-auto" onclick="handleRequest('change-pwd', 'POST', '/api/v1/auth/change-password', {old_password: getVal('cp-old'), new_password: getVal('cp-new')}, getVal('cp-token'))">
+                            <span>Change Password</span>
+                        </button>
+                    </div>
+                    <div id="res-change-pwd" class="response-box"></div>
+                </div>
+            </div>
+
+        </div>
+        
+        <footer class="mt-16 text-center text-gray-500 text-sm font-medium">
+            <p>UAM Core Architecture © 2026. Built with Clean Architecture.</p>
+        </footer>
+    </div>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        const BASE_URL = 'http://localhost:8080';
+
+        function getVal(id) {
+            return document.getElementById(id).value;
+        }
+
+        function showResponse(id, data, isSuccess) {
+            const el = document.getElementById('res-' + id);
+            el.style.display = 'block';
+            el.classList.remove('success', 'error');
+            el.classList.add(isSuccess ? 'success' : 'error');
+            el.textContent = JSON.stringify(data, null, 2);
+            // Scroll to the bottom of the response box for convenience
+            el.scrollTop = el.scrollHeight;
+        }
+
+        async function handleRequest(id, method, path, body, explicitToken = null) {
+            const el = document.getElementById('res-' + id);
+            el.style.display = 'block';
+            el.classList.remove('success', 'error');
+            el.textContent = 'Loading...';
+
+            const headers = {
+                'Content-Type': 'application/json'
+            };
+
+            if (explicitToken) {
+                headers['Authorization'] = `Bearer ${explicitToken}`;
+            }
+
+            try {
+                const options = {
+                    method: method,
+                    headers: headers
+                };
+                
+                if (body && Object.keys(body).length > 0) {
+                    options.body = JSON.stringify(body);
+                }
+
+                const response = await fetch(BASE_URL + path, options);
+                let data = {};
+                try {
+                    data = await response.json();
+                } catch(e) { }
+                
+                if (!response.ok) {
+                    showResponse(id, { status: response.status, ...data }, false);
+                    return { ok: false, data };
+                }
+
+                showResponse(id, data, true);
+                return { ok: true, data };
+            } catch (error) {
+                showResponse(id, { error: error.message }, false);
+                return { ok: false, error };
+            }
+        }
+
+        async function handleLogin() {
+            const res = await handleRequest('login', 'POST', '/api/v1/auth/login', {
+                email: getVal('log-email'),
+                password: getVal('log-password')
+            });
+
+            if (res.ok && res.data && res.data.data) {
+                if (res.data.data.access_token) {
+                    document.getElementById('log-access-token').value = res.data.data.access_token;
+                    document.getElementById('out-token').value = res.data.data.access_token;
+                    document.getElementById('out-all-token').value = res.data.data.access_token;
+                    document.getElementById('cp-token').value = res.data.data.access_token;
+                }
+                if (res.data.data.refresh_token) {
+                    document.getElementById('log-refresh-token').value = res.data.data.refresh_token;
+                    document.getElementById('ref-token').value = res.data.data.refresh_token;
+                }
+            }
+        }
+
+        async function handleRefresh() {
+            const res = await handleRequest('refresh', 'POST', '/api/v1/auth/refresh-token', {
+                refresh_token: getVal('ref-token')
+            });
+
+            if (res.ok && res.data && res.data.data) {
+                if (res.data.data.access_token) {
+                    document.getElementById('ref-access-token').value = res.data.data.access_token;
+                    document.getElementById('out-token').value = res.data.data.access_token;
+                    document.getElementById('out-all-token').value = res.data.data.access_token;
+                    document.getElementById('cp-token').value = res.data.data.access_token;
+                }
+                if (res.data.data.refresh_token) {
+                    document.getElementById('ref-new-refresh-token').value = res.data.data.refresh_token;
+                    document.getElementById('ref-token').value = res.data.data.refresh_token;
+                }
+            }
+        }
+    </script>
+</body>
+</html>

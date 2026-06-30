@@ -12,24 +12,32 @@ import (
 	"github.com/quocdev03/user-access-management/internal/middleware"
 	"github.com/quocdev03/user-access-management/internal/repository"
 	"github.com/quocdev03/user-access-management/internal/service"
+	"github.com/quocdev03/user-access-management/pkg/database"
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 )
 
-// Setup khởi tạo và cấu hình bộ định tuyến (Gin engine) cùng toàn bộ các routes của hệ thống
+
 func Setup(db *sqlx.DB, redisClient *redis.Client, logger *zap.Logger, cfg *config.Config) *gin.Engine {
 	r := gin.Default()
 
-	// Khởi tạo các dependencies cho Auth
+
+	r.Use(middleware.CORSMiddleware())
+
+
 	userRepo := repository.NewUserRepository(db)
 	otpRepo := repository.NewOTPRepository(db)
 	roleRepo := repository.NewRoleRepository(db)
 	sessionRepo := repository.NewSessionRepository(db, redisClient)
-	passwordResetRepo := repository.NewPasswordResetRepository(db.DB)
+	passwordRepo := repository.NewPasswordRepository(db)
+	auditLogRepo := repository.NewAuditLogRepository(db)
 	mailService := service.NewMailService(cfg, logger)
+	txManager := database.NewTxManager(db)
 	
-	authService := service.NewAuthService(userRepo, otpRepo, roleRepo, sessionRepo, passwordResetRepo, mailService, cfg, logger)
-	authHandler := handler.NewAuthHandler(authService)
+	authService := service.NewAuthService(userRepo, otpRepo, roleRepo, sessionRepo, auditLogRepo, mailService, txManager, cfg, logger)
+	passwordService := service.NewPasswordService(userRepo, sessionRepo, passwordRepo, mailService, txManager, cfg, logger)
+
+	authHandler := handler.NewAuthHandler(authService, passwordService)
 
 	authMiddleware := middleware.AuthMiddleware(cfg, sessionRepo, logger)
 
@@ -57,7 +65,7 @@ func Setup(db *sqlx.DB, redisClient *redis.Client, logger *zap.Logger, cfg *conf
 		})
 	}
 
-	// Group API v1
+
 	v1 := r.Group("/api/v1")
 	{
 		auth := v1.Group("/auth")
@@ -68,6 +76,7 @@ func Setup(db *sqlx.DB, redisClient *redis.Client, logger *zap.Logger, cfg *conf
 			auth.POST("/login", authHandler.Login)
 			auth.POST("/refresh-token", authHandler.RefreshToken)
 			auth.POST("/logout", authMiddleware, authHandler.Logout)
+			auth.POST("/logout-all", authMiddleware, authHandler.LogoutAll)
 			auth.POST("/forgot-password", authHandler.ForgotPassword)
 			auth.POST("/reset-password", authHandler.ResetPassword)
 			auth.POST("/change-password", authMiddleware, authHandler.ChangePassword)

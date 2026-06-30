@@ -1,15 +1,14 @@
-package model
+﻿package model
 
 import "time"
 
-// Trạng thái user
+
 const (
 	StatusActive   = "active"
 	StatusInactive = "inactive"
 	StatusLocked   = "locked"
 )
 
-// User đại diện cho bảng users trong database
 type User struct {
 	ID                  uint64     `db:"id"`
 	Username            string     `db:"username"`
@@ -22,7 +21,7 @@ type User struct {
 	Status              string     `db:"status"`
 	EmailVerified       bool       `db:"email_verified"`
 	FailedLoginAttempts int        `db:"failed_login_attempts"`
-	LockedUntil         *time.Time `db:"locked_until"` // Sử dụng con trỏ vì trường này có thể mang giá trị NULL trong cơ sở dữ liệu
+	LockedUntil         *time.Time `db:"locked_until"`
 	LastLoginAt         *time.Time `db:"last_login_at"`
 	CreatedAt           time.Time  `db:"created_at"`
 	UpdatedAt           time.Time  `db:"updated_at"`

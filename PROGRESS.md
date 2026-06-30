@@ -61,8 +61,9 @@
 | File | Routes |
 |------|-------|
 | `internal/middleware/auth_middleware.go` | Middleware xác thực JWT access token, kiểm tra Redis blacklist, inject user context |
-| `internal/handler/auth_handler.go` | `Register`, `VerifyEmail`, `Login`, `RefreshToken`, `Logout`, `ForgotPassword`, `ResetPassword`, `ChangePassword` |
-| `internal/router/router.go` | `POST /api/v1/auth/register`, `POST /api/v1/auth/verify-email`, `POST /api/v1/auth/login`, `POST /api/v1/auth/refresh-token`, `POST /api/v1/auth/logout`, `POST /api/v1/auth/forgot-password`, `POST /api/v1/auth/reset-password`, `POST /api/v1/auth/change-password` |
+| `internal/middleware/rbac_middleware.go` | Middleware kiểm tra phân quyền (RBAC) bằng JWT roles |
+| `internal/handler/auth_handler.go` | `Register`, `VerifyEmail`, `Login`, `RefreshToken`, `Logout`, `LogoutAll`, `ForgotPassword`, `ResetPassword`, `ChangePassword` |
+| `internal/router/router.go` | `POST /api/v1/auth/register`, `POST /api/v1/auth/verify-email`, `POST /api/v1/auth/login`, `POST /api/v1/auth/refresh-token`, `POST /api/v1/auth/logout`, `POST /api/v1/auth/logout-all`, `POST /api/v1/auth/forgot-password`, `POST /api/v1/auth/reset-password`, `POST /api/v1/auth/change-password` |
 
 ---
 
@@ -97,14 +98,20 @@
 | M5 | Tích hợp gửi email thực tế (UC-25, UC-26) | Thay thế mock bằng cấu hình Resend SMTP, cho phép gửi OTP và Link thật tới người dùng; bổ sung tài liệu vận hành. |
 | B17 | Lỗ hổng Logic & Bảo mật trong Forgot/Reset/Change Password | Fix lỗi dò rỉ email (che giấu lỗi SMTP 500), chống spam Rate Limit cho Forgot Password, chống Brute-Force mật khẩu cũ, khắc phục Race Condition khi Reset bằng Atomic Query, và đảm bảo thứ tự thu hồi Session trước khi update DB. |
 | R2 | Loại bỏ code dư thừa (Golang Performance) | Refactor `auth_service.go` và các Repository, loại bỏ Query thừa (TOCTOU, N+1), gỡ bỏ Transaction không cần thiết (Lock Contention) cho các hàm tăng biến đếm, gộp các Query cập nhật Database. |
+| B18 | Lỗi CORS bị chặn khi test UI | Thêm file `cors.go` và cấu hình `middleware.CORSMiddleware()` trong `router.go` cho phép Origin `*` để test API qua trình duyệt. |
+| B19 | Log rác (Stack trace) khi In ra WARN log | Thêm option `zap.AddStacktrace(zapcore.ErrorLevel)` vào `pkg/logger/logger.go` để Zap chỉ in stack trace đối với lỗi thực sự (ERROR trở lên). |
+| R3 | Refactor `pkg/apperror` bị máy móc | Mở rộng toàn bộ Error Code theo chuẩn `04-api-design.md`, bổ sung tính năng wrap lỗi gốc (`WithErr`) và truyền chi tiết động (`WithDetails`) cho `AppError`. |
+| M6 | Hoàn thiện 100% module Authentication & Security (UC-21, UC-09, UC-10, UC-28) | Đã bổ sung `LogoutAll` để hủy mọi session (UC-21). Bổ sung `RBAC Middleware` và tối ưu chèn `Roles` vào JWT (UC-09, UC-10). Đã thêm model `AuditLog`, `AuditLogRepository` và ghi nhật ký tự động khi Login (UC-28). |
+| B20 | VULN-1: Lỗ hổng JWT Revocation Gap khi đăng xuất / đổi mật khẩu | Bổ sung cơ chế `Global User Revocation Epoch` trên Redis và Middleware chặn JWT cũ, vô hiệu hóa token chủ động tức thời, vá lỗ hổng chiếm quyền. |
+| B21 | VULN-2: Lỗi Data Truncation Error dẫn đến DoS thông qua User-Agent | Bổ sung code giới hạn, cắt ngắn chuỗi `User-Agent` (500) và `IP Address` (45) trước khi ghi vào Database tại `Login` và `Refresh`. |
+| R4 | Loại bỏ sự rườm rà (Over-engineering), Interface Sprawl và God Object | Đã gỡ bỏ toàn bộ interface giả ở Repository và Service. Gộp các Query cập nhật Database. Tách AuthService thành AuthService & PasswordService. Refactor `errors.go` chuẩn hóa hơn. |
+| B22 | Data Inconsistency do thiếu Database Transaction | Thêm `pkg/database/tx.go` (TxManager). Bọc tất cả thao tác Database trong các tầng Service (`Register`, `VerifyEmail`, `ResetPassword`,...) vào `RunInTx` để đảm bảo tính ACID. Sửa chuẩn tên `*_model.go`. Fix lỗi logic `LogoutAll`. |
 ---
 
 ## 🚧 Chưa làm / TODO
 
 | UC | Tính năng | Ghi chú |
 |----|----------|---------|
-| UC-28 | Audit log cho Login/Register | Chưa có |
-| UC-28 | Audit log cho Login/Register | Chưa có |
 | UC-11~14 | User Profile (xem, sửa, avatar, đổi email) | Chưa có |
 | UC-15~18 | Admin quản lý user | Chưa có |
 | UC-38 | Unit & Integration Test | Đã viết unit test cho `pkg/jwt`, các module khác chưa có |
@@ -113,6 +120,5 @@
 
 ## 🔑 Bước tiếp theo đề xuất
 
-1. **UC-07 Forgot Password** + **UC-08 Change Password** → hoàn thiện các luồng khôi phục và thay đổi mật khẩu.
-2. **UC-28 Audit Logging** → ghi lại nhật ký đăng nhập và hành động của user để theo dõi bảo mật.
-3. **UC-11~14 User Profile** → Quản lý hồ sơ, cập nhật thông tin và avatar.
+1. **UC-11~14 User Profile** → Quản lý hồ sơ, cập nhật thông tin và avatar.
+2. **UC-15~18 Admin Management** → Admin quản lý user.

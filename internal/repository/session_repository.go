@@ -4,49 +4,33 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"strconv"
 	"time"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/quocdev03/user-access-management/internal/model"
+	"github.com/quocdev03/user-access-management/pkg/database"
 	"github.com/redis/go-redis/v9"
 )
 
-// SessionRepository định nghĩa các giao tiếp dữ liệu liên quan đến phiên làm việc của người dùng
-type SessionRepository interface {
-	Create(ctx context.Context, session *model.Session) error
-	Update(ctx context.Context, session *model.Session) error
-	FindByRefreshTokenHash(ctx context.Context, hash string) (*model.Session, error)
-	DeleteByRefreshTokenHash(ctx context.Context, hash string) error
-	DeleteByTokenHash(ctx context.Context, hash string) error
-	DeleteByUserID(ctx context.Context, userID uint64) error
-	AddToBlacklist(ctx context.Context, jti string, ttl time.Duration) error
-	IsBlacklisted(ctx context.Context, jti string) (bool, error)
-	AddRevokedRefreshToken(ctx context.Context, hash string, ttl time.Duration) error
-	IsRefreshTokenRevoked(ctx context.Context, hash string) (bool, error)
-	SetRateLimit(ctx context.Context, action string, identifier string, ttl time.Duration) error
-	IsRateLimited(ctx context.Context, action string, identifier string) (bool, error)
-}
-
-type sessionRepository struct {
+type SessionRepository struct {
 	db    *sqlx.DB
 	redis *redis.Client
 }
 
-// NewSessionRepository khởi tạo đối tượng sessionRepository thực thi SessionRepository interface
-func NewSessionRepository(db *sqlx.DB, redis *redis.Client) SessionRepository {
-	return &sessionRepository{
+func NewSessionRepository(db *sqlx.DB, redis *redis.Client) *SessionRepository {
+	return &SessionRepository{
 		db:    db,
 		redis: redis,
 	}
 }
 
-// Create lưu thông tin phiên đăng nhập (session) mới của người dùng vào MySQL
-func (r *sessionRepository) Create(ctx context.Context, session *model.Session) error {
+func (r *SessionRepository) Create(ctx context.Context, session *model.Session) error {
 	query := `
 		INSERT INTO sessions (user_id, token_hash, refresh_token_hash, ip_address, user_agent, device_id, expires_at, created_at)
 		VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
 	`
-	res, err := r.db.ExecContext(ctx, query,
+	res, err := database.GetDB(ctx, r.db).ExecContext(ctx, query,
 		session.UserID,
 		session.TokenHash,
 		session.RefreshTokenHash,
@@ -65,14 +49,13 @@ func (r *sessionRepository) Create(ctx context.Context, session *model.Session) 
 	return nil
 }
 
-// Update cập nhật thông tin session hiện tại (dùng khi xoay vòng Refresh Token/UPDATE session)
-func (r *sessionRepository) Update(ctx context.Context, session *model.Session) error {
+func (r *SessionRepository) Update(ctx context.Context, session *model.Session) error {
 	query := `
 		UPDATE sessions 
 		SET token_hash = ?, refresh_token_hash = ?, ip_address = ?, user_agent = ?, device_id = ?, expires_at = ?
 		WHERE id = ?
 	`
-	_, err := r.db.ExecContext(ctx, query,
+	_, err := database.GetDB(ctx, r.db).ExecContext(ctx, query,
 		session.TokenHash,
 		session.RefreshTokenHash,
 		session.IPAddress,
@@ -84,11 +67,10 @@ func (r *sessionRepository) Update(ctx context.Context, session *model.Session) 
 	return err
 }
 
-// FindByRefreshTokenHash tìm kiếm một session hợp lệ bằng mã băm refresh token
-func (r *sessionRepository) FindByRefreshTokenHash(ctx context.Context, hash string) (*model.Session, error) {
+func (r *SessionRepository) FindByRefreshTokenHash(ctx context.Context, hash string) (*model.Session, error) {
 	var session model.Session
 	query := `SELECT * FROM sessions WHERE refresh_token_hash = ? LIMIT 1`
-	err := r.db.GetContext(ctx, &session, query, hash)
+	err := database.GetDB(ctx, r.db).GetContext(ctx, &session, query, hash)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -98,34 +80,29 @@ func (r *sessionRepository) FindByRefreshTokenHash(ctx context.Context, hash str
 	return &session, nil
 }
 
-// DeleteByRefreshTokenHash xóa bản ghi session khỏi MySQL dựa trên refresh token hash
-func (r *sessionRepository) DeleteByRefreshTokenHash(ctx context.Context, hash string) error {
+func (r *SessionRepository) DeleteByRefreshTokenHash(ctx context.Context, hash string) error {
 	query := `DELETE FROM sessions WHERE refresh_token_hash = ?`
-	_, err := r.db.ExecContext(ctx, query, hash)
+	_, err := database.GetDB(ctx, r.db).ExecContext(ctx, query, hash)
 	return err
 }
 
-// DeleteByTokenHash xóa bản ghi session dựa trên token hash (thường dùng khi đăng xuất)
-func (r *sessionRepository) DeleteByTokenHash(ctx context.Context, hash string) error {
+func (r *SessionRepository) DeleteByTokenHash(ctx context.Context, hash string) error {
 	query := `DELETE FROM sessions WHERE token_hash = ?`
-	_, err := r.db.ExecContext(ctx, query, hash)
+	_, err := database.GetDB(ctx, r.db).ExecContext(ctx, query, hash)
 	return err
 }
 
-// DeleteByUserID thu hồi toàn bộ các phiên hoạt động của một người dùng nhất định
-func (r *sessionRepository) DeleteByUserID(ctx context.Context, userID uint64) error {
+func (r *SessionRepository) DeleteByUserID(ctx context.Context, userID uint64) error {
 	query := `DELETE FROM sessions WHERE user_id = ?`
-	_, err := r.db.ExecContext(ctx, query, userID)
+	_, err := database.GetDB(ctx, r.db).ExecContext(ctx, query, userID)
 	return err
 }
 
-// AddToBlacklist thêm mã định danh JTI của Access Token bị thu hồi vào Redis blacklist
-func (r *sessionRepository) AddToBlacklist(ctx context.Context, jti string, ttl time.Duration) error {
+func (r *SessionRepository) AddToBlacklist(ctx context.Context, jti string, ttl time.Duration) error {
 	return r.redis.Set(ctx, "blacklist:"+jti, "1", ttl).Err()
 }
 
-// IsBlacklisted kiểm tra xem Access Token (JTI) có nằm trong danh sách đen bị thu hồi hay không
-func (r *sessionRepository) IsBlacklisted(ctx context.Context, jti string) (bool, error) {
+func (r *SessionRepository) IsBlacklisted(ctx context.Context, jti string) (bool, error) {
 	val, err := r.redis.Exists(ctx, "blacklist:"+jti).Result()
 	if err != nil {
 		return false, err
@@ -133,13 +110,11 @@ func (r *sessionRepository) IsBlacklisted(ctx context.Context, jti string) (bool
 	return val > 0, nil
 }
 
-// AddRevokedRefreshToken lưu hash của refresh token cũ vào Redis để phát hiện Token Reuse (VULN-002)
-func (r *sessionRepository) AddRevokedRefreshToken(ctx context.Context, hash string, ttl time.Duration) error {
+func (r *SessionRepository) AddRevokedRefreshToken(ctx context.Context, hash string, ttl time.Duration) error {
 	return r.redis.Set(ctx, "revoked_rt:"+hash, "1", ttl).Err()
 }
 
-// IsRefreshTokenRevoked kiểm tra xem refresh token đã bị thu hồi (sử dụng lại) hay chưa
-func (r *sessionRepository) IsRefreshTokenRevoked(ctx context.Context, hash string) (bool, error) {
+func (r *SessionRepository) IsRefreshTokenRevoked(ctx context.Context, hash string) (bool, error) {
 	val, err := r.redis.Exists(ctx, "revoked_rt:"+hash).Result()
 	if err != nil {
 		return false, err
@@ -147,18 +122,34 @@ func (r *sessionRepository) IsRefreshTokenRevoked(ctx context.Context, hash stri
 	return val > 0, nil
 }
 
-// SetRateLimit thiết lập rate limit cho một hành động cụ thể
-func (r *sessionRepository) SetRateLimit(ctx context.Context, action string, identifier string, ttl time.Duration) error {
+func (r *SessionRepository) SetRateLimit(ctx context.Context, action string, identifier string, ttl time.Duration) error {
 	key := "ratelimit:" + action + ":" + identifier
 	return r.redis.Set(ctx, key, "1", ttl).Err()
 }
 
-// IsRateLimited kiểm tra xem hành động có đang bị giới hạn hay không
-func (r *sessionRepository) IsRateLimited(ctx context.Context, action string, identifier string) (bool, error) {
+func (r *SessionRepository) IsRateLimited(ctx context.Context, action string, identifier string) (bool, error) {
 	key := "ratelimit:" + action + ":" + identifier
 	val, err := r.redis.Exists(ctx, key).Result()
 	if err != nil {
 		return false, err
 	}
 	return val > 0, nil
+}
+
+func (r *SessionRepository) RevokeAllUserTokens(ctx context.Context, userID uint64, ttl time.Duration) error {
+	key := "user_revoked_epoch:" + strconv.FormatUint(userID, 10)
+	now := time.Now().Unix()
+	return r.redis.Set(ctx, key, now, ttl).Err()
+}
+
+func (r *SessionRepository) GetUserRevokedEpoch(ctx context.Context, userID uint64) (int64, error) {
+	key := "user_revoked_epoch:" + strconv.FormatUint(userID, 10)
+	val, err := r.redis.Get(ctx, key).Int64()
+	if err != nil {
+		if errors.Is(err, redis.Nil) {
+			return 0, nil
+		}
+		return 0, err
+	}
+	return val, nil
 }

@@ -29,12 +29,17 @@ func Success(c *gin.Context, statusCode int, message string, data interface{}) {
 func Error(c *gin.Context, err error) {
 	var appErr *apperror.AppError
 	if errors.As(err, &appErr) {
+		errResp := gin.H{
+			"code":    appErr.Code,
+			"message": appErr.Message,
+		}
+		if appErr.Details != nil {
+			errResp["details"] = appErr.Details
+		}
+
 		c.JSON(appErr.HTTPStatus, Response{
 			Success: false,
-			Error: gin.H{
-				"code":    appErr.Code,
-				"message": appErr.Message,
-			},
+			Error:   errResp,
 		})
 		return
 	}
@@ -43,9 +48,9 @@ func Error(c *gin.Context, err error) {
 	c.JSON(http.StatusInternalServerError, Response{
 		Success: false,
 		Error: gin.H{
-			"code":    "INTERNAL_SERVER_ERROR",
+			"code":    "INTERNAL_ERROR",
 			"message": "Đã xảy ra lỗi hệ thống",
-			"details": err.Error(), // Trong môi trường production, có thể cân nhắc ẩn chi tiết này dựa trên cấu hình môi trường
+			"details": err.Error(), // Trong môi trường production, có thể ẩn đi
 		},
 	})
 }
@@ -55,8 +60,8 @@ func ValidationError(c *gin.Context, err error) {
 	c.JSON(http.StatusBadRequest, Response{
 		Success: false,
 		Error: gin.H{
-			"code":    "VALIDATION_ERROR",
-			"message": "Dữ liệu đầu vào không hợp lệ",
+			"code":    apperror.ErrValidationError.Code,
+			"message": apperror.ErrValidationError.Message,
 			"details": err.Error(),
 		},
 	})

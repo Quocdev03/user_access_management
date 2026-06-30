@@ -266,11 +266,7 @@ flowchart TD
     J -->|Không| K[Tiếp tục → Handler]
     J -->|Có| L{User có role yêu cầu?}
     L -->|Không| M[403 Forbidden]
-    L -->|Có| N{Endpoint yêu cầu permission?}
-    N -->|Không| K
-    N -->|Có| O{User có permission?}
-    O -->|Không| M
-    O -->|Có| K
+    L -->|Có| K
 ```
 
 ---

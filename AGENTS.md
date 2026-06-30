@@ -32,6 +32,7 @@ File này chứa toàn bộ danh sách skills và trigger tương ứng. **Chỉ
 ## Bước 2: Đọc Docs theo ngữ cảnh
 
 Sau khi đọc skills, đọc docs theo thứ tự ưu tiên — **chỉ đọc file liên quan đến task**.
+Lưu ý đây chỉ là cấu trúc để định hình, nếu có thay đổi nào tốt hơn thì phải đề xuất trong kế hoạch.
 
 | Ưu tiên | File                             | Trigger cụ thể                                                         |
 | ------- | -------------------------------- | ---------------------------------------------------------------------- |
@@ -114,6 +115,7 @@ File `PROGRESS.md` là nhật ký tiến độ dự án, **phải được cập
 - **Không cập nhật khi**: fix typo, sửa comment, thay đổi không ảnh hưởng behavior.
 
 **Format cập nhật:**
+
 1. Chuyển UC từ bảng `🚧 Chưa làm` → `✅ Đã hoàn thành`.
 2. Thêm file mới vào bảng tương ứng trong phần đã hoàn thành.
 3. Ghi ngắn gọn: tên file, method/logic chính — **không viết dài**.

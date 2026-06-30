@@ -15,5 +15,5 @@ func New(env string) (*zap.Logger, error) {
 		config.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
 	}
 
-	return config.Build()
+	return config.Build(zap.AddStacktrace(zapcore.ErrorLevel))
 }

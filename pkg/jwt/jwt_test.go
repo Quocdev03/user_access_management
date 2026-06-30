@@ -11,7 +11,7 @@ func TestGenerateAndParseToken(t *testing.T) {
 	tokenType := "access"
 	expiry := 10 * time.Minute
 
-	token, jti, err := GenerateToken(userID, tokenType, expiry, secret)
+	token, jti, err := GenerateToken(userID, []string{"user"}, tokenType, expiry, secret)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
@@ -48,7 +48,7 @@ func TestExpiredToken(t *testing.T) {
 	tokenType := "access"
 	expiry := -1 * time.Minute // expired in past
 
-	token, _, err := GenerateToken(userID, tokenType, expiry, secret)
+	token, _, err := GenerateToken(userID, []string{"user"}, tokenType, expiry, secret)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
@@ -69,7 +69,7 @@ func TestTamperedToken(t *testing.T) {
 	tokenType := "access"
 	expiry := 10 * time.Minute
 
-	token, _, err := GenerateToken(userID, tokenType, expiry, secret)
+	token, _, err := GenerateToken(userID, []string{"user"}, tokenType, expiry, secret)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
@@ -97,7 +97,7 @@ func TestInvalidSignature(t *testing.T) {
 	tokenType := "access"
 	expiry := 10 * time.Minute
 
-	token, _, err := GenerateToken(userID, tokenType, expiry, secret)
+	token, _, err := GenerateToken(userID, []string{"user"}, tokenType, expiry, secret)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}

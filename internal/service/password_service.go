@@ -1,0 +1,191 @@
+package service
+
+import (
+	"context"
+	"crypto/rand"
+	"encoding/hex"
+	"fmt"
+	"time"
+
+	"go.uber.org/zap"
+
+	"github.com/quocdev03/user-access-management/internal/config"
+	"github.com/quocdev03/user-access-management/internal/dto"
+	"github.com/quocdev03/user-access-management/internal/model"
+	"github.com/quocdev03/user-access-management/internal/repository"
+	"github.com/quocdev03/user-access-management/pkg/apperror"
+	"github.com/quocdev03/user-access-management/pkg/database"
+	"github.com/quocdev03/user-access-management/pkg/hash"
+)
+
+type PasswordService struct {
+	userRepo          *repository.UserRepository
+	sessionRepo       *repository.SessionRepository
+	passwordRepo *repository.PasswordRepository
+	mailService       *MailService
+	txManager         *database.TxManager
+	cfg               *config.Config
+	logger            *zap.Logger
+}
+
+func NewPasswordService(
+	userRepo *repository.UserRepository,
+	sessionRepo *repository.SessionRepository,
+	passwordRepo *repository.PasswordRepository,
+	mailService *MailService,
+	txManager *database.TxManager,
+	cfg *config.Config,
+	logger *zap.Logger,
+) *PasswordService {
+	return &PasswordService{
+		userRepo:     userRepo,
+		sessionRepo:  sessionRepo,
+		passwordRepo: passwordRepo,
+		mailService:  mailService,
+		txManager:    txManager,
+		cfg:          cfg,
+		logger:       logger,
+	}
+}
+
+func (s *PasswordService) ForgotPassword(ctx context.Context, req dto.ForgotPasswordRequest) error {
+	user, err := s.userRepo.FindByEmail(ctx, req.Email)
+	if err != nil {
+		return fmt.Errorf("userRepo.FindByEmail: %w", err)
+	}
+
+	if user == nil {
+		s.logger.Info("Yêu cầu quên mật khẩu cho email không tồn tại", zap.String("email", req.Email))
+		return nil
+	}
+
+	isLimited, _ := s.sessionRepo.IsRateLimited(ctx, "forgot_pw", req.Email)
+	if isLimited {
+		return apperror.ErrRateLimitedMinute
+	}
+	_ = s.sessionRepo.SetRateLimit(ctx, "forgot_pw", req.Email, 1*time.Minute)
+
+	tokenBytes := make([]byte, 32)
+	if _, err := rand.Read(tokenBytes); err != nil {
+		return fmt.Errorf("failed to generate random token: %w", err)
+	}
+	token := hex.EncodeToString(tokenBytes)
+	tokenHash := hashToken(token)
+	expiresAt := time.Now().Add(1 * time.Hour)
+
+	_ = s.passwordRepo.InvalidateAllUserTokens(ctx, user.ID)
+
+	if err := s.passwordRepo.Create(ctx, user.ID, tokenHash, expiresAt); err != nil {
+		return fmt.Errorf("passwordResetRepo.Create: %w", err)
+	}
+
+	if err := s.mailService.SendPasswordResetEmail(user.Email, token); err != nil {
+		s.logger.Error("Lỗi khi gửi email khôi phục mật khẩu", zap.Error(err))
+		return nil
+	}
+
+	s.logger.Info("Đã gửi email khôi phục mật khẩu", zap.String("email", user.Email))
+	return nil
+}
+
+func (s *PasswordService) ResetPassword(ctx context.Context, req dto.ResetPasswordRequest) error {
+	tokenHash := hashToken(req.Token)
+	resetToken, err := s.passwordRepo.FindByTokenHash(ctx, tokenHash)
+	if err != nil {
+		return fmt.Errorf("passwordResetRepo.FindByTokenHash: %w", err)
+	}
+
+	if resetToken == nil || resetToken.IsUsed || resetToken.ExpiresAt.Before(time.Now()) {
+		return apperror.ErrResetTokenInvalid
+	}
+
+	hashedPassword, err := hash.HashPassword(req.NewPassword)
+	if err != nil {
+		return fmt.Errorf("hash.HashPassword: %w", err)
+	}
+
+	err = s.txManager.RunInTx(ctx, func(txCtx context.Context) error {
+		if err := s.passwordRepo.MarkAsUsed(txCtx, resetToken.ID); err != nil {
+			return apperror.ErrResetTokenUsed
+		}
+
+		_ = s.passwordRepo.InvalidateAllUserTokens(txCtx, resetToken.UserID)
+
+		if err := s.sessionRepo.DeleteByUserID(txCtx, resetToken.UserID); err != nil {
+			s.logger.Error("Không thể thu hồi session khi reset password", zap.Error(err))
+			return fmt.Errorf("không thể thu hồi phiên đăng nhập: %w", err)
+		}
+
+		_ = s.sessionRepo.RevokeAllUserTokens(txCtx, resetToken.UserID, s.cfg.JWT.RefreshExpiry)
+
+		user, err := s.userRepo.FindByID(txCtx, resetToken.UserID)
+		if err != nil || user == nil {
+			return fmt.Errorf("userRepo.FindByID: %w", err)
+		}
+		user.PasswordHash = hashedPassword
+		user.Status = model.StatusActive
+		user.LockedUntil = nil
+		user.FailedLoginAttempts = 0
+
+		if err := s.userRepo.UpdateUser(txCtx, user); err != nil {
+			return fmt.Errorf("userRepo.UpdateUser: %w", err)
+		}
+		return nil
+	})
+
+	if err != nil {
+		return err
+	}
+
+	s.logger.Info("Người dùng đã khôi phục mật khẩu thành công", zap.Uint64("user_id", resetToken.UserID))
+	return nil
+}
+
+func (s *PasswordService) ChangePassword(ctx context.Context, userID uint64, req dto.ChangePasswordRequest) error {
+	user, err := s.userRepo.FindByID(ctx, userID)
+	if err != nil {
+		return fmt.Errorf("userRepo.FindByID: %w", err)
+	}
+	if user == nil {
+		return apperror.ErrNotFound
+	}
+
+	if user.Status == model.StatusLocked {
+		return apperror.ErrAccountLocked
+	}
+
+	if !hash.CheckPassword(req.OldPassword, user.PasswordHash) {
+		return handleFailedLogin(ctx, s.userRepo, s.logger, user)
+	}
+
+	if req.OldPassword == req.NewPassword {
+		return apperror.ErrSamePassword
+	}
+
+	hashedPassword, err := hash.HashPassword(req.NewPassword)
+	if err != nil {
+		return fmt.Errorf("hash.HashPassword: %w", err)
+	}
+
+	err = s.txManager.RunInTx(ctx, func(txCtx context.Context) error {
+		if err := s.sessionRepo.DeleteByUserID(txCtx, userID); err != nil {
+			s.logger.Error("Không thể thu hồi session khi đổi password", zap.Error(err))
+			return fmt.Errorf("không thể thu hồi phiên đăng nhập: %w", err)
+		}
+
+		_ = s.sessionRepo.RevokeAllUserTokens(txCtx, userID, s.cfg.JWT.RefreshExpiry)
+
+		user.PasswordHash = hashedPassword
+		if err := s.userRepo.UpdateUser(txCtx, user); err != nil {
+			return fmt.Errorf("userRepo.UpdateUser: %w", err)
+		}
+		return nil
+	})
+
+	if err != nil {
+		return err
+	}
+
+	s.logger.Info("Người dùng đã đổi mật khẩu thành công", zap.Uint64("user_id", userID))
+	return nil
+}

@@ -9,25 +9,19 @@ import (
 	"github.com/quocdev03/user-access-management/internal/config"
 )
 
-type MailService interface {
-	SendEmail(to, subject, body string) error
-	SendVerificationEmail(to, otp string) error
-	SendPasswordResetEmail(to, token string) error
-}
-
-type mailService struct {
+type MailService struct {
 	cfg    *config.Config
 	logger *zap.Logger
 }
 
-func NewMailService(cfg *config.Config, logger *zap.Logger) MailService {
-	return &mailService{
+func NewMailService(cfg *config.Config, logger *zap.Logger) *MailService {
+	return &MailService{
 		cfg:    cfg,
 		logger: logger,
 	}
 }
 
-func (s *mailService) SendEmail(to, subject, body string) error {
+func (s *MailService) SendEmail(to, subject, body string) error {
 	m := gomail.NewMessage()
 	m.SetHeader("From", s.cfg.Mail.From)
 	m.SetHeader("To", to)
@@ -51,7 +45,7 @@ func (s *mailService) SendEmail(to, subject, body string) error {
 	return nil
 }
 
-func (s *mailService) SendVerificationEmail(to, otp string) error {
+func (s *MailService) SendVerificationEmail(to, otp string) error {
 	subject := "Xác thực tài khoản UAM"
 	body := fmt.Sprintf(`
 		<h2>Xác thực tài khoản</h2>
@@ -64,15 +58,15 @@ func (s *mailService) SendVerificationEmail(to, otp string) error {
 	return s.SendEmail(to, subject, body)
 }
 
-func (s *mailService) SendPasswordResetEmail(to, token string) error {
+func (s *MailService) SendPasswordResetEmail(to, token string) error {
 	subject := "Khôi phục mật khẩu UAM"
-	
+
 	// Sử dụng biến môi trường APP_FRONTEND_URL để ghép link
 	frontendURL := s.cfg.App.FrontendURL
 	if frontendURL == "" {
 		frontendURL = "http://localhost:3000" // Fallback nếu quên cấu hình
 	}
-	
+
 	resetURL := fmt.Sprintf("%s/reset-password?token=%s", frontendURL, token)
 	body := fmt.Sprintf(`
 		<h2>Khôi phục mật khẩu</h2>
