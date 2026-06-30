@@ -21,6 +21,10 @@ type SessionRepository interface {
 	DeleteByUserID(ctx context.Context, userID uint64) error
 	AddToBlacklist(ctx context.Context, jti string, ttl time.Duration) error
 	IsBlacklisted(ctx context.Context, jti string) (bool, error)
+	AddRevokedRefreshToken(ctx context.Context, hash string, ttl time.Duration) error
+	IsRefreshTokenRevoked(ctx context.Context, hash string) (bool, error)
+	SetRateLimit(ctx context.Context, action string, identifier string, ttl time.Duration) error
+	IsRateLimited(ctx context.Context, action string, identifier string) (bool, error)
 }
 
 type sessionRepository struct {
@@ -123,6 +127,36 @@ func (r *sessionRepository) AddToBlacklist(ctx context.Context, jti string, ttl 
 // IsBlacklisted kiểm tra xem Access Token (JTI) có nằm trong danh sách đen bị thu hồi hay không
 func (r *sessionRepository) IsBlacklisted(ctx context.Context, jti string) (bool, error) {
 	val, err := r.redis.Exists(ctx, "blacklist:"+jti).Result()
+	if err != nil {
+		return false, err
+	}
+	return val > 0, nil
+}
+
+// AddRevokedRefreshToken lưu hash của refresh token cũ vào Redis để phát hiện Token Reuse (VULN-002)
+func (r *sessionRepository) AddRevokedRefreshToken(ctx context.Context, hash string, ttl time.Duration) error {
+	return r.redis.Set(ctx, "revoked_rt:"+hash, "1", ttl).Err()
+}
+
+// IsRefreshTokenRevoked kiểm tra xem refresh token đã bị thu hồi (sử dụng lại) hay chưa
+func (r *sessionRepository) IsRefreshTokenRevoked(ctx context.Context, hash string) (bool, error) {
+	val, err := r.redis.Exists(ctx, "revoked_rt:"+hash).Result()
+	if err != nil {
+		return false, err
+	}
+	return val > 0, nil
+}
+
+// SetRateLimit thiết lập rate limit cho một hành động cụ thể
+func (r *sessionRepository) SetRateLimit(ctx context.Context, action string, identifier string, ttl time.Duration) error {
+	key := "ratelimit:" + action + ":" + identifier
+	return r.redis.Set(ctx, key, "1", ttl).Err()
+}
+
+// IsRateLimited kiểm tra xem hành động có đang bị giới hạn hay không
+func (r *sessionRepository) IsRateLimited(ctx context.Context, action string, identifier string) (bool, error) {
+	key := "ratelimit:" + action + ":" + identifier
+	val, err := r.redis.Exists(ctx, key).Result()
 	if err != nil {
 		return false, err
 	}

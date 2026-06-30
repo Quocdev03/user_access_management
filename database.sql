@@ -290,11 +290,11 @@ INSERT INTO `users` (
     `date_of_birth`, `status`, `email_verified`
 ) VALUES (
     'admin_quocdev',
-    'admin@quocdev.com',
+    'quocdt2003@gmail.com',
     '$2b$10$UnRP6.d73ZTsALvnkBotj.ugbfuzQlAQp2wrUVXCBcZlEIyS9EVdW',
     'Quoc Dev Administrator',
-    '0901234567',
-    '1995-01-01',
+    '0378286742',
+    '2003-04-06',
     'active',
     1
 );

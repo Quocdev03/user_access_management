@@ -25,8 +25,10 @@ func Setup(db *sqlx.DB, redisClient *redis.Client, logger *zap.Logger, cfg *conf
 	otpRepo := repository.NewOTPRepository(db)
 	roleRepo := repository.NewRoleRepository(db)
 	sessionRepo := repository.NewSessionRepository(db, redisClient)
+	passwordResetRepo := repository.NewPasswordResetRepository(db.DB)
+	mailService := service.NewMailService(cfg, logger)
 	
-	authService := service.NewAuthService(userRepo, otpRepo, roleRepo, sessionRepo, cfg, logger)
+	authService := service.NewAuthService(userRepo, otpRepo, roleRepo, sessionRepo, passwordResetRepo, mailService, cfg, logger)
 	authHandler := handler.NewAuthHandler(authService)
 
 	authMiddleware := middleware.AuthMiddleware(cfg, sessionRepo, logger)
@@ -62,9 +64,13 @@ func Setup(db *sqlx.DB, redisClient *redis.Client, logger *zap.Logger, cfg *conf
 		{
 			auth.POST("/register", authHandler.Register)
 			auth.POST("/verify-email", authHandler.VerifyEmail)
+			auth.POST("/resend-verification-email", authHandler.ResendVerificationEmail)
 			auth.POST("/login", authHandler.Login)
 			auth.POST("/refresh-token", authHandler.RefreshToken)
 			auth.POST("/logout", authMiddleware, authHandler.Logout)
+			auth.POST("/forgot-password", authHandler.ForgotPassword)
+			auth.POST("/reset-password", authHandler.ResetPassword)
+			auth.POST("/change-password", authMiddleware, authHandler.ChangePassword)
 		}
 	}
 

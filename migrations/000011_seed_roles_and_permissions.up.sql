@@ -1,7 +1,7 @@
 -- =============================================================================
 -- Seed: Roles
 -- =============================================================================
-INSERT INTO `roles` (`name`, `description`) VALUES
+INSERT IGNORE INTO `roles` (`name`, `description`) VALUES
     ('admin',     'Quản trị viên hệ thống — toàn quyền'),
     ('moderator', 'Người kiểm duyệt — quản lý user và nội dung'),
     ('user',      'Người dùng thông thường');
@@ -9,7 +9,7 @@ INSERT INTO `roles` (`name`, `description`) VALUES
 -- =============================================================================
 -- Seed: Permissions
 -- =============================================================================
-INSERT INTO `permissions` (`name`, `description`, `resource`, `action`) VALUES
+INSERT IGNORE INTO `permissions` (`name`, `description`, `resource`, `action`) VALUES
     -- Users
     ('users.create',  'Tạo người dùng mới',                'users', 'create'),
     ('users.read',    'Xem thông tin người dùng',           'users', 'read'),
@@ -38,14 +38,14 @@ INSERT INTO `permissions` (`name`, `description`, `resource`, `action`) VALUES
 -- =============================================================================
 
 -- Admin gets ALL permissions
-INSERT INTO `role_permissions` (`role_id`, `permission_id`)
+INSERT IGNORE INTO `role_permissions` (`role_id`, `permission_id`)
 SELECT r.id, p.id
 FROM `roles` r
 CROSS JOIN `permissions` p
 WHERE r.name = 'admin';
 
 -- Moderator gets user management permissions (read, update, lock, reset_password)
-INSERT INTO `role_permissions` (`role_id`, `permission_id`)
+INSERT IGNORE INTO `role_permissions` (`role_id`, `permission_id`)
 SELECT r.id, p.id
 FROM `roles` r
 CROSS JOIN `permissions` p
@@ -61,7 +61,7 @@ WHERE r.name = 'moderator'
   );
 
 -- User gets basic self-service permissions
-INSERT INTO `role_permissions` (`role_id`, `permission_id`)
+INSERT IGNORE INTO `role_permissions` (`role_id`, `permission_id`)
 SELECT r.id, p.id
 FROM `roles` r
 CROSS JOIN `permissions` p

@@ -54,12 +54,18 @@ JWT_SECRET=your-secret-key-change-this
 JWT_ACCESS_EXPIRY=15m
 JWT_REFRESH_EXPIRY=168h
 
-# Mail (SMTP)
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=your-email@gmail.com
-SMTP_PASSWORD=your-app-password
-SMTP_FROM=noreply@yourdomain.com
+# Mail (SMTP) - Mặc định dùng Mailpit (127.0.0.1:1025) cho dev
+# Để dùng Resend gửi mail thật, hãy thay thế bằng:
+# SMTP_HOST=smtp.resend.com
+# SMTP_PORT=587
+# SMTP_USER=resend
+# SMTP_PASSWORD=YOUR_API_KEY
+# SMTP_FROM=noreply@YOUR_DOMAIN.com
+SMTP_HOST=127.0.0.1
+SMTP_PORT=1025
+SMTP_USER=
+SMTP_PASSWORD=
+SMTP_FROM=noreply@localhost
 
 # Rate Limiting
 RATE_LIMIT_REQUESTS=100
@@ -347,3 +353,30 @@ make docker-down
 | Redis kết nối | `curl http://localhost:8080/health/ready` | Redis: UP |
 | Swagger UI | Mở `http://localhost:8080/swagger/index.html` | Trang Swagger hiển thị |
 | Metrics | `curl http://localhost:8080/metrics` | Prometheus metrics |
+
+---
+
+## 7. Cấu hình gửi Email thật (Production / Testing) với Resend
+
+Mặc định, môi trường phát triển (development) sử dụng **Mailpit** (chạy trong Docker qua port `1025` và giao diện web port `8025`) để bắt tất cả email gửi đi mà không làm phiền người dùng thật.
+
+Khi bạn cần kiểm thử tính năng với email thật hoặc đưa ứng dụng lên Production, chúng tôi khuyên dùng [Resend](https://resend.com) làm SMTP Server.
+
+### Các bước cấu hình:
+
+1. Đăng ký tài khoản và tạo API Key tại [Resend Dashboard](https://resend.com/api-keys).
+2. Xác thực tên miền (Verify Domain) của bạn trên Resend (ví dụ: `yourdomain.com`).
+3. Mở file `.env` và cập nhật cấu hình **Mail (SMTP)** như sau:
+
+```env
+SMTP_HOST=smtp.resend.com
+SMTP_PORT=587
+SMTP_USER=resend
+SMTP_PASSWORD=re_api_key_cua_ban_o_day
+SMTP_FROM=noreply@yourdomain.com
+```
+
+**Lưu ý:**
+- Username của Resend luôn là `resend`.
+- `SMTP_FROM` phải là email kết thúc bằng tên miền bạn đã verify (nếu bạn chưa verify tên miền, Resend Sandbox Mode chỉ cho phép gửi từ `onboarding@resend.dev` tới địa chỉ email đăng ký tài khoản của bạn).
+- Khởi động lại server (`make dev` hoặc restart docker) để ứng dụng nhận file cấu hình mới.

@@ -18,8 +18,9 @@ type Config struct {
 }
 
 type AppConfig struct {
-	Env  string
-	Port string
+	Env         string
+	Port        string
+	FrontendURL string
 }
 
 type DatabaseConfig struct {
@@ -77,8 +78,9 @@ func Load(path string) (*Config, error) {
 
 	cfg := &Config{
 		App: AppConfig{
-			Env:  viper.GetString("APP_ENV"),
-			Port: viper.GetString("APP_PORT"),
+			Env:         viper.GetString("APP_ENV"),
+			Port:        viper.GetString("APP_PORT"),
+			FrontendURL: viper.GetString("APP_FRONTEND_URL"),
 		},
 		Database: DatabaseConfig{
 			Host:     viper.GetString("DB_HOST"),

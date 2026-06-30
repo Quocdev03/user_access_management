@@ -14,7 +14,7 @@ import (
 type OTPRepository interface {
 	Create(ctx context.Context, userID uint64, code string, otpType string, expiresAt time.Time) error
 	GetLatestValidCode(ctx context.Context, userID uint64, otpType string) (*model.OTPCode, error)
-	IncrementAttempts(ctx context.Context, otpID uint64) error
+	IncrementAttempts(ctx context.Context, otpID uint64) (int, error)
 	MarkAsUsed(ctx context.Context, otpID uint64) error
 }
 
@@ -60,11 +60,16 @@ func (r *otpRepository) GetLatestValidCode(ctx context.Context, userID uint64, o
 	return &otp, nil
 }
 
-// IncrementAttempts tăng số lần thử sai
-func (r *otpRepository) IncrementAttempts(ctx context.Context, otpID uint64) error {
-	query := `UPDATE otp_codes SET attempts = attempts + 1 WHERE id = ?`
-	_, err := r.db.ExecContext(ctx, query, otpID)
-	return err
+// IncrementAttempts tăng số lần thử sai một cách nguyên tử và trả về số lần hiện tại
+func (r *otpRepository) IncrementAttempts(ctx context.Context, otpID uint64) (int, error) {
+	updateQuery := "UPDATE otp_codes SET attempts = attempts + 1 WHERE id = ?"
+	if _, err := r.db.ExecContext(ctx, updateQuery, otpID); err != nil {
+		return 0, err
+	}
+
+	var attempts int
+	err := r.db.GetContext(ctx, &attempts, "SELECT attempts FROM otp_codes WHERE id = ?", otpID)
+	return attempts, err
 }
 
 // MarkAsUsed đánh dấu đã sử dụng

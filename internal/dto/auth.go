@@ -35,6 +35,10 @@ type VerifyEmailRequest struct {
 	OTP   string `json:"otp" binding:"required,len=6"`
 }
 
+type ResendVerificationEmailRequest struct {
+	Email string `json:"email" binding:"required,email"`
+}
+
 // VerifyEmail không cần dữ liệu trả về đặc biệt trong Response, chỉ cần thông điệp thành công (Success message)
 
 // --------------- Login ---------------
@@ -61,3 +65,20 @@ type RefreshTokenResponse struct {
 	RefreshToken string `json:"refresh_token"`
 }
 
+// --------------- Forgot Password ---------------
+
+type ForgotPasswordRequest struct {
+	Email string `json:"email" binding:"required,email"`
+}
+
+type ResetPasswordRequest struct {
+	Token       string `json:"token" binding:"required"`
+	NewPassword string `json:"new_password" binding:"required,min=8"`
+}
+
+// --------------- Change Password ---------------
+
+type ChangePasswordRequest struct {
+	OldPassword string `json:"old_password" binding:"required"`
+	NewPassword string `json:"new_password" binding:"required,min=8"`
+}

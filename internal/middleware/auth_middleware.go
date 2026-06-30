@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"errors"
 	"net/http"
 	"strings"
 
@@ -36,14 +37,11 @@ func AuthMiddleware(cfg *config.Config, sessionRepo repository.SessionRepository
 		// Phân tích cú pháp và xác thực chữ ký token
 		claims, err := jwt.ParseToken(tokenStr, cfg.JWT.Secret)
 		if err != nil {
-			var errMsg string
-			var errCode string
-			if err == jwt.ErrExpiredToken {
+			errCode := "ERR_INVALID_TOKEN"
+			errMsg := "Mã token xác thực không hợp lệ"
+			if errors.Is(err, jwt.ErrExpiredToken) {
 				errCode = "ERR_TOKEN_EXPIRED"
 				errMsg = "Mã token xác thực đã hết hạn"
-			} else {
-				errCode = "ERR_INVALID_TOKEN"
-				errMsg = "Mã token xác thực không hợp lệ"
 			}
 			response.Error(c, apperror.NewAppError(errCode, errMsg, http.StatusUnauthorized))
 			c.Abort()
