@@ -118,7 +118,6 @@ Hệ thống cung cấp các công cụ quản trị:
 | UC-29  | Audit User Actions                    |
 | UC-30  | Export Audit Logs                     |
 | UC-31  | Health Check                          |
-| UC-32  | Prometheus Metrics                    |
 
 ### Nhóm 6 — System & Developer Tools
 
@@ -169,7 +168,6 @@ Hệ thống cung cấp các công cụ quản trị:
 
 | Công nghệ             | Mô tả                                      |
 | ---------------------- | ------------------------------------------- |
-| Prometheus             | Thu thập metrics                            |
 | Health Check           | Kiểm tra trạng thái hệ thống               |
 | Zap Logger             | Structured logging                          |
 

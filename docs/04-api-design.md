@@ -176,8 +176,6 @@ Các endpoint trả danh sách hỗ trợ query params:
 |-------------|----------|-------|------|
 | GET | `/health` | Kiểm tra trạng thái hệ thống | Không |
 | GET | `/health/ready` | Kiểm tra kết nối database, Redis | Không |
-| GET | `/metrics` | Prometheus metrics | Không |
-| GET | `/swagger/*` | Swagger UI | Không |
 
 ---
 

@@ -159,47 +159,6 @@ services:
   mailpit:
     image: axllent/mailpit
     ports:
-      - "8025:8025" # Web UI
-      - "1025:1025" # SMTP
-    restart: unless-stopped
-
-
-
-  prometheus:
-    image: prom/prometheus:latest
-    ports:
-      - "9090:9090"
-    volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml
-      - prometheus_data:/prometheus
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    restart: unless-stopped
-
-  grafana:
-    image: grafana/grafana:latest
-    ports:
-      - "3000:3000"
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-    volumes:
-      - grafana_data:/var/lib/grafana
-    depends_on:
-      - prometheus
-    restart: unless-stopped
-
-volumes:
-  mysql_data:
-  redis_data:
-  prometheus_data:
-  grafana_data:
-  uploads:
-```
-
-### Cấu trúc file `Dockerfile`
-
-```dockerfile
-# Build stage
 FROM golang:alpine AS builder
 WORKDIR /app
 COPY go.mod go.sum ./

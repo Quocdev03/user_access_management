@@ -3,46 +3,126 @@ package service
 import (
 	"fmt"
 
+	"github.com/resend/resend-go/v2"
 	"go.uber.org/zap"
 	"gopkg.in/gomail.v2"
 
 	"github.com/quocdev03/user-access-management/internal/config"
 )
 
-type MailService struct {
-	cfg    *config.Config
+// MailSender định nghĩa giao diện chuẩn cho mọi dịch vụ gửi mail (Resend, SMTP, Mock, SendGrid...)
+type MailSender interface {
+	SendEmail(to, subject, body string) error
+}
+
+// ----------------------------------------------------------------------
+// 1. Mock Sender (Dùng khi chưa cấu hình host)
+// ----------------------------------------------------------------------
+type MockSender struct {
 	logger *zap.Logger
 }
 
-func NewMailService(cfg *config.Config, logger *zap.Logger) *MailService {
-	return &MailService{
-		cfg:    cfg,
-		logger: logger,
-	}
+func (s *MockSender) SendEmail(to, subject, body string) error {
+	s.logger.Info("[MOCK MAIL] Bỏ qua gửi email thực tế. Nội dung email được in ra bên dưới:", zap.String("to", to), zap.String("subject", subject))
+	
+	// In thẳng nội dung ra Console để Dev có thể lấy OTP hoặc Link Đặt lại mật khẩu
+	fmt.Println("\n================ MOCK EMAIL CONTENT ================")
+	fmt.Println("TO      :", to)
+	fmt.Println("SUBJECT :", subject)
+	fmt.Println("BODY    :\n", body)
+	fmt.Println("====================================================\n")
+	
+	return nil
 }
 
-func (s *MailService) SendEmail(to, subject, body string) error {
+// ----------------------------------------------------------------------
+// 2. Resend Sender (Dùng qua SDK/HTTP API để né chặn cổng)
+// ----------------------------------------------------------------------
+type ResendSender struct {
+	client *resend.Client
+	from   string
+	logger *zap.Logger
+}
+
+func (s *ResendSender) SendEmail(to, subject, body string) error {
+	params := &resend.SendEmailRequest{
+		From:    s.from,
+		To:      []string{to},
+		Subject: subject,
+		Html:    body,
+	}
+
+	if _, err := s.client.Emails.Send(params); err != nil {
+		s.logger.Error("Lỗi gửi email qua Resend SDK", zap.String("to", to), zap.Error(err))
+		return fmt.Errorf("failed to send via resend sdk: %w", err)
+	}
+
+	s.logger.Info("Đã gửi email thành công qua Resend SDK", zap.String("to", to), zap.String("subject", subject))
+	return nil
+}
+
+// ----------------------------------------------------------------------
+// 3. SMTP Sender (Dùng cho gomail tiêu chuẩn)
+// ----------------------------------------------------------------------
+type SMTPSender struct {
+	dialer *gomail.Dialer
+	from   string
+	logger *zap.Logger
+}
+
+func (s *SMTPSender) SendEmail(to, subject, body string) error {
 	m := gomail.NewMessage()
-	m.SetHeader("From", s.cfg.Mail.From)
+	m.SetHeader("From", s.from)
 	m.SetHeader("To", to)
 	m.SetHeader("Subject", subject)
 	m.SetBody("text/html", body)
 
-	d := gomail.NewDialer(s.cfg.Mail.Host, s.cfg.Mail.Port, s.cfg.Mail.User, s.cfg.Mail.Password)
-
-	// Nếu cấu hình host trống thì ta có thể mock để không bị lỗi trên môi trường dev chưa có SMTP
-	if s.cfg.Mail.Host == "" {
-		s.logger.Info("[MOCK MAIL] Bỏ qua gửi email do chưa cấu hình SMTP", zap.String("to", to), zap.String("subject", subject))
-		return nil
-	}
-
-	if err := d.DialAndSend(m); err != nil {
-		s.logger.Error("Lỗi gửi email", zap.String("to", to), zap.Error(err))
+	if err := s.dialer.DialAndSend(m); err != nil {
+		s.logger.Error("Lỗi gửi email SMTP", zap.String("to", to), zap.Error(err))
 		return fmt.Errorf("failed to send email: %w", err)
 	}
 
-	s.logger.Info("Đã gửi email thành công", zap.String("to", to), zap.String("subject", subject))
+	s.logger.Info("Đã gửi email thành công qua SMTP", zap.String("to", to), zap.String("subject", subject))
 	return nil
+}
+
+// ----------------------------------------------------------------------
+// Core MailService
+// ----------------------------------------------------------------------
+type MailService struct {
+	sender MailSender
+	cfg    *config.Config
+}
+
+// NewMailService đóng vai trò là Factory nạp đúng Sender dựa trên Config
+func NewMailService(cfg *config.Config, logger *zap.Logger) *MailService {
+	var sender MailSender
+
+	if cfg.Mail.Host == "" {
+		sender = &MockSender{logger: logger}
+	} else if cfg.Mail.Host == "smtp.resend.com" {
+		sender = &ResendSender{
+			client: resend.NewClient(cfg.Mail.Password),
+			from:   cfg.Mail.From,
+			logger: logger,
+		}
+	} else {
+		sender = &SMTPSender{
+			dialer: gomail.NewDialer(cfg.Mail.Host, cfg.Mail.Port, cfg.Mail.User, cfg.Mail.Password),
+			from:   cfg.Mail.From,
+			logger: logger,
+		}
+	}
+
+	return &MailService{
+		sender: sender,
+		cfg:    cfg,
+	}
+}
+
+// Gọi sender interface, không quan tâm nó là Resend hay SMTP
+func (s *MailService) SendEmail(to, subject, body string) error {
+	return s.sender.SendEmail(to, subject, body)
 }
 
 func (s *MailService) SendVerificationEmail(to, otp string) error {

@@ -330,12 +330,7 @@ Hệ thống UAM bao gồm **39 Use Cases** chia thành **6 nhóm** chức năng
   - `GET /health/ready` → kiểm tra kết nối MySQL, Redis.
 - **Response**: trạng thái `UP`/`DOWN` cho từng dependency.
 
-### UC-32: Prometheus Metrics
 
-- **Đối tượng**: Hệ thống vận hành
-- **Mô tả**: Expose metrics theo định dạng Prometheus.
-- **Endpoint**: `GET /metrics`
-- **Metrics**: request count, request latency, error rate, active sessions.
 
 ---
 

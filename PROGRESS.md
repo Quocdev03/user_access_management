@@ -109,6 +109,8 @@
 | B21 | VULN-2: Lỗi Data Truncation Error dẫn đến DoS thông qua User-Agent | Bổ sung code giới hạn, cắt ngắn chuỗi `User-Agent` (500) và `IP Address` (45) trước khi ghi vào Database tại `Login` và `Refresh`. |
 | R4 | Loại bỏ sự rườm rà (Over-engineering), Interface Sprawl và God Object | Đã gỡ bỏ toàn bộ interface giả ở Repository và Service. Gộp các Query cập nhật Database. Tách AuthService thành AuthService & PasswordService. Refactor `errors.go` chuẩn hóa hơn. |
 | B22 | Data Inconsistency do thiếu Database Transaction | Thêm `pkg/database/tx.go` (TxManager). Bọc tất cả thao tác Database trong các tầng Service (`Register`, `VerifyEmail`, `ResetPassword`,...) vào `RunInTx` để đảm bảo tính ACID. Sửa chuẩn tên `*_model.go`. Fix lỗi logic `LogoutAll`. |
+| R5 | Refactor `mail_service.go` vi phạm Open/Closed Principle | Áp dụng Strategy Pattern và Dependency Injection (Interface `MailSender`), tách biệt logic gửi qua Resend SDK (HTTP API) và Gomail (SMTP) giúp code dễ bảo trì và dễ mock. |
+| M9 | Loại bỏ Prometheus & Grafana | Dọn dẹp cấu hình giám sát không cần thiết khỏi file `docker-compose.yml` và tài liệu để hệ thống nhẹ nhàng hơn. |
 ---
 
 ## 🚧 Chưa làm / TODO

@@ -3,604 +3,572 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UAM Premium API Tester</title>
+    <title>uam-api-tester — zsh</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
     <script>
         tailwind.config = {
             darkMode: 'class',
             theme: {
                 extend: {
-                    fontFamily: {
-                        sans: ['Outfit', 'sans-serif'],
-                    },
+                    fontFamily: { mono: ['"JetBrains Mono"', 'monospace'] },
                     colors: {
-                        primary: "#4f46e5", /* Indigo 600 */
-                        secondary: "#3b82f6", /* Blue 500 */
-                        accent: "#06b6d4", /* Cyan 500 */
-                        dark: "#030712",
-                        glass: "rgba(255, 255, 255, 0.03)",
-                        glassBorder: "rgba(255, 255, 255, 0.08)",
+                        accent: "#D97757",
+                        ink: "#F2EEE4",
+                        panel: "#15140F",
                     },
-                    animation: {
-                        'blob': "blob 7s infinite",
-                        'fade-in': "fadeIn 0.5s ease-out forwards",
-                    },
-                    keyframes: {
-                        blob: {
-                            "0%": { transform: "translate(0px, 0px) scale(1)" },
-                            "33%": { transform: "translate(30px, -50px) scale(1.1)" },
-                            "66%": { transform: "translate(-20px, 20px) scale(0.9)" },
-                            "100%": { transform: "translate(0px, 0px) scale(1)" },
-                        },
-                        fadeIn: {
-                            "0%": { opacity: "0", transform: "translateY(10px)" },
-                            "100%": { opacity: "1", transform: "translateY(0)" },
-                        }
-                    }
                 }
             }
         }
     </script>
     <style>
+        :root {
+            /* Clean warm dark mode (slightly lighter & higher contrast than pitch black) */
+            --bg: #131210;
+            --bg-panel: #1B1A17;
+            --bg-input: #0E0D0C;
+            --border: #2D2A26;
+            --border-light: #444039;
+            --accent: #E06F4D;
+            --accent-dim: rgba(224, 111, 77, 0.12);
+            --accent-dim2: rgba(224, 111, 77, 0.25);
+            --text: #F4F1EA;
+            --text-dim: #AAA397;
+            --text-mute: #6C665C;
+            --success: #78B58B;
+            --success-dim: rgba(120, 181, 139, 0.12);
+            --error: #E56353;
+            --error-dim: rgba(229, 99, 83, 0.12);
+            --dot-color: rgba(255, 255, 255, 0.03);
+            --bar-bg: #0C0B0A;
+        }
+
+        :root.light {
+            /* Crisp warm light mode (paper theme) */
+            --bg: #F5F4F0;
+            --bg-panel: #FFFFFF;
+            --bg-input: #EBEAE4;
+            --border: #DFDDD6;
+            --border-light: #CDCAC0;
+            --accent: #D25F3E;
+            --accent-dim: rgba(210, 95, 62, 0.08);
+            --accent-dim2: rgba(210, 95, 62, 0.18);
+            --text: #2C2A26;
+            --text-dim: #6E6A61;
+            --text-mute: #9C978D;
+            --success: #3A8253;
+            --success-dim: rgba(58, 130, 83, 0.1);
+            --error: #C24436;
+            --error-dim: rgba(194, 68, 54, 0.1);
+            --dot-color: rgba(0, 0, 0, 0.04);
+            --bar-bg: #EAE8E2;
+        }
+
+        * { font-family: 'JetBrains Mono', monospace; }
+
         body {
-            background-color: #0f172a; /* Nền xám xanh sáng nhẹ hơn (slate-900) */
-            color: #ffffff; /* Trắng tinh cho dễ đọc */
-            overflow-x: hidden;
+            background:
+                radial-gradient(circle at 1px 1px, var(--dot-color) 1px, transparent 0) 0 0/22px 22px,
+                var(--bg);
+            color: var(--text);
+            transition: background-color 0.2s ease, color 0.2s ease;
         }
 
-        .bg-glow-1 {
-            position: fixed;
-            top: -20%; left: -10%;
-            width: 70vw; height: 70vw;
-            border-radius: 50%;
-            background: radial-gradient(circle, rgba(99,102,241,0.15) 0%, rgba(0,0,0,0) 70%);
-            z-index: -1;
-            filter: blur(80px);
-        }
-        
-        .bg-glow-2 {
-            position: fixed;
-            bottom: -20%; right: -10%;
-            width: 70vw; height: 70vw;
-            border-radius: 50%;
-            background: radial-gradient(circle, rgba(236,72,153,0.15) 0%, rgba(0,0,0,0) 70%);
-            z-index: -1;
-            filter: blur(80px);
-            animation-delay: 2s;
-        }
+        ::selection { background: var(--accent-dim2); color: var(--text); }
 
-        .glass-card {
-            background: linear-gradient(145deg, rgba(30, 41, 59, 0.4) 0%, rgba(15, 23, 42, 0.4) 100%); /* Sáng hơn một chút so với nền đen */
-            backdrop-filter: blur(24px);
-            -webkit-backdrop-filter: blur(24px);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            border-radius: 1.5rem;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 2px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+        @keyframes blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+        .caret { display: inline-block; width: 9px; height: 1.1em; background: var(--accent); vertical-align: text-bottom; animation: blink 1s step-end infinite; margin-left: 2px; }
+
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .term { animation: fadeUp 0.45s ease-out backwards; }
+        .term:nth-child(1) { animation-delay: 0.02s; }
+        .term:nth-child(2) { animation-delay: 0.06s; }
+        .term:nth-child(3) { animation-delay: 0.10s; }
+        .term:nth-child(4) { animation-delay: 0.14s; }
+        .term:nth-child(5) { animation-delay: 0.18s; }
+        .term:nth-child(6) { animation-delay: 0.22s; }
+        .term:nth-child(7) { animation-delay: 0.26s; }
+        .term:nth-child(8) { animation-delay: 0.30s; }
+        .term:nth-child(9) { animation-delay: 0.34s; }
+        .term:nth-child(10) { animation-delay: 0.38s; }
+
+        /* Terminal window card */
+        .term {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 5px;
             display: flex;
             flex-direction: column;
-            animation: fadeIn 0.6s ease-out backwards;
-        }
-        
-        .glass-card:hover {
-            transform: translateY(-5px);
-            border-color: rgba(255, 255, 255, 0.15);
-            box-shadow: 0 30px 60px -12px rgba(168, 85, 247, 0.2);
-        }
-
-        .glass-input {
-            width: 100%;
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 0.75rem;
-            padding: 0.85rem 1rem;
-            color: #ffffff;
-            font-size: 0.95rem;
-            transition: all 0.3s ease;
-        }
-        
-        .glass-input:focus {
-            outline: none;
-            border-color: theme('colors.secondary');
-            background: rgba(0, 0, 0, 0.5);
-            box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.3);
-        }
-
-        .glass-input::placeholder {
-            color: #94a3b8; /* Placeholder sáng hơn (slate-400) */
-        }
-        
-        .glass-input:disabled, .glass-input[readonly] {
-            background: rgba(0, 0, 0, 0.5);
-            color: #cbd5e1; /* Text readonly sáng hơn */
-            cursor: not-allowed;
-            border-color: rgba(255, 255, 255, 0.1);
-        }
-
-        .gradient-btn {
-            width: 100%;
-            background: linear-gradient(135deg, theme('colors.primary'), theme('colors.secondary'));
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 0.75rem;
-            padding: 0.75rem 1.5rem;
-            color: #ffffff;
-            font-weight: 600;
-            font-size: 0.95rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            position: relative;
             overflow: hidden;
+            transition: border-color 0.2s ease, background-color 0.2s ease;
+        }
+        .term:hover { border-color: var(--border-light); }
+
+        .term-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 9px 14px;
+            background: var(--bar-bg);
+            border-bottom: 1px solid var(--border);
+            transition: background-color 0.2s ease, border-color 0.2s ease;
+        }
+        .term-dot { width: 9px; height: 9px; border-radius: 50%; opacity: 0.85; }
+        .term-path {
+            margin-left: 4px;
+            font-size: 0.74rem;
+            color: var(--text-dim);
+            letter-spacing: 0.01em;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .term-method {
+            margin-left: auto;
+            font-size: 0.66rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            padding: 2px 7px;
+            border-radius: 3px;
+            border: 1px solid var(--border-light);
+            color: var(--text-dim);
+            flex-shrink: 0;
+        }
+        .m-get { color: #5B95C6; border-color: rgba(91,149,198,0.35); background: rgba(91,149,198,0.08); }
+        :root.light .m-get { color: #2B6699; border-color: rgba(43,102,153,0.35); background: rgba(43,102,153,0.05); }
+        .m-post { color: var(--accent); border-color: var(--accent-dim2); background: var(--accent-dim); }
+
+        .term-body { padding: 18px 18px 20px; display: flex; flex-direction: column; gap: 14px; flex: 1; }
+
+        .lead {
+            font-size: 0.76rem;
+            color: var(--text-dim);
+            line-height: 1.5;
+            margin: 0 0 2px;
+        }
+        .lead .cmt { color: var(--text-mute); }
+
+        .field label {
+            display: block;
+            font-size: 0.68rem;
+            color: var(--text-mute);
+            margin-bottom: 5px;
+            letter-spacing: 0.02em;
+        }
+        .field label::before { content: "› "; color: var(--accent); }
+
+        .tin {
+            width: 100%;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 8px 10px;
+            color: var(--text);
+            font-size: 0.82rem;
+            outline: none;
+            transition: border-color 0.15s ease, background 0.15s ease;
+        }
+        .tin::placeholder { color: var(--text-mute); }
+        .tin:focus { border-color: var(--accent); background: var(--bg-panel); }
+        .tin:read-only, .tin:disabled {
+            color: var(--text-dim);
+            cursor: not-allowed;
+            background: var(--bg-input);
+            border-style: dashed;
+            opacity: 0.7;
+        }
+
+        .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+        .runbtn {
+            width: 100%;
+            margin-top: auto;
+            background: transparent;
+            border: 1px solid var(--accent-dim2);
+            color: var(--accent);
+            border-radius: 4px;
+            padding: 9px 14px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+            cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 0.5rem;
-            margin-top: 1.5rem;
-            box-shadow: 0 4px 15px -3px rgba(59, 130, 246, 0.3);
+            gap: 8px;
+            transition: all 0.15s ease;
         }
-        
-        .gradient-btn::before {
-            content: '';
-            position: absolute;
-            top: 0; left: -100%;
-            width: 100%; height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-            transition: all 0.5s ease;
-        }
-        
-        .gradient-btn:hover {
-            box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.5);
-            transform: translateY(-2px);
-            background: linear-gradient(135deg, #4338ca, #2563eb); /* Đậm hơn khi hover */
-        }
-        
-        .gradient-btn:hover::before {
-            left: 100%;
-        }
+        .runbtn:hover { background: var(--accent-dim); border-color: var(--accent); }
+        .runbtn:active { transform: scale(0.98); }
+        .runbtn.neutral { color: var(--text-dim); border-color: var(--border-light); }
+        .runbtn.neutral:hover { color: var(--text); background: rgba(255,255,255,0.04); border-color: var(--text-dim); }
+        :root.light .runbtn.neutral:hover { background: rgba(0,0,0,0.04); }
+        .runbtn.danger { color: var(--error); border-color: rgba(226,104,90,0.35); }
+        .runbtn.danger:hover { background: var(--error-dim); border-color: var(--error); }
 
-        .glass-label {
-            display: block;
-            font-size: 0.85rem; /* Text to hơn */
-            font-weight: 600;
-            color: #e2e8f0; /* Label sáng hơn (slate-200) */
-            margin-bottom: 0.5rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-
-        .method-badge {
-            display: inline-flex;
-            align-items: center;
-            padding: 0.35rem 0.85rem;
-            border-radius: 9999px;
-            font-size: 0.8rem;
-            font-weight: 700;
-            letter-spacing: 0.05em;
-            background: rgba(16, 185, 129, 0.15);
-            color: #6ee7b7; /* Xanh ngọc sáng hơn */
-            border: 1px solid rgba(52, 211, 153, 0.3);
-            box-shadow: 0 0 10px rgba(52, 211, 153, 0.15);
-        }
-
-        .auth-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.25rem;
-            padding: 0.25rem 0.75rem;
-            border-radius: 9999px;
-            font-size: 0.7rem;
-            font-weight: 600;
-            background: rgba(245, 158, 11, 0.1);
-            color: #fbbf24;
-            border: 1px solid rgba(245, 158, 11, 0.2);
-        }
-
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.3); }
-
-        .response-box {
-            font-family: 'Consolas', monospace;
-            font-size: 0.9rem; /* Text response to hơn */
-            background: rgba(0,0,0,0.7);
-            border: 1px solid rgba(255,255,255,0.15);
-            border-radius: 0.75rem;
-            padding: 1.25rem;
-            max-height: 250px;
-            overflow-y: auto;
+        .out {
             display: none;
-            margin-top: 1.5rem;
+            margin-top: 2px;
+            font-size: 0.76rem;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 10px 12px;
+            max-height: 220px;
+            overflow-y: auto;
             white-space: pre-wrap;
             word-break: break-all;
-            box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);
-            color: #f8fafc;
+            color: var(--text-dim);
+            line-height: 1.5;
         }
-        .response-box.success { border-left: 4px solid #34d399; color: #a7f3d0; }
-        .response-box.error { border-left: 4px solid #f87171; color: #fecaca; }
+        .out::before { content: "→ stdout"; display: block; font-size: 0.64rem; color: var(--text-mute); margin-bottom: 6px; letter-spacing: 0.05em; }
+        .out.success { border-left: 2px solid var(--success); color: var(--text); }
+        .out.success::before { color: var(--success); }
+        .out.error { border-left: 2px solid var(--error); color: var(--text); }
+        .out.error::before { content: "→ stderr"; color: var(--error); }
 
-        /* Cascading entrance animation for cards */
-        .glass-card:nth-child(1) { animation-delay: 0.1s; }
-        .glass-card:nth-child(2) { animation-delay: 0.2s; }
-        .glass-card:nth-child(3) { animation-delay: 0.3s; }
-        .glass-card:nth-child(4) { animation-delay: 0.4s; }
-        .glass-card:nth-child(5) { animation-delay: 0.5s; }
-        .glass-card:nth-child(6) { animation-delay: 0.6s; }
-        .glass-card:nth-child(7) { animation-delay: 0.7s; }
-        .glass-card:nth-child(8) { animation-delay: 0.8s; }
-        .glass-card:nth-child(9) { animation-delay: 0.9s; }
+        .auth-tag {
+            font-size: 0.62rem;
+            color: #D9A057;
+            border: 1px solid rgba(217,160,87,0.35);
+            background: rgba(217,160,87,0.08);
+            padding: 2px 6px;
+            border-radius: 3px;
+            letter-spacing: 0.04em;
+            flex-shrink: 0;
+        }
+
+        .divider { border-top: 1px dashed var(--border); margin: 4px 0; padding-top: 14px; }
+
+        /* env toggle */
+        .env-shell {
+            display: inline-flex;
+            align-items: center;
+            gap: 0;
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            padding: 3px;
+            transition: background-color 0.2s ease, border-color 0.2s ease;
+        }
+        .env-opt {
+            font-size: 0.72rem;
+            padding: 6px 14px;
+            border-radius: 3px;
+            color: var(--text-mute);
+            cursor: pointer;
+            letter-spacing: 0.02em;
+            transition: all 0.15s ease;
+            user-select: none;
+        }
+        .env-opt.active { background: var(--accent-dim); color: var(--accent); }
     </style>
 </head>
 <body class="relative min-h-screen">
-    
-    <!-- Animated background glowing orbs -->
-    <div class="bg-glow-1 animate-blob"></div>
-    <div class="bg-glow-2 animate-blob"></div>
 
-    <div class="relative z-10 mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-        
-        <!-- Header -->
-        <div class="mb-16 text-center animate-fade-in">
-            <div class="inline-flex items-center justify-center p-3 mb-4 rounded-2xl bg-white/5 border border-white/10 shadow-xl backdrop-blur-sm">
-                <i data-lucide="shield-check" class="w-10 h-10 text-primary"></i>
-            </div>
-            <h1 class="text-4xl md:text-5xl font-bold tracking-tight mb-4">
-                <span class="text-transparent bg-clip-text bg-gradient-to-r from-primary via-secondary to-accent">User Access Management</span>
-            </h1>
-            <p class="text-lg text-gray-200 font-medium max-w-2xl mx-auto mb-6">
-                Premium API Testing Interface v1.0
-            </p>
+    <div class="relative z-10 mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+
+        <!-- Top window bar spanning the whole "app" -->
+        <div class="flex items-center gap-2 mb-8 px-4 py-2.5 rounded-t-md" style="background:var(--bar-bg); border:1px solid var(--border); border-bottom:none; transition: background-color 0.2s ease, border-color 0.2s ease;">
+            <span class="term-dot" style="background:#E2685A;"></span>
+            <span class="term-dot" style="background:#D9A057;"></span>
+            <span class="term-dot" style="background:#7FB88F;"></span>
+            <span class="text-xs ml-2" style="color:var(--text-mute);">uam-api-tester — zsh — 120×40</span>
             
-            <!-- Environment Toggle -->
-            <div class="inline-flex items-center gap-3 bg-white/5 border border-white/10 rounded-full p-2 px-4 shadow-lg backdrop-blur-md">
-                <span class="text-sm font-semibold text-gray-400" id="envLabelLocal">Local</span>
-                <label class="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" id="envToggle" class="sr-only peer" checked>
-                    <div class="w-11 h-6 bg-gray-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                </label>
-                <span class="text-sm font-bold text-white" id="envLabelProd">Production</span>
+            <!-- Quick theme toggle inside title bar -->
+            <button onclick="toggleTheme()" class="ml-auto text-[10px] px-2 py-0.5 rounded border border-dashed transition-all hover:border-solid" style="color: var(--text-dim); border-color: var(--border-light);">
+                theme: <span id="themeName" class="font-bold">dark</span>
+            </button>
+        </div>
+
+        <!-- Header / hero prompt -->
+        <div class="mb-12 px-1" style="border:1px solid var(--border); border-top:none; background:var(--bg-panel); border-radius:0 0 6px 6px; padding:28px 24px 26px;">
+            <p class="text-xs mb-3" style="color:var(--text-mute);">
+                <span style="color:var(--accent);">➜</span> ~/uam <span style="color:#8FB3D9;">git:(main)</span> whoami
+            </p>
+            <h1 class="text-3xl md:text-4xl font-bold tracking-tight mb-2" style="color:var(--text);">
+                UAM_API_TESTER<span class="caret"></span>
+            </h1>
+            <p class="text-sm mb-6" style="color:var(--text-dim);">
+                <span style="color:var(--text-mute);">//</span> user access management — internal API testing console — v1.0
+            </p>
+
+            <div class="flex items-center gap-3 flex-wrap">
+                <span class="text-xs" style="color:var(--text-mute);">--env</span>
+                <div class="env-shell">
+                    <div class="env-opt" id="envLabelLocal" onclick="setEnv(false)">local</div>
+                    <div class="env-opt active" id="envLabelProd" onclick="setEnv(true)">production</div>
+                </div>
+                <span class="text-xs" id="baseUrlDisplay" style="color:var(--text-mute);">base: https://chiquocdev.me</span>
             </div>
         </div>
 
-        <div class="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
-            
-            <!-- Register -->
-            <div class="glass-card">
-                <div class="p-6 border-b border-white/5 flex items-center justify-between">
-                    <h3 class="text-lg font-semibold flex items-center gap-3 text-white">
-                        <i data-lucide="user-plus" class="w-5 h-5 text-primary"></i>
-                        Register
-                    </h3>
-                    <span class="method-badge">POST</span>
+        <div class="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
+
+            <!-- Health Check -->
+            <div class="term">
+                <div class="term-bar">
+                    <span class="term-dot" style="background:#E2685A;"></span>
+                    <span class="term-dot" style="background:#D9A057;"></span>
+                    <span class="term-dot" style="background:#7FB88F;"></span>
+                    <span class="term-path">/health</span>
+                    <span class="term-method m-get">GET</span>
                 </div>
-                <div class="p-6 space-y-4 flex-1 flex flex-col">
-                    <div>
-                        <label class="glass-label">Username</label>
-                        <input class="glass-input" id="reg-username" placeholder="johndoe">
+                <div class="term-body">
+                    <p class="lead"><span class="cmt">//</span> lightweight ping to confirm the Go API server is alive.</p>
+                    <button class="runbtn neutral" onclick="checkHealth()"><i data-lucide="terminal" class="w-3.5 h-3.5"></i>run health check</button>
+                    <div id="res-health" class="out"></div>
+                </div>
+            </div>
+
+            <!-- Ready Check -->
+            <div class="term">
+                <div class="term-bar">
+                    <span class="term-dot" style="background:#E2685A;"></span>
+                    <span class="term-dot" style="background:#D9A057;"></span>
+                    <span class="term-dot" style="background:#7FB88F;"></span>
+                    <span class="term-path">/health/ready</span>
+                    <span class="term-method m-get">GET</span>
+                </div>
+                <div class="term-body">
+                    <p class="lead"><span class="cmt">//</span> deep ping — checks Database (Aiven) and Redis (Render) connectivity.</p>
+                    <button class="runbtn neutral" onclick="checkReady()"><i data-lucide="database" class="w-3.5 h-3.5"></i>run readiness check</button>
+                    <div id="res-ready" class="out"></div>
+                </div>
+            </div>
+
+            <!-- Register -->
+            <div class="term">
+                <div class="term-bar">
+                    <span class="term-dot" style="background:#E2685A;"></span>
+                    <span class="term-dot" style="background:#D9A057;"></span>
+                    <span class="term-dot" style="background:#7FB88F;"></span>
+                    <span class="term-path">/api/v1/auth/register</span>
+                    <span class="term-method m-post">POST</span>
+                </div>
+                <div class="term-body">
+                    <div class="field"><label>username</label><input class="tin" id="reg-username" placeholder="johndoe"></div>
+                    <div class="field"><label>email</label><input class="tin" type="email" id="reg-email" placeholder="user@example.com"></div>
+                    <div class="field"><label>password</label><input class="tin" type="password" id="reg-password" placeholder="••••••••"></div>
+                    <div class="field"><label>full_name</label><input class="tin" id="reg-full-name" placeholder="John Doe"></div>
+                    <div class="row2">
+                        <div class="field"><label>phone</label><input class="tin" id="reg-phone" placeholder="0123456789"></div>
+                        <div class="field"><label>dob</label><input class="tin" type="date" id="reg-dob"></div>
                     </div>
-                    <div>
-                        <label class="glass-label">Email</label>
-                        <input class="glass-input" type="email" id="reg-email" placeholder="user@example.com">
-                    </div>
-                    <div>
-                        <label class="glass-label">Password</label>
-                        <input class="glass-input" type="password" id="reg-password" placeholder="••••••••">
-                    </div>
-                    <div>
-                        <label class="glass-label">Full Name</label>
-                        <input class="glass-input" id="reg-full-name" placeholder="John Doe">
-                    </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="glass-label">Phone</label>
-                            <input class="glass-input" id="reg-phone" placeholder="0123456789">
-                        </div>
-                        <div>
-                            <label class="glass-label">Date of Birth</label>
-                            <input class="glass-input" type="date" id="reg-dob">
-                        </div>
-                    </div>
-                    <div class="mt-auto">
-                        <button class="gradient-btn" onclick="handleRequest('register', 'POST', '/api/v1/auth/register', {username: getVal('reg-username'), email: getVal('reg-email'), password: getVal('reg-password'), full_name: getVal('reg-full-name'), phone: getVal('reg-phone'), date_of_birth: getVal('reg-dob')})">
-                            <span>Register Account</span>
-                            <i data-lucide="arrow-right" class="w-4 h-4"></i>
-                        </button>
-                        <div id="res-register" class="response-box"></div>
-                    </div>
+                    <button class="runbtn" onclick="handleRequest('register', 'POST', '/api/v1/auth/register', {username: getVal('reg-username'), email: getVal('reg-email'), password: getVal('reg-password'), full_name: getVal('reg-full-name'), phone: getVal('reg-phone'), date_of_birth: getVal('reg-dob')})">
+                        <i data-lucide="play" class="w-3.5 h-3.5"></i>run register
+                    </button>
+                    <div id="res-register" class="out"></div>
                 </div>
             </div>
 
             <!-- Verify Email -->
-            <div class="glass-card">
-                <div class="p-6 border-b border-white/5 flex items-center justify-between">
-                    <h3 class="text-lg font-semibold flex items-center gap-3 text-white">
-                        <i data-lucide="mail-check" class="w-5 h-5 text-primary"></i>
-                        Verify Email
-                    </h3>
-                    <span class="method-badge">POST</span>
+            <div class="term">
+                <div class="term-bar">
+                    <span class="term-dot" style="background:#E2685A;"></span>
+                    <span class="term-dot" style="background:#D9A057;"></span>
+                    <span class="term-dot" style="background:#7FB88F;"></span>
+                    <span class="term-path">/api/v1/auth/verify-email</span>
+                    <span class="term-method m-post">POST</span>
                 </div>
-                <div class="p-6 space-y-4 flex-1 flex flex-col">
-                    <div>
-                        <label class="glass-label">Email</label>
-                        <input class="glass-input" type="email" id="ve-email" placeholder="user@example.com">
-                    </div>
-                    <div>
-                        <label class="glass-label">OTP Code</label>
-                        <input class="glass-input" id="ve-otp" placeholder="123456">
-                    </div>
-                    <div class="mt-auto">
-                        <button class="gradient-btn" onclick="handleRequest('verify-email', 'POST', '/api/v1/auth/verify-email', {email: getVal('ve-email'), otp: getVal('ve-otp')})">
-                            <span>Verify Email</span>
-                        </button>
-                        <div id="res-verify-email" class="response-box"></div>
-                    </div>
+                <div class="term-body">
+                    <div class="field"><label>email</label><input class="tin" type="email" id="ve-email" placeholder="user@example.com"></div>
+                    <div class="field"><label>otp</label><input class="tin" id="ve-otp" placeholder="123456"></div>
+                    <button class="runbtn" onclick="handleRequest('verify-email', 'POST', '/api/v1/auth/verify-email', {email: getVal('ve-email'), otp: getVal('ve-otp')})">
+                        <i data-lucide="play" class="w-3.5 h-3.5"></i>run verify
+                    </button>
+                    <div id="res-verify-email" class="out"></div>
                 </div>
             </div>
 
             <!-- Resend Verification Email -->
-            <div class="glass-card">
-                <div class="p-6 border-b border-white/5 flex items-center justify-between">
-                    <h3 class="text-lg font-semibold flex items-center gap-3 text-white">
-                        <i data-lucide="send" class="w-5 h-5 text-primary"></i>
-                        Resend OTP
-                    </h3>
-                    <span class="method-badge">POST</span>
+            <div class="term">
+                <div class="term-bar">
+                    <span class="term-dot" style="background:#E2685A;"></span>
+                    <span class="term-dot" style="background:#D9A057;"></span>
+                    <span class="term-dot" style="background:#7FB88F;"></span>
+                    <span class="term-path">/api/v1/auth/resend-verification-email</span>
+                    <span class="term-method m-post">POST</span>
                 </div>
-                <div class="p-6 space-y-4 flex-1 flex flex-col">
-                    <div>
-                        <label class="glass-label">Email</label>
-                        <input class="glass-input" type="email" id="rve-email" placeholder="user@example.com">
-                    </div>
-                    <div class="mt-auto">
-                        <button class="gradient-btn" onclick="handleRequest('resend-verify', 'POST', '/api/v1/auth/resend-verification-email', {email: getVal('rve-email')})">
-                            <span>Resend Email</span>
-                        </button>
-                        <div id="res-resend-verify" class="response-box"></div>
-                    </div>
+                <div class="term-body">
+                    <div class="field"><label>email</label><input class="tin" type="email" id="rve-email" placeholder="user@example.com"></div>
+                    <button class="runbtn" onclick="handleRequest('resend-verify', 'POST', '/api/v1/auth/resend-verification-email', {email: getVal('rve-email')})">
+                        <i data-lucide="play" class="w-3.5 h-3.5"></i>run resend
+                    </button>
+                    <div id="res-resend-verify" class="out"></div>
                 </div>
             </div>
 
             <!-- Login -->
-            <div class="glass-card md:col-span-2 lg:col-span-1">
-                <div class="p-6 border-b border-white/5 flex items-center justify-between">
-                    <h3 class="text-lg font-semibold flex items-center gap-3 text-white">
-                        <i data-lucide="log-in" class="w-5 h-5 text-secondary"></i>
-                        Login
-                    </h3>
-                    <span class="method-badge">POST</span>
+            <div class="term md:col-span-2 lg:col-span-1">
+                <div class="term-bar">
+                    <span class="term-dot" style="background:#E2685A;"></span>
+                    <span class="term-dot" style="background:#D9A057;"></span>
+                    <span class="term-dot" style="background:#7FB88F;"></span>
+                    <span class="term-path">/api/v1/auth/login</span>
+                    <span class="term-method m-post">POST</span>
                 </div>
-                <div class="p-6 space-y-4 flex-1 flex flex-col">
-                    <div>
-                        <label class="glass-label">Email</label>
-                        <input class="glass-input" type="email" id="log-email" placeholder="user@example.com">
-                    </div>
-                    <div>
-                        <label class="glass-label">Password</label>
-                        <input class="glass-input" type="password" id="log-password" placeholder="••••••••">
-                    </div>
-                    <button class="gradient-btn" onclick="handleLogin()">
-                        <span>Sign In</span>
-                        <i data-lucide="key-round" class="w-4 h-4"></i>
-                    </button>
-                    <div id="res-login" class="response-box"></div>
-                    
-                    <div class="mt-6 pt-6 border-t border-white/10 space-y-4">
-                        <h4 class="text-sm font-bold text-gray-200 uppercase tracking-wider mb-2">Auto-filled Tokens</h4>
-                        <div>
-                            <label class="glass-label">Access Token</label>
-                            <input class="glass-input" id="log-access-token" readonly>
-                        </div>
-                        <div>
-                            <label class="glass-label">Refresh Token</label>
-                            <input class="glass-input" id="log-refresh-token" readonly>
-                        </div>
+                <div class="term-body">
+                    <div class="field"><label>email</label><input class="tin" type="email" id="log-email" placeholder="user@example.com"></div>
+                    <div class="field"><label>password</label><input class="tin" type="password" id="log-password" placeholder="••••••••"></div>
+                    <button class="runbtn" onclick="handleLogin()"><i data-lucide="key-round" class="w-3.5 h-3.5"></i>sign in</button>
+                    <div id="res-login" class="out"></div>
+
+                    <div class="divider">
+                        <p class="text-xs mb-3" style="color:var(--text-mute);">// auto-filled tokens</p>
+                        <div class="field"><label>access_token</label><input class="tin" id="log-access-token" readonly></div>
+                        <div class="field" style="margin-top:10px;"><label>refresh_token</label><input class="tin" id="log-refresh-token" readonly></div>
                     </div>
                 </div>
             </div>
 
             <!-- Refresh Token -->
-            <div class="glass-card md:col-span-2 lg:col-span-1">
-                <div class="p-6 border-b border-white/5 flex items-center justify-between">
-                    <h3 class="text-lg font-semibold flex items-center gap-3 text-white">
-                        <i data-lucide="refresh-cw" class="w-5 h-5 text-secondary"></i>
-                        Refresh Token
-                    </h3>
-                    <span class="method-badge">POST</span>
+            <div class="term md:col-span-2 lg:col-span-1">
+                <div class="term-bar">
+                    <span class="term-dot" style="background:#E2685A;"></span>
+                    <span class="term-dot" style="background:#D9A057;"></span>
+                    <span class="term-dot" style="background:#7FB88F;"></span>
+                    <span class="term-path">/api/v1/auth/refresh-token</span>
+                    <span class="term-method m-post">POST</span>
                 </div>
-                <div class="p-6 space-y-4 flex-1 flex flex-col">
-                    <div>
-                        <label class="glass-label">Current Refresh Token</label>
-                        <input class="glass-input" id="ref-token" placeholder="Paste refresh token...">
-                    </div>
-                    <button class="gradient-btn" onclick="handleRefresh()">
-                        <span>Renew Session</span>
-                    </button>
-                    <div id="res-refresh" class="response-box"></div>
-                    
-                    <div class="mt-6 pt-6 border-t border-white/10 space-y-4">
-                        <h4 class="text-sm font-bold text-gray-200 uppercase tracking-wider mb-2">New Tokens</h4>
-                        <div>
-                            <label class="glass-label">New Access Token</label>
-                            <input class="glass-input" id="ref-access-token" readonly>
-                        </div>
-                        <div>
-                            <label class="glass-label">New Refresh Token</label>
-                            <input class="glass-input" id="ref-new-refresh-token" readonly>
-                        </div>
+                <div class="term-body">
+                    <div class="field"><label>refresh_token</label><input class="tin" id="ref-token" placeholder="paste refresh token…"></div>
+                    <button class="runbtn" onclick="handleRefresh()"><i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>renew session</button>
+                    <div id="res-refresh" class="out"></div>
+
+                    <div class="divider">
+                        <p class="text-xs mb-3" style="color:var(--text-mute);">// new tokens</p>
+                        <div class="field"><label>access_token</label><input class="tin" id="ref-access-token" readonly></div>
+                        <div class="field" style="margin-top:10px;"><label>refresh_token</label><input class="tin" id="ref-new-refresh-token" readonly></div>
                     </div>
                 </div>
             </div>
 
             <!-- Forgot Password -->
-            <div class="glass-card">
-                <div class="p-6 border-b border-white/5 flex items-center justify-between">
-                    <h3 class="text-lg font-semibold flex items-center gap-3 text-white">
-                        <i data-lucide="unlock" class="w-5 h-5 text-accent"></i>
-                        Forgot Password
-                    </h3>
-                    <span class="method-badge">POST</span>
+            <div class="term">
+                <div class="term-bar">
+                    <span class="term-dot" style="background:#E2685A;"></span>
+                    <span class="term-dot" style="background:#D9A057;"></span>
+                    <span class="term-dot" style="background:#7FB88F;"></span>
+                    <span class="term-path">/api/v1/auth/forgot-password</span>
+                    <span class="term-method m-post">POST</span>
                 </div>
-                <div class="p-6 space-y-4 flex-1 flex flex-col">
-                    <div>
-                        <label class="glass-label">Email</label>
-                        <input class="glass-input" type="email" id="fp-email" placeholder="user@example.com">
-                    </div>
-                    <div class="mt-auto">
-                        <button class="gradient-btn" onclick="handleRequest('forgot-pwd', 'POST', '/api/v1/auth/forgot-password', {email: getVal('fp-email')})">
-                            <span>Request Reset</span>
-                        </button>
-                        <div id="res-forgot-pwd" class="response-box"></div>
-                    </div>
+                <div class="term-body">
+                    <div class="field"><label>email</label><input class="tin" type="email" id="fp-email" placeholder="user@example.com"></div>
+                    <button class="runbtn" onclick="handleRequest('forgot-pwd', 'POST', '/api/v1/auth/forgot-password', {email: getVal('fp-email')})">
+                        <i data-lucide="play" class="w-3.5 h-3.5"></i>request reset
+                    </button>
+                    <div id="res-forgot-pwd" class="out"></div>
                 </div>
             </div>
 
             <!-- Reset Password -->
-            <div class="glass-card">
-                <div class="p-6 border-b border-white/5 flex items-center justify-between">
-                    <h3 class="text-lg font-semibold flex items-center gap-3 text-white">
-                        <i data-lucide="key" class="w-5 h-5 text-accent"></i>
-                        Reset Password
-                    </h3>
-                    <span class="method-badge">POST</span>
+            <div class="term">
+                <div class="term-bar">
+                    <span class="term-dot" style="background:#E2685A;"></span>
+                    <span class="term-dot" style="background:#D9A057;"></span>
+                    <span class="term-dot" style="background:#7FB88F;"></span>
+                    <span class="term-path">/api/v1/auth/reset-password</span>
+                    <span class="term-method m-post">POST</span>
                 </div>
-                <div class="p-6 space-y-4 flex-1 flex flex-col">
-                    <div>
-                        <label class="glass-label">Reset Token</label>
-                        <input class="glass-input" id="rp-token" placeholder="Token from email...">
-                    </div>
-                    <div>
-                        <label class="glass-label">New Password</label>
-                        <input class="glass-input" type="password" id="rp-new-pwd" placeholder="••••••••">
-                    </div>
-                    <div class="mt-auto">
-                        <button class="gradient-btn" onclick="handleRequest('reset-pwd', 'POST', '/api/v1/auth/reset-password', {token: getVal('rp-token'), new_password: getVal('rp-new-pwd')})">
-                            <span>Confirm Reset</span>
-                        </button>
-                        <div id="res-reset-pwd" class="response-box"></div>
-                    </div>
+                <div class="term-body">
+                    <div class="field"><label>token</label><input class="tin" id="rp-token" placeholder="token from email…"></div>
+                    <div class="field"><label>new_password</label><input class="tin" type="password" id="rp-new-pwd" placeholder="••••••••"></div>
+                    <button class="runbtn" onclick="handleRequest('reset-pwd', 'POST', '/api/v1/auth/reset-password', {token: getVal('rp-token'), new_password: getVal('rp-new-pwd')})">
+                        <i data-lucide="play" class="w-3.5 h-3.5"></i>confirm reset
+                    </button>
+                    <div id="res-reset-pwd" class="out"></div>
                 </div>
             </div>
 
             <!-- Logout -->
-            <div class="glass-card">
-                <div class="p-6 border-b border-white/5 flex items-center justify-between flex-wrap gap-2">
-                    <h3 class="text-lg font-semibold flex items-center gap-3 text-white">
-                        <i data-lucide="log-out" class="w-5 h-5 text-gray-400"></i>
-                        Logout
-                    </h3>
-                    <div class="flex items-center gap-2">
-                        <span class="auth-badge">🔒 Auth</span>
-                        <span class="method-badge">POST</span>
-                    </div>
+            <div class="term">
+                <div class="term-bar">
+                    <span class="term-dot" style="background:#E2685A;"></span>
+                    <span class="term-dot" style="background:#D9A057;"></span>
+                    <span class="term-dot" style="background:#7FB88F;"></span>
+                    <span class="term-path">/api/v1/auth/logout</span>
+                    <span class="auth-tag">auth</span>
+                    <span class="term-method m-post">POST</span>
                 </div>
-                <div class="p-6 space-y-4 flex-1 flex flex-col">
-                    <div>
-                        <label class="glass-label">Access Token</label>
-                        <input class="glass-input" id="out-token" placeholder="Access token...">
-                    </div>
-                    <div class="mt-auto">
-                        <button class="gradient-btn !bg-none !bg-gray-700 hover:!bg-gray-600" onclick="handleRequest('logout', 'POST', '/api/v1/auth/logout', {}, getVal('out-token'))">
-                            <span>Logout Current</span>
-                        </button>
-                        <div id="res-logout" class="response-box"></div>
-                    </div>
+                <div class="term-body">
+                    <div class="field"><label>access_token</label><input class="tin" id="out-token" placeholder="access token…"></div>
+                    <button class="runbtn neutral" onclick="handleRequest('logout', 'POST', '/api/v1/auth/logout', {}, getVal('out-token'))">
+                        <i data-lucide="log-out" class="w-3.5 h-3.5"></i>logout current
+                    </button>
+                    <div id="res-logout" class="out"></div>
                 </div>
             </div>
 
             <!-- Logout All -->
-            <div class="glass-card">
-                <div class="p-6 border-b border-white/5 flex items-center justify-between flex-wrap gap-2">
-                    <h3 class="text-lg font-semibold flex items-center gap-3 text-white text-red-400">
-                        <i data-lucide="alert-triangle" class="w-5 h-5"></i>
-                        Logout All
-                    </h3>
-                    <div class="flex items-center gap-2">
-                        <span class="auth-badge">🔒 Auth</span>
-                        <span class="method-badge">POST</span>
-                    </div>
+            <div class="term">
+                <div class="term-bar">
+                    <span class="term-dot" style="background:#E2685A;"></span>
+                    <span class="term-dot" style="background:#D9A057;"></span>
+                    <span class="term-dot" style="background:#7FB88F;"></span>
+                    <span class="term-path">/api/v1/auth/logout-all</span>
+                    <span class="auth-tag">auth</span>
+                    <span class="term-method m-post">POST</span>
                 </div>
-                <div class="p-6 space-y-4 flex-1 flex flex-col">
-                    <div>
-                        <label class="glass-label">Access Token</label>
-                        <input class="glass-input" id="out-all-token" placeholder="Access token...">
-                    </div>
-                    <div class="mt-auto">
-                        <button class="gradient-btn !bg-none !bg-red-600/80 hover:!bg-red-600 border border-red-500/30" onclick="handleRequest('logout-all', 'POST', '/api/v1/auth/logout-all', {}, getVal('out-all-token'))">
-                            <span>Logout All Devices</span>
-                        </button>
-                        <div id="res-logout-all" class="response-box"></div>
-                    </div>
+                <div class="term-body">
+                    <div class="field"><label>access_token</label><input class="tin" id="out-all-token" placeholder="access token…"></div>
+                    <button class="runbtn danger" onclick="handleRequest('logout-all', 'POST', '/api/v1/auth/logout-all', {}, getVal('out-all-token'))">
+                        <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i>logout all devices
+                    </button>
+                    <div id="res-logout-all" class="out"></div>
                 </div>
             </div>
 
             <!-- Change Password -->
-            <div class="glass-card md:col-span-2 lg:col-span-3">
-                <div class="p-6 border-b border-white/5 flex items-center justify-between flex-wrap gap-2">
-                    <h3 class="text-lg font-semibold flex items-center gap-3 text-white">
-                        <i data-lucide="shield-alert" class="w-5 h-5 text-accent"></i>
-                        Change Password
-                    </h3>
-                    <div class="flex items-center gap-2">
-                        <span class="auth-badge">🔒 Auth Required</span>
-                        <span class="method-badge">POST</span>
-                    </div>
+            <div class="term md:col-span-2 lg:col-span-3">
+                <div class="term-bar">
+                    <span class="term-dot" style="background:#E2685A;"></span>
+                    <span class="term-dot" style="background:#D9A057;"></span>
+                    <span class="term-dot" style="background:#7FB88F;"></span>
+                    <span class="term-path">/api/v1/auth/change-password</span>
+                    <span class="auth-tag">auth</span>
+                    <span class="term-method m-post">POST</span>
                 </div>
-                <div class="p-6 space-y-4">
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div>
-                            <label class="glass-label">Access Token</label>
-                            <input class="glass-input" id="cp-token" placeholder="Access token...">
-                        </div>
-                        <div>
-                            <label class="glass-label">Old Password</label>
-                            <input class="glass-input" type="password" id="cp-old" placeholder="••••••••">
-                        </div>
-                        <div>
-                            <label class="glass-label">New Password</label>
-                            <input class="glass-input" type="password" id="cp-new" placeholder="••••••••">
-                        </div>
+                <div class="term-body">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="field"><label>access_token</label><input class="tin" id="cp-token" placeholder="access token…"></div>
+                        <div class="field"><label>old_password</label><input class="tin" type="password" id="cp-old" placeholder="••••••••"></div>
+                        <div class="field"><label>new_password</label><input class="tin" type="password" id="cp-new" placeholder="••••••••"></div>
                     </div>
-                    <div class="pt-4 flex justify-end">
-                        <button class="gradient-btn md:w-auto" onclick="handleRequest('change-pwd', 'POST', '/api/v1/auth/change-password', {old_password: getVal('cp-old'), new_password: getVal('cp-new')}, getVal('cp-token'))">
-                            <span>Change Password</span>
+                    <div class="flex justify-end">
+                        <button class="runbtn md:w-auto px-8" onclick="handleRequest('change-pwd', 'POST', '/api/v1/auth/change-password', {old_password: getVal('cp-old'), new_password: getVal('cp-new')}, getVal('cp-token'))">
+                            <i data-lucide="play" class="w-3.5 h-3.5"></i>change password
                         </button>
                     </div>
-                    <div id="res-change-pwd" class="response-box"></div>
+                    <div id="res-change-pwd" class="out"></div>
                 </div>
             </div>
 
         </div>
-        
-        <footer class="mt-16 text-center text-gray-500 text-sm font-medium">
-            <p>UAM Core Architecture © 2026. Built with Clean Architecture.</p>
+
+        <footer class="mt-14 text-center text-xs" style="color:var(--text-mute);">
+            <p><span style="color:var(--accent);">#</span> UAM Core Architecture · 2026 · built with Clean Architecture</p>
         </footer>
     </div>
 
     <script>
-        // Initialize Lucide icons
         lucide.createIcons();
 
-        // Cấu hình môi trường dễ dàng bật/tắt qua Giao diện
-        let BASE_URL = 'https://chiquocdev.me'; // Mặc định là Production
-        
-        // Bắt sự kiện đổi nút gạt
-        document.getElementById('envToggle').addEventListener('change', function(e) {
-            if (e.target.checked) {
-                BASE_URL = 'https://chiquocdev.me';
-                document.getElementById('envLabelProd').classList.replace('text-gray-400', 'text-white');
-                document.getElementById('envLabelProd').classList.replace('font-semibold', 'font-bold');
-                document.getElementById('envLabelLocal').classList.replace('text-white', 'text-gray-400');
-                document.getElementById('envLabelLocal').classList.replace('font-bold', 'font-semibold');
-            } else {
-                BASE_URL = 'http://localhost:8080';
-                document.getElementById('envLabelLocal').classList.replace('text-gray-400', 'text-white');
-                document.getElementById('envLabelLocal').classList.replace('font-semibold', 'font-bold');
-                document.getElementById('envLabelProd').classList.replace('text-white', 'text-gray-400');
-                document.getElementById('envLabelProd').classList.replace('font-bold', 'font-semibold');
-            }
+        let BASE_URL = 'https://chiquocdev.me';
+
+        function setEnv(isProd) {
+            BASE_URL = isProd ? 'https://chiquocdev.me' : 'http://localhost:8080';
+            document.getElementById('envLabelProd').classList.toggle('active', isProd);
+            document.getElementById('envLabelLocal').classList.toggle('active', !isProd);
+            document.getElementById('baseUrlDisplay').textContent = 'base: ' + BASE_URL;
             console.log("Environment switched to:", BASE_URL);
-        });
+        }
 
         function getVal(id) {
             return document.getElementById(id).value;
@@ -609,48 +577,52 @@
         function showResponse(id, data, isSuccess) {
             const el = document.getElementById('res-' + id);
             el.style.display = 'block';
-            el.classList.remove('success', 'error');
-            el.classList.add(isSuccess ? 'success' : 'error');
+            el.className = 'out ' + (isSuccess ? 'success' : 'error');
             el.textContent = JSON.stringify(data, null, 2);
-            // Scroll to the bottom of the response box for convenience
             el.scrollTop = el.scrollHeight;
+        }
+
+        async function checkHealth() {
+            try {
+                const res = await fetch(`${BASE_URL}/health`);
+                const data = await res.json();
+                showResponse('health', data, res.ok);
+            } catch (err) {
+                showResponse('health', { error: err.message }, false);
+            }
+        }
+
+        async function checkReady() {
+            try {
+                const res = await fetch(`${BASE_URL}/health/ready`);
+                const data = await res.json();
+                showResponse('ready', data, res.ok);
+            } catch (err) {
+                showResponse('ready', { error: err.message }, false);
+            }
         }
 
         async function handleRequest(id, method, path, body, explicitToken = null) {
             const el = document.getElementById('res-' + id);
             el.style.display = 'block';
             el.classList.remove('success', 'error');
-            el.textContent = 'Loading...';
+            el.textContent = 'running…';
 
-            const headers = {
-                'Content-Type': 'application/json'
-            };
-
-            if (explicitToken) {
-                headers['Authorization'] = `Bearer ${explicitToken}`;
-            }
+            const headers = { 'Content-Type': 'application/json' };
+            if (explicitToken) headers['Authorization'] = `Bearer ${explicitToken}`;
 
             try {
-                const options = {
-                    method: method,
-                    headers: headers
-                };
-                
-                if (body && Object.keys(body).length > 0) {
-                    options.body = JSON.stringify(body);
-                }
+                const options = { method, headers };
+                if (body && Object.keys(body).length > 0) options.body = JSON.stringify(body);
 
                 const response = await fetch(BASE_URL + path, options);
                 let data = {};
-                try {
-                    data = await response.json();
-                } catch(e) { }
-                
+                try { data = await response.json(); } catch (e) { }
+
                 if (!response.ok) {
                     showResponse(id, { status: response.status, ...data }, false);
                     return { ok: false, data };
                 }
-
                 showResponse(id, data, true);
                 return { ok: true, data };
             } catch (error) {
@@ -697,6 +669,32 @@
                 }
             }
         }
+
+        // Theme toggle logic
+        function toggleTheme() {
+            const html = document.documentElement;
+            const isLight = html.classList.toggle('light');
+            html.classList.toggle('dark', !isLight);
+            document.getElementById('themeName').textContent = isLight ? 'light' : 'dark';
+            localStorage.setItem('theme', isLight ? 'light' : 'dark');
+        }
+
+        // Apply saved theme immediately on load
+        (function() {
+            const savedTheme = localStorage.getItem('theme');
+            const html = document.documentElement;
+            if (savedTheme === 'light') {
+                html.classList.add('light');
+                html.classList.remove('dark');
+            } else {
+                html.classList.add('dark');
+                html.classList.remove('light');
+            }
+            // Set indicator text once DOM is ready
+            window.addEventListener('DOMContentLoaded', () => {
+                document.getElementById('themeName').textContent = html.classList.contains('light') ? 'light' : 'dark';
+            });
+        })();
     </script>
 </body>
 </html>
