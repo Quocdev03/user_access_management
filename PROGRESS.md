@@ -100,6 +100,7 @@
 | R2 | Loại bỏ code dư thừa (Golang Performance) | Refactor `auth_service.go` và các Repository, loại bỏ Query thừa (TOCTOU, N+1), gỡ bỏ Transaction không cần thiết (Lock Contention) cho các hàm tăng biến đếm, gộp các Query cập nhật Database. |
 | M6 | Sửa lỗi kết nối MySQL khi deploy trên PaaS (Aiven/Render) | Cập nhật cấu hình connection string thêm `tls=skip-verify` cho MySQL driver khi chạy ở môi trường production. |
 | M7 | Fix lỗi Crash do thiếu file `.env` trên môi trường Server/PaaS | Bỏ qua lỗi `no such file or directory` trong hàm `viper.ReadInConfig()` để hệ thống tự động sử dụng biến môi trường có sẵn của OS (Render, VPS). |
+| M8 | Clean Code (Refactoring) MySQL/Redis connections | Áp dụng Go Clean Code: Dùng `mysql.Config` thay vì `fmt.Sprintf`, dùng `strings.HasPrefix` cho Redis URL để tránh lỗi panic cắt chuỗi thô. |
 | B18 | Lỗi CORS bị chặn khi test UI | Thêm file `cors.go` và cấu hình `middleware.CORSMiddleware()` trong `router.go` cho phép Origin `*` để test API qua trình duyệt. |
 | B19 | Log rác (Stack trace) khi In ra WARN log | Thêm option `zap.AddStacktrace(zapcore.ErrorLevel)` vào `pkg/logger/logger.go` để Zap chỉ in stack trace đối với lỗi thực sự (ERROR trở lên). |
 | R3 | Refactor `pkg/apperror` bị máy móc | Mở rộng toàn bộ Error Code theo chuẩn `04-api-design.md`, bổ sung tính năng wrap lỗi gốc (`WithErr`) và truyền chi tiết động (`WithDetails`) cho `AppError`. |
