@@ -38,11 +38,13 @@ jobs:
     needs: build-and-test
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    env:
+      RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
 
     steps:
       - name: Create GitHub Deployment
         id: deployment
-        if: "${{ secrets.RENDER_DEPLOY_HOOK_URL != '' }}"
+        if: env.RENDER_DEPLOY_HOOK_URL != ''
         uses: chrnorm/deployment-action@v2
         with:
           token: '${{ github.token }}'
@@ -51,9 +53,9 @@ jobs:
           initial-status: in_progress
 
       - name: Trigger Render Deploy Webhook
-        if: "${{ secrets.RENDER_DEPLOY_HOOK_URL != '' }}"
+        if: env.RENDER_DEPLOY_HOOK_URL != ''
         run: |
-          curl -f -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
+          curl -f -X POST "${{ env.RENDER_DEPLOY_HOOK_URL }}"
 
       - name: Update deployment status to Success
         if: "${{ success() && steps.deployment.outputs.deployment_id != '' }}"
@@ -77,7 +79,7 @@ jobs:
           environment: production
 
       - name: Skip deploy info
-        if: "${{ secrets.RENDER_DEPLOY_HOOK_URL == '' }}"
+        if: env.RENDER_DEPLOY_HOOK_URL == ''
         run: |
           echo "RENDER_DEPLOY_HOOK_URL secret is not set, skipping deployment."
           echo "Please set RENDER_DEPLOY_HOOK_URL in your GitHub repository secrets if you want to trigger Render deploys and register them in GitHub Deployments."
