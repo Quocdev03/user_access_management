@@ -62,7 +62,6 @@ type SecurityConfig struct {
 
 // Load đọc cấu hình từ file .env hoặc từ các biến môi trường
 func Load(path string) (*Config, error) {
-	viper.AddConfigPath(path)
 	viper.SetConfigFile(path + "/.env")
 
 	viper.AutomaticEnv()
@@ -70,10 +69,13 @@ func Load(path string) (*Config, error) {
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
 	if err := viper.ReadInConfig(); err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
-			return nil, fmt.Errorf("failed to read config file: %w", err)
+		// Nếu không tìm thấy file config .env (do đang chạy trên server như Render),
+		// hệ thống sẽ tự động sử dụng các biến môi trường của hệ điều hành.
+		if !strings.Contains(err.Error(), "no such file or directory") {
+			if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
+				return nil, fmt.Errorf("failed to read config file: %w", err)
+			}
 		}
-		// Nếu không tìm thấy file config .env, hệ thống sẽ sử dụng hoàn toàn các biến môi trường của hệ điều hành
 	}
 
 	cfg := &Config{
