@@ -40,11 +40,44 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
     steps:
+      - name: Create GitHub Deployment
+        id: deployment
+        if: "${{ secrets.RENDER_DEPLOY_HOOK_URL != '' }}"
+        uses: chrnorm/deployment-action@v2
+        with:
+          token: '${{ github.token }}'
+          environment-url: https://chiquocdev.me
+          environment: production
+          initial-status: in_progress
+
       - name: Trigger Render Deploy Webhook
+        if: "${{ secrets.RENDER_DEPLOY_HOOK_URL != '' }}"
         run: |
-          if [ -n "${{ secrets.RENDER_DEPLOY_HOOK_URL }}" ]; then
-            curl -f -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
-          else
-            echo "RENDER_DEPLOY_HOOK_URL secret is not set, skipping deploy hook trigger."
-            echo "Please set RENDER_DEPLOY_HOOK_URL in your GitHub repository secrets if you want to force Render deploys after CI passes."
-          fi
+          curl -f -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
+
+      - name: Update deployment status to Success
+        if: "${{ success() && steps.deployment.outputs.deployment_id != '' }}"
+        uses: chrnorm/deployment-action@v2
+        with:
+          type: update
+          token: '${{ github.token }}'
+          deployment-id: ${{ steps.deployment.outputs.deployment_id }}
+          state: 'success'
+          environment-url: https://chiquocdev.me
+          environment: production
+
+      - name: Update deployment status to Failure
+        if: "${{ failure() && steps.deployment.outputs.deployment_id != '' }}"
+        uses: chrnorm/deployment-action@v2
+        with:
+          type: update
+          token: '${{ github.token }}'
+          deployment-id: ${{ steps.deployment.outputs.deployment_id }}
+          state: 'failure'
+          environment: production
+
+      - name: Skip deploy info
+        if: "${{ secrets.RENDER_DEPLOY_HOOK_URL == '' }}"
+        run: |
+          echo "RENDER_DEPLOY_HOOK_URL secret is not set, skipping deployment."
+          echo "Please set RENDER_DEPLOY_HOOK_URL in your GitHub repository secrets if you want to trigger Render deploys and register them in GitHub Deployments."
