@@ -248,9 +248,19 @@
             <h1 class="text-4xl md:text-5xl font-bold tracking-tight mb-4">
                 <span class="text-transparent bg-clip-text bg-gradient-to-r from-primary via-secondary to-accent">User Access Management</span>
             </h1>
-            <p class="text-lg text-gray-200 font-medium max-w-2xl mx-auto">
+            <p class="text-lg text-gray-200 font-medium max-w-2xl mx-auto mb-6">
                 Premium API Testing Interface v1.0
             </p>
+            
+            <!-- Environment Toggle -->
+            <div class="inline-flex items-center gap-3 bg-white/5 border border-white/10 rounded-full p-2 px-4 shadow-lg backdrop-blur-md">
+                <span class="text-sm font-semibold text-gray-400" id="envLabelLocal">Local</span>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="envToggle" class="sr-only peer" checked>
+                    <div class="w-11 h-6 bg-gray-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                </label>
+                <span class="text-sm font-bold text-white" id="envLabelProd">Production</span>
+            </div>
         </div>
 
         <div class="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
@@ -571,7 +581,26 @@
         // Initialize Lucide icons
         lucide.createIcons();
 
-        const BASE_URL = 'http://localhost:8080';
+        // Cấu hình môi trường dễ dàng bật/tắt qua Giao diện
+        let BASE_URL = 'https://chiquocdev.me'; // Mặc định là Production
+        
+        // Bắt sự kiện đổi nút gạt
+        document.getElementById('envToggle').addEventListener('change', function(e) {
+            if (e.target.checked) {
+                BASE_URL = 'https://chiquocdev.me';
+                document.getElementById('envLabelProd').classList.replace('text-gray-400', 'text-white');
+                document.getElementById('envLabelProd').classList.replace('font-semibold', 'font-bold');
+                document.getElementById('envLabelLocal').classList.replace('text-white', 'text-gray-400');
+                document.getElementById('envLabelLocal').classList.replace('font-bold', 'font-semibold');
+            } else {
+                BASE_URL = 'http://localhost:8080';
+                document.getElementById('envLabelLocal').classList.replace('text-gray-400', 'text-white');
+                document.getElementById('envLabelLocal').classList.replace('font-semibold', 'font-bold');
+                document.getElementById('envLabelProd').classList.replace('text-white', 'text-gray-400');
+                document.getElementById('envLabelProd').classList.replace('font-bold', 'font-semibold');
+            }
+            console.log("Environment switched to:", BASE_URL);
+        });
 
         function getVal(id) {
             return document.getElementById(id).value;
