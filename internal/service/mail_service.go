@@ -26,11 +26,13 @@ func (s *MockSender) SendEmail(to, subject, body string) error {
 	s.logger.Info("[MOCK MAIL] Bỏ qua gửi email thực tế. Nội dung email được in ra bên dưới:", zap.String("to", to), zap.String("subject", subject))
 	
 	// In thẳng nội dung ra Console để Dev có thể lấy OTP hoặc Link Đặt lại mật khẩu
-	fmt.Println("\n================ MOCK EMAIL CONTENT ================")
+	fmt.Println()
+	fmt.Println("================ MOCK EMAIL CONTENT ================")
 	fmt.Println("TO      :", to)
 	fmt.Println("SUBJECT :", subject)
-	fmt.Println("BODY    :\n", body)
-	fmt.Println("====================================================\n")
+	fmt.Println("BODY    :", body)
+	fmt.Println("====================================================")
+	fmt.Println()
 	
 	return nil
 }
