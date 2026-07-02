@@ -2,18 +2,14 @@ package service
 
 import (
 	"context"
-	"crypto/rand"
-	"crypto/sha256"
-	"crypto/subtle"
-	"encoding/hex"
 	"fmt"
-	"math/big"
 	"strings"
 	"time"
 
 	"go.uber.org/zap"
 
 	"github.com/quocdev03/user-access-management/internal/config"
+	"github.com/quocdev03/user-access-management/internal/constant"
 	"github.com/quocdev03/user-access-management/internal/dto"
 	"github.com/quocdev03/user-access-management/internal/model"
 	"github.com/quocdev03/user-access-management/internal/repository"
@@ -23,75 +19,53 @@ import (
 	"github.com/quocdev03/user-access-management/pkg/jwt"
 )
 
-// Hằng số nghiệp vụ (UC-06)
 const (
-	maxFailedAttempts = 5
-	lockDuration      = 30 * time.Minute
+	maxFailedAttempts = 10
+	lockDuration      = 15 * time.Minute
 	otpExpiry         = 5 * time.Minute
-	maxOTPAttempts    = 5
-	// Hash bcrypt cố định của chuỗi "dummy" để chống timing attack
 	dummyBcryptHash   = "$2a$10$8K1p/a0fsBigaZE0N6cOG.e4s/8sYy1QyYtH4Yk9Y5UvI.G/k8M42"
 )
 
 type AuthService struct {
-	userRepo          *repository.UserRepository
-	otpRepo           *repository.OTPRepository
-	roleRepo          *repository.RoleRepository
-	sessionRepo       *repository.SessionRepository
-	auditLogRepo      *repository.AuditLogRepository
-	mailService       *MailService
-	txManager         *database.TxManager
-	cfg               *config.Config
-	logger            *zap.Logger
+	userRepo     *repository.UserRepository
+	otpService   *OTPService
+	roleRepo     *repository.RoleRepository
+	sessionRepo  *repository.SessionRepository
+	auditLogRepo *repository.AuditLogRepository
+	txManager    *database.TxManager
+	cfg          *config.Config
+	logger       *zap.Logger
 }
 
 func NewAuthService(
 	userRepo *repository.UserRepository,
-	otpRepo *repository.OTPRepository,
+	otpService *OTPService,
 	roleRepo *repository.RoleRepository,
 	sessionRepo *repository.SessionRepository,
 	auditLogRepo *repository.AuditLogRepository,
-	mailService *MailService,
 	txManager *database.TxManager,
 	cfg *config.Config,
 	logger *zap.Logger,
 ) *AuthService {
 	return &AuthService{
 		userRepo:     userRepo,
-		otpRepo:      otpRepo,
+		otpService:   otpService,
 		roleRepo:     roleRepo,
 		sessionRepo:  sessionRepo,
 		auditLogRepo: auditLogRepo,
-		mailService:  mailService,
 		txManager:    txManager,
 		cfg:          cfg,
 		logger:       logger,
 	}
 }
 
-// generateOTP sinh OTP 6 chữ số bằng crypto/rand (B4 — bảo mật)
-func generateOTP() (string, error) {
-	n, err := rand.Int(rand.Reader, big.NewInt(1000000))
-	if err != nil {
-		return "", fmt.Errorf("generateOTP: %w", err)
-	}
-	return fmt.Sprintf("%06d", n.Int64()), nil
-}
-
-func hashToken(token string) string {
-	h := sha256.New()
-	h.Write([]byte(token))
-	return hex.EncodeToString(h.Sum(nil))
-}
-
-// generateTokenPair sinh cặp Access và Refresh token
 func (s *AuthService) generateTokenPair(userID uint64, roles []string) (string, string, error) {
-	accessToken, _, err := jwt.GenerateToken(userID, roles, "access", s.cfg.JWT.AccessExpiry, s.cfg.JWT.Secret)
+	accessToken, _, err := jwt.GenerateToken(userID, roles, constant.TokenTypeAccess, s.cfg.JWT.AccessExpiry, s.cfg.JWT.Secret)
 	if err != nil {
 		return "", "", fmt.Errorf("generate access token: %w", err)
 	}
 
-	refreshToken, _, err := jwt.GenerateToken(userID, roles, "refresh", s.cfg.JWT.RefreshExpiry, s.cfg.JWT.Secret)
+	refreshToken, _, err := jwt.GenerateToken(userID, roles, constant.TokenTypeRefresh, s.cfg.JWT.RefreshExpiry, s.cfg.JWT.Secret)
 	if err != nil {
 		return "", "", fmt.Errorf("generate refresh token: %w", err)
 	}
@@ -100,14 +74,27 @@ func (s *AuthService) generateTokenPair(userID uint64, roles []string) (string, 
 }
 
 func (s *AuthService) Register(ctx context.Context, req dto.RegisterRequest) (*dto.RegisterResponse, error) {
-	hashedPassword, err := hash.HashPassword(req.Password)
-	if err != nil {
-		return nil, fmt.Errorf("hash.HashPassword: %w", err)
+	if len(req.Password) > 72 {
+		return nil, apperror.ErrValidationError.WithMessage("Mật khẩu không được vượt quá 72 ký tự")
+	}
+
+	if err := hash.ValidatePasswordComplexity(req.Password); err != nil {
+		return nil, apperror.ErrValidationError.WithMessage(err.Error())
 	}
 
 	dob, err := time.Parse("2006-01-02", req.DateOfBirth)
 	if err != nil {
 		return nil, apperror.ErrInvalidDateFormat
+	}
+
+	isLimited, _ := s.sessionRepo.IncrementRateLimit(ctx, "register_email", req.Email, 3, 1*time.Minute)
+	if isLimited {
+		return nil, apperror.ErrRateLimited
+	}
+
+	hashedPassword, err := hash.HashPassword(req.Password)
+	if err != nil {
+		return nil, fmt.Errorf("hash.HashPassword: %w", err)
 	}
 
 	user := &model.User{
@@ -117,17 +104,12 @@ func (s *AuthService) Register(ctx context.Context, req dto.RegisterRequest) (*d
 		FullName:      req.FullName,
 		Phone:         req.Phone,
 		DateOfBirth:   dob,
-		Status:        model.StatusInactive,
+		Status:        constant.StatusInactive,
 		EmailVerified: false,
 	}
 
-	otp, err := generateOTP()
-	if err != nil {
-		return nil, fmt.Errorf("generateOTP: %w", err)
-	}
-	expiresAt := time.Now().Add(otpExpiry)
-
-	err = s.txManager.RunInTx(ctx, func(txCtx context.Context) error {
+		var sendEmail func()
+		err = s.txManager.RunInTx(ctx, func(txCtx context.Context) error {
 		if err := s.userRepo.Create(txCtx, user); err != nil {
 			if strings.Contains(err.Error(), "Duplicate entry") {
 				return apperror.ErrConflict
@@ -135,7 +117,7 @@ func (s *AuthService) Register(ctx context.Context, req dto.RegisterRequest) (*d
 			return fmt.Errorf("userRepo.Create: %w", err)
 		}
 
-		role, err := s.roleRepo.FindByName(txCtx, "user")
+		role, err := s.roleRepo.FindByName(txCtx, constant.RoleUser)
 		if err != nil {
 			return fmt.Errorf("roleRepo.FindByName: %w", err)
 		}
@@ -146,9 +128,11 @@ func (s *AuthService) Register(ctx context.Context, req dto.RegisterRequest) (*d
 			return fmt.Errorf("roleRepo.AssignRoleToUser: %w", err)
 		}
 
-		if err := s.otpRepo.Create(txCtx, user.ID, otp, "email_verification", expiresAt); err != nil {
-			return fmt.Errorf("otpRepo.Create: %w", err)
+		fn, err := s.otpService.CreateAndSendOTP(txCtx, user.ID, user.Email, constant.OTPTypeEmailVerification, time.Now().UTC().Add(otpExpiry))
+		if err != nil {
+			return err
 		}
+		sendEmail = fn
 		return nil
 	})
 
@@ -156,11 +140,7 @@ func (s *AuthService) Register(ctx context.Context, req dto.RegisterRequest) (*d
 		return nil, err
 	}
 
-	go func() {
-		if err := s.mailService.SendVerificationEmail(user.Email, otp); err != nil {
-			s.logger.Error("Không thể gửi email OTP đăng ký", zap.String("email", user.Email), zap.Error(err))
-		}
-	}()
+	go sendEmail()
 
 	return &dto.RegisterResponse{
 		ID:       user.ID,
@@ -171,6 +151,11 @@ func (s *AuthService) Register(ctx context.Context, req dto.RegisterRequest) (*d
 }
 
 func (s *AuthService) VerifyEmail(ctx context.Context, req dto.VerifyEmailRequest) error {
+	isLimited, _ := s.sessionRepo.IncrementRateLimit(ctx, "verify_otp", req.Email, 5, 1*time.Minute)
+	if isLimited {
+		return apperror.ErrRateLimited
+	}
+
 	user, err := s.userRepo.FindByEmail(ctx, req.Email)
 	if err != nil {
 		return fmt.Errorf("userRepo.FindByEmail: %w", err)
@@ -183,32 +168,12 @@ func (s *AuthService) VerifyEmail(ctx context.Context, req dto.VerifyEmailReques
 		return apperror.ErrAccountAlreadyVerified
 	}
 
-	otpCode, err := s.otpRepo.GetLatestValidCode(ctx, user.ID, "email_verification")
-	if err != nil {
-		return fmt.Errorf("otpRepo.GetLatestValidCode: %w", err)
-	}
-	if otpCode == nil {
-		return apperror.ErrOTPExpired
-	}
-
-	if otpCode.Attempts >= maxOTPAttempts {
-		return apperror.ErrOTPMaxAttempts
-	}
-
-	if subtle.ConstantTimeCompare([]byte(otpCode.Code), []byte(req.OTP)) != 1 {
-		attempts, _ := s.otpRepo.IncrementAttempts(ctx, otpCode.ID)
-		if attempts >= maxOTPAttempts {
-			return apperror.ErrOTPMaxAttempts
-		}
-		return apperror.ErrOTPInvalid
-	}
-
 	err = s.txManager.RunInTx(ctx, func(txCtx context.Context) error {
-		if err := s.otpRepo.MarkAsUsed(txCtx, otpCode.ID); err != nil {
-			return fmt.Errorf("otpRepo.MarkAsUsed: %w", err)
+		if err := s.otpService.VerifyOTP(txCtx, user.ID, constant.OTPTypeEmailVerification, req.OTP); err != nil {
+			return err
 		}
 
-		user.Status = model.StatusActive
+		user.Status = constant.StatusActive
 		user.EmailVerified = true
 		if err := s.userRepo.UpdateUser(txCtx, user); err != nil {
 			return fmt.Errorf("userRepo.UpdateUser: %w", err)
@@ -225,6 +190,11 @@ func (s *AuthService) VerifyEmail(ctx context.Context, req dto.VerifyEmailReques
 }
 
 func (s *AuthService) ResendVerificationEmail(ctx context.Context, req dto.ResendVerificationEmailRequest) error {
+	isLimited, _ := s.sessionRepo.IncrementRateLimit(ctx, "resend_otp", req.Email, 3, 1*time.Minute)
+	if isLimited {
+		return apperror.ErrRateLimited
+	}
+
 	user, err := s.userRepo.FindByEmail(ctx, req.Email)
 	if err != nil {
 		return fmt.Errorf("userRepo.FindByEmail: %w", err)
@@ -237,28 +207,11 @@ func (s *AuthService) ResendVerificationEmail(ctx context.Context, req dto.Resen
 		return apperror.ErrAccountAlreadyVerified
 	}
 
-	otp, err := generateOTP()
+	sendEmail, err := s.otpService.CreateAndSendOTP(ctx, user.ID, user.Email, constant.OTPTypeEmailVerification, time.Now().UTC().Add(otpExpiry))
 	if err != nil {
 		return err
 	}
-	expiresAt := time.Now().Add(otpExpiry)
-
-	err = s.txManager.RunInTx(ctx, func(txCtx context.Context) error {
-		if err := s.otpRepo.Create(txCtx, user.ID, otp, "email_verification", expiresAt); err != nil {
-			return fmt.Errorf("otpRepo.Create: %w", err)
-		}
-		return nil
-	})
-
-	if err != nil {
-		return err
-	}
-
-	go func() {
-		if err := s.mailService.SendVerificationEmail(user.Email, otp); err != nil {
-			s.logger.Error("Không thể gửi email OTP (Resend)", zap.String("email", user.Email), zap.Error(err))
-		}
-	}()
+	go sendEmail()
 
 	s.logger.Info("Đã gửi lại email xác thực", zap.String("email", user.Email))
 	return nil
@@ -281,12 +234,24 @@ func (s *AuthService) Login(ctx context.Context, req dto.LoginRequest, ipAddress
 		return nil, apperror.ErrInvalidCredentials
 	}
 
-	if user.Status == model.StatusLocked {
-		if user.LockedUntil == nil || user.LockedUntil.After(time.Now()) {
-			return nil, apperror.ErrAccountLocked
+	if err := s.verifyUserStatus(ctx, user); err != nil {
+		return nil, err
+	}
+
+	if !hash.CheckPassword(req.Password, user.PasswordHash) {
+		s.logAudit(ctx, user.ID, "LOGIN", ipAddress, userAgent, "failure")
+		return nil, handleFailedLogin(ctx, s.userRepo, s.logger, user)
+	}
+
+	return s.grantTokensAndSession(ctx, user, ipAddress, userAgent)
+}
+
+func (s *AuthService) verifyUserStatus(ctx context.Context, user *model.User) error {
+	if user.Status == constant.StatusLocked {
+		if user.LockedUntil == nil || user.LockedUntil.After(time.Now().UTC()) {
+			return apperror.ErrAccountLocked
 		}
-		// Reset trạng thái khóa ngay lập tức và lưu xuống DB
-		user.Status = model.StatusActive
+		user.Status = constant.StatusActive
 		user.FailedLoginAttempts = 0
 		user.LockedUntil = nil
 		if err := s.userRepo.UpdateUser(ctx, user); err != nil {
@@ -294,40 +259,36 @@ func (s *AuthService) Login(ctx context.Context, req dto.LoginRequest, ipAddress
 		}
 	}
 
-	if user.Status == model.StatusInactive {
-		return nil, apperror.ErrAccountInactive
+	if user.Status == constant.StatusInactive {
+		return apperror.ErrAccountInactive
 	}
+	return nil
+}
 
-	if !hash.CheckPassword(req.Password, user.PasswordHash) {
-		_ = s.auditLogRepo.Create(ctx, &model.AuditLog{
-			UserID:    &user.ID,
-			Action:    "LOGIN",
-			IPAddress: &ipAddress,
-			UserAgent: &userAgent,
-			Status:    "failure",
-		})
-		return nil, handleFailedLogin(ctx, s.userRepo, s.logger, user)
-	}
+func (s *AuthService) logAudit(ctx context.Context, userID uint64, action, ip, ua, status string) {
+	_ = s.auditLogRepo.Create(ctx, &model.AuditLog{
+		UserID:    &userID,
+		Action:    action,
+		IPAddress: &ip,
+		UserAgent: &ua,
+		Status:    status,
+	})
+}
 
+func (s *AuthService) grantTokensAndSession(ctx context.Context, user *model.User, ipAddress, userAgent string) (*dto.LoginResponse, error) {
 	now := time.Now()
 	user.LastLoginAt = &now
 	user.FailedLoginAttempts = 0
-	user.Status = model.StatusActive
+	user.Status = constant.StatusActive
 	user.LockedUntil = nil
 	_ = s.userRepo.UpdateUser(ctx, user)
 
-	_ = s.auditLogRepo.Create(ctx, &model.AuditLog{
-		UserID:    &user.ID,
-		Action:    "LOGIN",
-		IPAddress: &ipAddress,
-		UserAgent: &userAgent,
-		Status:    "success",
-	})
+	s.logAudit(ctx, user.ID, "LOGIN", ipAddress, userAgent, "success")
 
 	roles, err := s.roleRepo.GetRolesByUserID(ctx, user.ID)
 	if err != nil {
 		s.logger.Warn("Không lấy được roles của user", zap.Uint64("user_id", user.ID), zap.Error(err))
-		roles = []string{"user"}
+		roles = []string{constant.RoleUser}
 	}
 
 	accessToken, refreshToken, err := s.generateTokenPair(user.ID, roles)
@@ -338,8 +299,8 @@ func (s *AuthService) Login(ctx context.Context, req dto.LoginRequest, ipAddress
 	sessionExpiresAt := time.Now().Add(s.cfg.JWT.RefreshExpiry)
 	session := &model.Session{
 		UserID:           user.ID,
-		TokenHash:        hashToken(accessToken),
-		RefreshTokenHash: hashToken(refreshToken),
+		TokenHash:        hash.SHA256(accessToken),
+		RefreshTokenHash: hash.SHA256(refreshToken),
 		IPAddress:        &ipAddress,
 		UserAgent:        &userAgent,
 		ExpiresAt:        sessionExpiresAt,
@@ -362,6 +323,7 @@ func (s *AuthService) Login(ctx context.Context, req dto.LoginRequest, ipAddress
 	}, nil
 }
 
+
 func (s *AuthService) Refresh(ctx context.Context, req dto.RefreshTokenRequest, ipAddress, userAgent string) (*dto.RefreshTokenResponse, error) {
 	if len(ipAddress) > 45 {
 		ipAddress = ipAddress[:45]
@@ -375,71 +337,81 @@ func (s *AuthService) Refresh(ctx context.Context, req dto.RefreshTokenRequest, 
 		return nil, apperror.ErrRefreshTokenInvalid
 	}
 
-	if claims.Type != "refresh" {
+	if claims.Type != constant.TokenTypeRefresh {
 		return nil, apperror.ErrNotRefreshToken
 	}
 
-	refreshHash := hashToken(req.RefreshToken)
+	refreshHash := hash.SHA256(req.RefreshToken)
+	var res *dto.RefreshTokenResponse
 
+	err = s.txManager.RunInTx(ctx, func(txCtx context.Context) error {
+		if err := s.checkTokenReuse(txCtx, claims.UserID, refreshHash); err != nil {
+			return err
+		}
+
+		session, err := s.sessionRepo.FindByRefreshTokenHashForUpdate(txCtx, refreshHash)
+		if err != nil {
+			return fmt.Errorf("sessionRepo.FindByRefreshTokenHashForUpdate: %w", err)
+		}
+		if session == nil {
+			return apperror.ErrSessionExpired
+		}
+		if session.ExpiresAt.Before(time.Now()) {
+			_ = s.sessionRepo.DeleteByRefreshTokenHash(txCtx, refreshHash)
+			return apperror.ErrRefreshTokenInvalid
+		}
+
+		user, err := s.userRepo.FindByID(txCtx, claims.UserID)
+		if err != nil || user == nil || user.Status != constant.StatusActive {
+			_ = s.sessionRepo.DeleteByUserID(txCtx, claims.UserID)
+			return apperror.ErrAccountDisabled
+		}
+
+		roles, err := s.roleRepo.GetRolesByUserID(txCtx, user.ID)
+		if err != nil {
+			roles = []string{constant.RoleUser}
+		}
+
+		newAccessToken, newRefreshToken, err := s.generateTokenPair(claims.UserID, roles)
+		if err != nil {
+			return err
+		}
+
+		session.TokenHash = hash.SHA256(newAccessToken)
+		session.RefreshTokenHash = hash.SHA256(newRefreshToken)
+		session.IPAddress = &ipAddress
+		session.UserAgent = &userAgent
+		session.ExpiresAt = time.Now().Add(s.cfg.JWT.RefreshExpiry)
+
+		if err := s.sessionRepo.Update(txCtx, session); err != nil {
+			s.logger.Error("Không thể cập nhật session khi refresh token", zap.Error(err))
+			return fmt.Errorf("failed to update session: %w", err)
+		}
+
+		ttl := time.Until(claims.ExpiresAt.Time)
+		if ttl > 0 {
+			_ = s.sessionRepo.AddRevokedRefreshToken(txCtx, refreshHash, ttl)
+		}
+
+		res = &dto.RefreshTokenResponse{
+			AccessToken:  newAccessToken,
+			RefreshToken: newRefreshToken,
+		}
+		return nil
+	})
+
+	return res, err
+}
+
+func (s *AuthService) checkTokenReuse(ctx context.Context, userID uint64, refreshHash string) error {
 	isRevoked, _ := s.sessionRepo.IsRefreshTokenRevoked(ctx, refreshHash)
 	if isRevoked {
-		s.logger.Warn("Phát hiện Token Reuse (Refresh Token bị đánh cắp)", zap.Uint64("user_id", claims.UserID))
-		_ = s.sessionRepo.DeleteByUserID(ctx, claims.UserID)
-		_ = s.sessionRepo.RevokeAllUserTokens(ctx, claims.UserID, s.cfg.JWT.RefreshExpiry)
-		return nil, apperror.ErrTokenReuse
+		s.logger.Warn("Phát hiện Token Reuse (Refresh Token bị đánh cắp)", zap.Uint64("user_id", userID))
+		_ = s.sessionRepo.DeleteByUserID(ctx, userID)
+		_ = s.sessionRepo.RevokeAllUserTokens(ctx, userID, s.cfg.JWT.RefreshExpiry)
+		return apperror.ErrTokenReuse
 	}
-
-	session, err := s.sessionRepo.FindByRefreshTokenHash(ctx, refreshHash)
-	if err != nil {
-		return nil, fmt.Errorf("sessionRepo.FindByRefreshTokenHash: %w", err)
-	}
-
-	if session == nil {
-		return nil, apperror.ErrSessionExpired
-	}
-
-	if session.ExpiresAt.Before(time.Now()) {
-		_ = s.sessionRepo.DeleteByRefreshTokenHash(ctx, refreshHash)
-		return nil, apperror.ErrRefreshTokenInvalid
-	}
-
-	user, err := s.userRepo.FindByID(ctx, claims.UserID)
-	if err != nil || user == nil || user.Status != model.StatusActive {
-		_ = s.sessionRepo.DeleteByUserID(ctx, claims.UserID)
-		return nil, apperror.ErrAccountDisabled
-	}
-
-	roles, err := s.roleRepo.GetRolesByUserID(ctx, user.ID)
-	if err != nil {
-		roles = []string{"user"}
-	}
-
-	newAccessToken, newRefreshToken, err := s.generateTokenPair(claims.UserID, roles)
-	if err != nil {
-		return nil, err
-	}
-
-	sessionExpiresAt := time.Now().Add(s.cfg.JWT.RefreshExpiry)
-	session.TokenHash = hashToken(newAccessToken)
-	session.RefreshTokenHash = hashToken(newRefreshToken)
-	session.IPAddress = &ipAddress
-	session.UserAgent = &userAgent
-	session.ExpiresAt = sessionExpiresAt
-
-	if err := s.sessionRepo.Update(ctx, session); err != nil {
-		s.logger.Error("Không thể cập nhật session khi refresh token", zap.Error(err))
-		return nil, fmt.Errorf("failed to update session: %w", err)
-	}
-
-	ttl := time.Until(claims.ExpiresAt.Time)
-	if ttl > 0 {
-		_ = s.sessionRepo.AddRevokedRefreshToken(ctx, refreshHash, ttl)
-	}
-
-	return &dto.RefreshTokenResponse{
-		AccessToken:  newAccessToken,
-		RefreshToken: newRefreshToken,
-	}, nil
+	return nil
 }
 
 func (s *AuthService) Logout(ctx context.Context, rawToken string, claims *jwt.Claims) error {
@@ -452,7 +424,7 @@ func (s *AuthService) Logout(ctx context.Context, rawToken string, claims *jwt.C
 		}
 	}
 
-	tokenHash := hashToken(rawToken)
+	tokenHash := hash.SHA256(rawToken)
 	if err := s.sessionRepo.DeleteByTokenHash(ctx, tokenHash); err != nil {
 		return fmt.Errorf("sessionRepo.DeleteByTokenHash: %w", err)
 	}
@@ -473,17 +445,13 @@ func (s *AuthService) LogoutAll(ctx context.Context, userID uint64) error {
 	return nil
 }
 
-// handleFailedLogin là hàm chia sẻ để xử lý logic tăng số lần sai và khóa tài khoản
 func handleFailedLogin(ctx context.Context, userRepo *repository.UserRepository, logger *zap.Logger, user *model.User) error {
 	attempts, _ := userRepo.IncrementFailedLogins(ctx, user.ID)
-	
+
 	if attempts >= maxFailedAttempts {
-		lockedUntil := time.Now().Add(lockDuration)
-		user.Status = model.StatusLocked
-		user.LockedUntil = &lockedUntil
-		user.FailedLoginAttempts = attempts // Đồng bộ số lần nhập sai thực tế
-		_ = userRepo.UpdateUser(ctx, user)
-		
+		lockedUntil := time.Now().UTC().Add(lockDuration)
+		_ = userRepo.LockAccount(ctx, user.ID, lockedUntil, attempts)
+
 		logger.Warn("Tài khoản bị khóa do sai mật khẩu nhiều lần",
 			zap.String("email", user.Email),
 			zap.Int("failed_attempts", attempts),

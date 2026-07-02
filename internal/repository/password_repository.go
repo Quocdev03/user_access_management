@@ -80,3 +80,9 @@ func (r *PasswordRepository) InvalidateAllUserTokens(ctx context.Context, userID
 	}
 	return nil
 }
+
+func (r *PasswordRepository) DeleteExpired(ctx context.Context, threshold time.Time) error {
+	query := `DELETE FROM password_reset_tokens WHERE expires_at < ?`
+	_, err := database.GetDB(ctx, r.db).ExecContext(ctx, query, threshold)
+	return err
+}

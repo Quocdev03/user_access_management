@@ -31,6 +31,7 @@
 - camelCase cho biến: `userID`, `accessToken`, `maxRetries`.
 - PascalCase cho hằng số exported: `MaxFailedAttempts`, `DefaultPageSize`.
 - Viết hoa toàn bộ cho viết tắt: `userID` (không phải `userId`), `httpClient`.
+- **Gom nhóm hằng số**: Đặt các hằng số dùng chung (Role, Status, OTP Type, v.v.) vào `internal/constant/constant.go` để tránh hardcode rải rác.
 
 ### Database
 

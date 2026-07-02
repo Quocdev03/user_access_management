@@ -1,3 +1,6 @@
+// Package config cung cấp các cấu trúc dữ liệu và hàm tiện ích để nạp cấu hình hệ thống.
+// Package này sử dụng Viper để đọc cấu hình từ file .env hoặc trực tiếp từ biến môi trường,
+// giúp việc quản lý thiết lập cho ứng dụng (Database, Redis, JWT, Mail, Security) trở nên tập trung và nhất quán.
 package config
 
 import (
@@ -8,6 +11,7 @@ import (
 	"github.com/spf13/viper"
 )
 
+// Config chứa toàn bộ cấu hình tổng thể của ứng dụng, bao gồm các cấu hình thành phần.
 type Config struct {
 	App      AppConfig
 	Database DatabaseConfig
@@ -17,12 +21,14 @@ type Config struct {
 	Security SecurityConfig
 }
 
+// AppConfig định nghĩa các thông số cơ bản để chạy ứng dụng (Môi trường, Cổng, URL frontend).
 type AppConfig struct {
 	Env         string
 	Port        string
 	FrontendURL string
 }
 
+// DatabaseConfig định nghĩa thông số kết nối tới cơ sở dữ liệu (MySQL).
 type DatabaseConfig struct {
 	Host     string
 	Port     string
@@ -31,18 +37,21 @@ type DatabaseConfig struct {
 	Password string
 }
 
+// RedisConfig định nghĩa thông số kết nối tới Redis (dùng cho Session, Rate Limit).
 type RedisConfig struct {
 	Host     string
 	Port     string
 	Password string
 }
 
+// JWTConfig lưu trữ khóa bí mật và thời gian sống (TTL) của các token xác thực.
 type JWTConfig struct {
 	Secret        string
 	AccessExpiry  time.Duration
 	RefreshExpiry time.Duration
 }
 
+// MailConfig định nghĩa thông số kết nối tới máy chủ SMTP để gửi email (OTP, Verify).
 type MailConfig struct {
 	Host     string
 	Port     int
@@ -51,6 +60,7 @@ type MailConfig struct {
 	From     string
 }
 
+// SecurityConfig chứa các ngưỡng cấu hình liên quan đến bảo mật chống Spam và Brute-force.
 type SecurityConfig struct {
 	RateLimitRequests int
 	RateLimitWindow   time.Duration
@@ -60,17 +70,16 @@ type SecurityConfig struct {
 	OTPMaxAttempts    int
 }
 
-// Load đọc cấu hình từ file .env hoặc từ các biến môi trường
+// Load khởi tạo và nạp cấu hình từ file .env tại đường dẫn chỉ định hoặc lấy trực tiếp từ biến môi trường.
+// Hàm này sử dụng cơ chế tự động ghi đè của Viper để ưu tiên biến môi trường (Environment Variables) hơn file .env.
+// Trả về pointer của Config đã được nạp dữ liệu hoặc trả về lỗi nếu không thể phân tích cú pháp cấu hình.
 func Load(path string) (*Config, error) {
 	viper.SetConfigFile(path + "/.env")
 
 	viper.AutomaticEnv()
-	// Thay thế dấu chấm bằng dấu gạch dưới cho biến môi trường nếu cần thiết
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
 	if err := viper.ReadInConfig(); err != nil {
-		// Nếu không tìm thấy file config .env (do đang chạy trên server như Render),
-		// hệ thống sẽ tự động sử dụng các biến môi trường của hệ điều hành.
 		if !strings.Contains(err.Error(), "no such file or directory") {
 			if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
 				return nil, fmt.Errorf("failed to read config file: %w", err)

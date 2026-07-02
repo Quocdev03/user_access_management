@@ -277,9 +277,9 @@ flowchart TD
 
 | Cơ chế | Chi tiết |
 |--------|---------|
-| Khóa tài khoản | Sau 5 lần sai → khóa 30 phút |
-| Rate Limiting | Login: 10 req/phút/IP |
-| Progressive Delay | Tăng thời gian chờ sau mỗi lần sai |
+| Khóa tài khoản | Sau 10 lần sai → khóa 15 phút |
+| Rate Limiting | Login: 15 req/phút/IP (Ban IP 15p nếu > 50 req) |
+| Rate Limit Cứng | Cho phép sai 3-5 lần (Token Bucket) thay vì block ngay lần đầu |
 
 ### Password Policy
 

@@ -101,6 +101,7 @@ Các endpoint trả danh sách hỗ trợ query params:
 |-------------|----------|-------|------|
 | POST | `/auth/register` | Đăng ký tài khoản | Không |
 | POST | `/auth/verify-email` | Xác thực email bằng OTP | Không |
+| POST | `/auth/resend-verification-email` | Gửi lại mã OTP xác thực email | Không |
 | POST | `/auth/login` | Đăng nhập | Không |
 | POST | `/auth/refresh-token` | Làm mới access token | Không (dùng refresh token) |
 | POST | `/auth/logout` | Đăng xuất | Có |
@@ -115,8 +116,9 @@ Các endpoint trả danh sách hỗ trợ query params:
 |-------------|----------|-------|------|
 | GET | `/users/me` | Xem thông tin cá nhân | Có |
 | PUT | `/users/me` | Cập nhật thông tin cá nhân | Có |
-| PUT | `/users/me/email` | Đổi email (gửi OTP xác thực) | Có |
-| POST | `/users/me/email/verify` | Xác thực email mới bằng OTP | Có |
+| POST | `/users/me/email/request-change` | Yêu cầu đổi email (gửi OTP email cũ) | Có |
+| POST | `/users/me/email/verify-old` | Xác thực OTP email cũ (sinh session token) | Có |
+| POST | `/users/me/email/verify-new` | Xác thực OTP email mới & cập nhật email | Có |
 | POST | `/users/me/avatar` | Upload ảnh đại diện | Có |
 | DELETE | `/users/me/avatar` | Xóa ảnh đại diện | Có |
 
@@ -317,5 +319,24 @@ Gửi email chứa link/token đặt lại mật khẩu.
 {
   "success": true,
   "message": "Đặt lại mật khẩu thành công. Vui lòng đăng nhập lại."
+}
+```
+
+### POST `/auth/resend-verification-email`
+
+Gửi lại mã OTP xác thực tài khoản qua email.
+
+**Request:**
+```json
+{
+  "email": "nguyenvana@example.com"
+}
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Đã gửi lại mã OTP. Vui lòng kiểm tra email của bạn."
 }
 ```

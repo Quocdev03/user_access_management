@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/quocdev03/user-access-management/internal/model"
@@ -19,8 +20,11 @@ func NewUserRepository(db *sqlx.DB) *UserRepository {
 }
 
 func (r *UserRepository) Create(ctx context.Context, user *model.User) error {
+	now := time.Now().UTC()
+	user.CreatedAt = now
+	user.UpdatedAt = now
 	query := `INSERT INTO users (username, email, password_hash, full_name, phone, date_of_birth, status, email_verified, created_at, updated_at)
-		VALUES (:username, :email, :password_hash, :full_name, :phone, :date_of_birth, :status, :email_verified, NOW(), NOW())`
+		VALUES (:username, :email, :password_hash, :full_name, :phone, :date_of_birth, :status, :email_verified, :created_at, :updated_at)`
 	result, err := database.GetDB(ctx, r.db).NamedExecContext(ctx, query, user)
 	if err != nil {
 		return err
@@ -73,6 +77,7 @@ func (r *UserRepository) FindByID(ctx context.Context, userID uint64) (*model.Us
 }
 
 func (r *UserRepository) UpdateUser(ctx context.Context, user *model.User) error {
+	user.UpdatedAt = time.Now().UTC()
 	query := `UPDATE users SET 
 		username = :username,
 		email = :email,
@@ -86,7 +91,7 @@ func (r *UserRepository) UpdateUser(ctx context.Context, user *model.User) error
 		failed_login_attempts = :failed_login_attempts,
 		locked_until = :locked_until,
 		last_login_at = :last_login_at,
-		updated_at = NOW()
+		updated_at = :updated_at
 		WHERE id = :id`
 	_, err := database.GetDB(ctx, r.db).NamedExecContext(ctx, query, user)
 	return err
@@ -94,8 +99,8 @@ func (r *UserRepository) UpdateUser(ctx context.Context, user *model.User) error
 
 // IncrementFailedLogins tăng số lần đăng nhập sai một cách nguyên tử
 func (r *UserRepository) IncrementFailedLogins(ctx context.Context, userID uint64) (int, error) {
-	updateQuery := "UPDATE users SET failed_login_attempts = failed_login_attempts + 1, updated_at = NOW() WHERE id = ?"
-	if _, err := database.GetDB(ctx, r.db).ExecContext(ctx, updateQuery, userID); err != nil {
+	updateQuery := "UPDATE users SET failed_login_attempts = failed_login_attempts + 1, updated_at = ? WHERE id = ?"
+	if _, err := database.GetDB(ctx, r.db).ExecContext(ctx, updateQuery, time.Now().UTC(), userID); err != nil {
 		return 0, err
 	}
 
@@ -103,3 +108,11 @@ func (r *UserRepository) IncrementFailedLogins(ctx context.Context, userID uint6
 	err := database.GetDB(ctx, r.db).GetContext(ctx, &attempts, "SELECT failed_login_attempts FROM users WHERE id = ?", userID)
 	return attempts, err
 }
+
+// LockAccount khóa tài khoản một cách nguyên tử để tránh race condition
+func (r *UserRepository) LockAccount(ctx context.Context, userID uint64, lockedUntil time.Time, attempts int) error {
+	query := "UPDATE users SET status = ?, locked_until = ?, failed_login_attempts = ?, updated_at = ? WHERE id = ?"
+	_, err := database.GetDB(ctx, r.db).ExecContext(ctx, query, model.StatusLocked, lockedUntil, attempts, time.Now().UTC(), userID)
+	return err
+}
+

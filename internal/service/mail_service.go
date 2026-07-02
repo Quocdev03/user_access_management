@@ -3,29 +3,23 @@ package service
 import (
 	"fmt"
 
-	"github.com/resend/resend-go/v2"
 	"go.uber.org/zap"
 	"gopkg.in/gomail.v2"
 
 	"github.com/quocdev03/user-access-management/internal/config"
 )
 
-// MailSender định nghĩa giao diện chuẩn cho mọi dịch vụ gửi mail (Resend, SMTP, Mock, SendGrid...)
 type MailSender interface {
 	SendEmail(to, subject, body string) error
 }
 
-// ----------------------------------------------------------------------
-// 1. Mock Sender (Dùng khi chưa cấu hình host)
-// ----------------------------------------------------------------------
 type MockSender struct {
 	logger *zap.Logger
 }
 
 func (s *MockSender) SendEmail(to, subject, body string) error {
 	s.logger.Info("[MOCK MAIL] Bỏ qua gửi email thực tế. Nội dung email được in ra bên dưới:", zap.String("to", to), zap.String("subject", subject))
-	
-	// In thẳng nội dung ra Console để Dev có thể lấy OTP hoặc Link Đặt lại mật khẩu
+
 	fmt.Println()
 	fmt.Println("================ MOCK EMAIL CONTENT ================")
 	fmt.Println("TO      :", to)
@@ -33,39 +27,11 @@ func (s *MockSender) SendEmail(to, subject, body string) error {
 	fmt.Println("BODY    :", body)
 	fmt.Println("====================================================")
 	fmt.Println()
-	
+
 	return nil
 }
 
-// ----------------------------------------------------------------------
-// 2. Resend Sender (Dùng qua SDK/HTTP API để né chặn cổng)
-// ----------------------------------------------------------------------
-type ResendSender struct {
-	client *resend.Client
-	from   string
-	logger *zap.Logger
-}
 
-func (s *ResendSender) SendEmail(to, subject, body string) error {
-	params := &resend.SendEmailRequest{
-		From:    s.from,
-		To:      []string{to},
-		Subject: subject,
-		Html:    body,
-	}
-
-	if _, err := s.client.Emails.Send(params); err != nil {
-		s.logger.Error("Lỗi gửi email qua Resend SDK", zap.String("to", to), zap.Error(err))
-		return fmt.Errorf("failed to send via resend sdk: %w", err)
-	}
-
-	s.logger.Info("Đã gửi email thành công qua Resend SDK", zap.String("to", to), zap.String("subject", subject))
-	return nil
-}
-
-// ----------------------------------------------------------------------
-// 3. SMTP Sender (Dùng cho gomail tiêu chuẩn)
-// ----------------------------------------------------------------------
 type SMTPSender struct {
 	dialer *gomail.Dialer
 	from   string
@@ -88,26 +54,16 @@ func (s *SMTPSender) SendEmail(to, subject, body string) error {
 	return nil
 }
 
-// ----------------------------------------------------------------------
-// Core MailService
-// ----------------------------------------------------------------------
 type MailService struct {
 	sender MailSender
 	cfg    *config.Config
 }
 
-// NewMailService đóng vai trò là Factory nạp đúng Sender dựa trên Config
 func NewMailService(cfg *config.Config, logger *zap.Logger) *MailService {
 	var sender MailSender
 
 	if cfg.Mail.Host == "" {
 		sender = &MockSender{logger: logger}
-	} else if cfg.Mail.Host == "smtp.resend.com" {
-		sender = &ResendSender{
-			client: resend.NewClient(cfg.Mail.Password),
-			from:   cfg.Mail.From,
-			logger: logger,
-		}
 	} else {
 		sender = &SMTPSender{
 			dialer: gomail.NewDialer(cfg.Mail.Host, cfg.Mail.Port, cfg.Mail.User, cfg.Mail.Password),
@@ -122,7 +78,6 @@ func NewMailService(cfg *config.Config, logger *zap.Logger) *MailService {
 	}
 }
 
-// Gọi sender interface, không quan tâm nó là Resend hay SMTP
 func (s *MailService) SendEmail(to, subject, body string) error {
 	return s.sender.SendEmail(to, subject, body)
 }
@@ -143,10 +98,9 @@ func (s *MailService) SendVerificationEmail(to, otp string) error {
 func (s *MailService) SendPasswordResetEmail(to, token string) error {
 	subject := "Khôi phục mật khẩu UAM"
 
-	// Sử dụng biến môi trường APP_FRONTEND_URL để ghép link
 	frontendURL := s.cfg.App.FrontendURL
 	if frontendURL == "" {
-		frontendURL = "http://localhost:3000" // Fallback nếu quên cấu hình
+		frontendURL = "http://localhost:3000"
 	}
 
 	resetURL := fmt.Sprintf("%s/reset-password?token=%s", frontendURL, token)
@@ -161,4 +115,20 @@ func (s *MailService) SendPasswordResetEmail(to, token string) error {
 	`, resetURL, resetURL)
 
 	return s.SendEmail(to, subject, body)
+}
+
+func (s *MailService) SendEmailChangeNotification(oldEmail, newEmail string) error {
+	subject := "Cảnh báo bảo mật: Địa chỉ Email của tài khoản đã thay đổi"
+	body := fmt.Sprintf(`
+		<h2>Thông báo thay đổi Email</h2>
+		<p>Chào bạn,</p>
+		<p>Chúng tôi thông báo rằng địa chỉ email liên kết với tài khoản UAM của bạn đã được thay đổi thành công.</p>
+		<p><strong>Email cũ:</strong> %s</p>
+		<p><strong>Email mới:</strong> %s</p>
+		<p>Nếu bạn không thực hiện thay đổi này, tài khoản của bạn có thể đã bị xâm nhập trái phép. Vui lòng liên hệ với bộ phận hỗ trợ khách hàng của chúng tôi ngay lập tức để được hỗ trợ bảo mật.</p>
+	`, oldEmail, newEmail)
+
+	_ = s.SendEmail(oldEmail, subject, body)
+	_ = s.SendEmail(newEmail, subject, body)
+	return nil
 }

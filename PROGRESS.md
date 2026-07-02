@@ -63,7 +63,33 @@
 | `internal/middleware/auth_middleware.go` | Middleware xác thực JWT access token, kiểm tra Redis blacklist, inject user context |
 | `internal/middleware/rbac_middleware.go` | Middleware kiểm tra phân quyền (RBAC) bằng JWT roles |
 | `internal/handler/auth_handler.go` | `Register`, `VerifyEmail`, `Login`, `RefreshToken`, `Logout`, `LogoutAll`, `ForgotPassword`, `ResetPassword`, `ChangePassword` |
-| `internal/router/router.go` | `POST /api/v1/auth/register`, `POST /api/v1/auth/verify-email`, `POST /api/v1/auth/login`, `POST /api/v1/auth/refresh-token`, `POST /api/v1/auth/logout`, `POST /api/v1/auth/logout-all`, `POST /api/v1/auth/forgot-password`, `POST /api/v1/auth/reset-password`, `POST /api/v1/auth/change-password` |
+	| `internal/router/router.go` | `POST /api/v1/auth/register`, `POST /api/v1/auth/verify-email`, `POST /api/v1/auth/login`, `POST /api/v1/auth/refresh-token`, `POST /api/v1/auth/logout`, `POST /api/v1/auth/logout-all`, `POST /api/v1/auth/forgot-password`, `POST /api/v1/auth/reset-password`, `POST /api/v1/auth/change-password` |
+
+---
+
+### 👤 User Profile Module — UC-11~14 (Phase 3)
+
+#### DTOs
+| File | Nội dung |
+|------|---------|
+| `internal/dto/user_dto.go` | `UserProfileResponse`, `UpdateProfileRequest`, `RequestEmailChangeRequest`, `VerifyOldEmailRequest/Response`, `VerifyNewEmailRequest`, `UploadAvatarResponse` |
+
+#### Repository Layer (MySQL & Redis)
+| File | Methods |
+|------|---------|
+| `internal/repository/session_repository.go` | `SetEmailChangePending`, `GetEmailChangePending`, `SetEmailChangeToken`, `GetEmailChangeToken`, `DeleteEmailChangePending` |
+
+#### Service Layer (Business Logic)
+| File | Logic đã implement |
+|------|------------------|
+| `internal/service/user_service.go` | `GetProfile`, `UpdateProfile`, `RequestEmailChange`, `VerifyOldEmail`, `VerifyNewEmail`, `UploadAvatar`, `DeleteAvatar` |
+| `internal/service/mail_service.go` | `SendEmailChangeNotification` |
+
+#### Handler & Routes
+| File | Routes |
+|------|-------|
+| `internal/handler/user_handler.go` | Các handler tương ứng cho Profile, Email, Avatar |
+| `internal/router/router.go` | `GET /api/v1/users/me`, `PUT /api/v1/users/me`, `POST /api/v1/users/me/email/request-change`, `POST /api/v1/users/me/email/verify-old`, `POST /api/v1/users/me/email/verify-new`, `POST /api/v1/users/me/avatar`, `DELETE /api/v1/users/me/avatar` |
 
 ---
 
@@ -116,13 +142,22 @@
 | M12 | Sửa lỗi logic khóa tài khoản & Tích hợp Ban IP | Sửa lỗi reset khóa/ghi đè failed login attempts trong auth service. Triển khai `RateLimitMiddleware` (sử dụng Redis) ban IP 15 phút khi phát hiện spam trên API chung, login, register, forgot-password, resend OTP. |
 | M13 | Tối ưu hóa Concurrency & Bảo mật API Auth | Gửi mail xác thực và reset mật khẩu bất đồng bộ bằng Goroutines. Chặn spam mail ảo bằng cách di chuyển rate limit trong ForgotPassword lên đầu. Ghi audit log khi login thành công. Ràng buộc rollback đăng ký nếu gán default role thất bại. |
 | M14 | Tái cấu trúc tài liệu tránh ràng buộc code | Loại bỏ mã nguồn chi tiết trong `03-coding-conventions.md`. Đồng bộ hóa path `/auth/refresh-token` trong `04-api-design.md`. |
+| B23 | Lỗ hổng OTP Brute Force & Race Condition trên `/verify-email` | Bổ sung rate limit IP/Email, bọc logic kiểm tra OTP & tăng attempts vào transaction với `SELECT ... FOR UPDATE` (Pessimistic Lock). |
+| B24 | Race Condition (TOCTOU) khi xoay vòng Refresh Token | Bọc logic refresh vào transaction và sử dụng pessimistic lock `SELECT ... FOR UPDATE` khi đọc session theo refresh token hash. |
+| B25 | Lệch đặc tả Password Policy | Bổ sung validator kiểm tra độ phức tạp của mật khẩu (chữ hoa, chữ thường, số, ký tự đặc biệt) trước khi hash trong Register, Reset, và Change Password. |
+| B26 | Thiếu rate limit cho các API nhạy cảm và readiness probe | Cấu hình RateLimitMiddleware chi tiết cho `/health/ready`, `/verify-email`, `/refresh-token`, `/reset-password`, và `/change-password` trong `router.go`. |
+| M15 | Đồng bộ tài liệu và chuẩn bị thiết kế cho các API chưa implement | Cập nhật tài liệu Use Cases và API Design để phản ánh chính xác các endpoints đang chạy, thống nhất thiết kế luồng Đổi Email 3 bước bảo mật và các Use Case quản lý Roles/Permissions/Devices của Admin/User. |
+| R6 | Tái cấu trúc (Refactoring) tối ưu hóa và khử trùng lặp | Tập trung hàm băm SHA256 vào `pkg/hash`, khử trùng lặp logic truy vấn `FOR UPDATE` trong Repository, trích xuất helper `createAndSendOTP` trong AuthService để làm sạch codebase. |
+| R7 | Giải quyết các vấn đề từ Audit Report (Refactoring) | Gộp OTP logic vào `OTPService`, dọn rác DB bằng `CleanupWorker` chạy ngầm, gỡ bỏ `resend-go` SDK để đơn giản hóa Mail Service, tách nhỏ Router (`auth_routes.go`, `user_routes.go`), và tập trung constant vào `constant.go`. |
+| R8 | Khắc phục các lỗi Logic và Security từ Audit Report | Vá lỗi Race Condition (Email gửi ngoài Transaction, Atomic LockAccount), chuẩn hóa toàn bộ `time.Now().UTC()`, thêm `context.WithTimeout` cho CleanupWorker, bổ sung giới hạn Max Length 72 cho Password (phòng chống DoS bcrypt). |
+| R9 | Tái cấu trúc RateLimitMiddleware & Cải thiện UX Anti-Spam | Phân tách Soft Limit (429 Too Many Requests) và Hard Ban (403 IP Banned) trong RateLimitMiddleware. Tăng số lần thử đăng nhập tối đa lên 10 lần sai sẽ khóa 15 phút. Nới lỏng cấu hình Rate Limit cho toàn bộ API để tránh chặn oan người dùng. |
+
 ---
 
 ## 🚧 Chưa làm / TODO
 
 | UC | Tính năng | Ghi chú |
 |----|----------|---------|
-| UC-11~14 | User Profile (xem, sửa, avatar, đổi email) | Chưa có |
 | UC-15~18 | Admin quản lý user | Chưa có |
 | UC-38 | Unit & Integration Test | Đã viết unit test cho `pkg/jwt`, các module khác chưa có |
 

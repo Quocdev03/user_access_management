@@ -1,16 +1,11 @@
 package dto
 
-// --------------- Shared ---------------
-
-// UserInfoResponse dùng chung cho các endpoint trả thông tin user
 type UserInfoResponse struct {
 	ID       uint64 `json:"id"`
 	Username string `json:"username"`
 	Email    string `json:"email"`
 	FullName string `json:"full_name"`
 }
-
-// --------------- Register ---------------
 
 type RegisterRequest struct {
 	Username    string `json:"username" binding:"required,min=3,max=50"`
@@ -28,8 +23,6 @@ type RegisterResponse struct {
 	Status   string `json:"status"`
 }
 
-// --------------- Verify Email ---------------
-
 type VerifyEmailRequest struct {
 	Email string `json:"email" binding:"required,email"`
 	OTP   string `json:"otp" binding:"required,len=6"`
@@ -38,10 +31,6 @@ type VerifyEmailRequest struct {
 type ResendVerificationEmailRequest struct {
 	Email string `json:"email" binding:"required,email"`
 }
-
-// VerifyEmail không cần dữ liệu trả về đặc biệt trong Response, chỉ cần thông điệp thành công (Success message)
-
-// --------------- Login ---------------
 
 type LoginRequest struct {
 	Email    string `json:"email" binding:"required,email"`
@@ -65,8 +54,6 @@ type RefreshTokenResponse struct {
 	RefreshToken string `json:"refresh_token"`
 }
 
-// --------------- Forgot Password ---------------
-
 type ForgotPasswordRequest struct {
 	Email string `json:"email" binding:"required,email"`
 }
@@ -75,8 +62,6 @@ type ResetPasswordRequest struct {
 	Token       string `json:"token" binding:"required"`
 	NewPassword string `json:"new_password" binding:"required,min=8"`
 }
-
-// --------------- Change Password ---------------
 
 type ChangePasswordRequest struct {
 	OldPassword string `json:"old_password" binding:"required"`

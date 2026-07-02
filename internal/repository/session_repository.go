@@ -67,9 +67,12 @@ func (r *SessionRepository) Update(ctx context.Context, session *model.Session) 
 	return err
 }
 
-func (r *SessionRepository) FindByRefreshTokenHash(ctx context.Context, hash string) (*model.Session, error) {
+func (r *SessionRepository) findByRefreshTokenHash(ctx context.Context, hash string, forUpdate bool) (*model.Session, error) {
 	var session model.Session
 	query := `SELECT * FROM sessions WHERE refresh_token_hash = ? LIMIT 1`
+	if forUpdate {
+		query += " FOR UPDATE"
+	}
 	err := database.GetDB(ctx, r.db).GetContext(ctx, &session, query, hash)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -78,6 +81,14 @@ func (r *SessionRepository) FindByRefreshTokenHash(ctx context.Context, hash str
 		return nil, err
 	}
 	return &session, nil
+}
+
+func (r *SessionRepository) FindByRefreshTokenHash(ctx context.Context, hash string) (*model.Session, error) {
+	return r.findByRefreshTokenHash(ctx, hash, false)
+}
+
+func (r *SessionRepository) FindByRefreshTokenHashForUpdate(ctx context.Context, hash string) (*model.Session, error) {
+	return r.findByRefreshTokenHash(ctx, hash, true)
 }
 
 func (r *SessionRepository) DeleteByRefreshTokenHash(ctx context.Context, hash string) error {
@@ -122,18 +133,19 @@ func (r *SessionRepository) IsRefreshTokenRevoked(ctx context.Context, hash stri
 	return val > 0, nil
 }
 
-func (r *SessionRepository) SetRateLimit(ctx context.Context, action string, identifier string, ttl time.Duration) error {
+func (r *SessionRepository) IncrementRateLimit(ctx context.Context, action string, identifier string, limit int, window time.Duration) (bool, error) {
 	key := "ratelimit:" + action + ":" + identifier
-	return r.redis.Set(ctx, key, "1", ttl).Err()
-}
-
-func (r *SessionRepository) IsRateLimited(ctx context.Context, action string, identifier string) (bool, error) {
-	key := "ratelimit:" + action + ":" + identifier
-	val, err := r.redis.Exists(ctx, key).Result()
+	
+	count, err := r.redis.Incr(ctx, key).Result()
 	if err != nil {
 		return false, err
 	}
-	return val > 0, nil
+	
+	if count == 1 {
+		r.redis.Expire(ctx, key, window)
+	}
+	
+	return count > int64(limit), nil
 }
 
 func (r *SessionRepository) RevokeAllUserTokens(ctx context.Context, userID uint64, ttl time.Duration) error {
@@ -152,4 +164,50 @@ func (r *SessionRepository) GetUserRevokedEpoch(ctx context.Context, userID uint
 		return 0, err
 	}
 	return val, nil
+}
+
+func (r *SessionRepository) SetEmailChangePending(ctx context.Context, userID uint64, newEmail string, ttl time.Duration) error {
+	key := "email_change_pending:" + strconv.FormatUint(userID, 10)
+	return r.redis.Set(ctx, key, newEmail, ttl).Err()
+}
+
+func (r *SessionRepository) GetEmailChangePending(ctx context.Context, userID uint64) (string, error) {
+	key := "email_change_pending:" + strconv.FormatUint(userID, 10)
+	val, err := r.redis.Get(ctx, key).Result()
+	if err != nil {
+		if errors.Is(err, redis.Nil) {
+			return "", nil
+		}
+		return "", err
+	}
+	return val, nil
+}
+
+func (r *SessionRepository) SetEmailChangeToken(ctx context.Context, userID uint64, token string, ttl time.Duration) error {
+	key := "email_change_token:" + strconv.FormatUint(userID, 10)
+	return r.redis.Set(ctx, key, token, ttl).Err()
+}
+
+func (r *SessionRepository) GetEmailChangeToken(ctx context.Context, userID uint64) (string, error) {
+	key := "email_change_token:" + strconv.FormatUint(userID, 10)
+	val, err := r.redis.Get(ctx, key).Result()
+	if err != nil {
+		if errors.Is(err, redis.Nil) {
+			return "", nil
+		}
+		return "", err
+	}
+	return val, nil
+}
+
+func (r *SessionRepository) DeleteEmailChangePending(ctx context.Context, userID uint64) error {
+	keyPending := "email_change_pending:" + strconv.FormatUint(userID, 10)
+	keyToken := "email_change_token:" + strconv.FormatUint(userID, 10)
+	return r.redis.Del(ctx, keyPending, keyToken).Err()
+}
+
+func (r *SessionRepository) DeleteExpired(ctx context.Context, threshold time.Time) error {
+	query := `DELETE FROM sessions WHERE expires_at < ?`
+	_, err := database.GetDB(ctx, r.db).ExecContext(ctx, query, threshold)
+	return err
 }

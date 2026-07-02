@@ -7,7 +7,6 @@ import (
 	"github.com/quocdev03/user-access-management/pkg/response"
 )
 
-// Middleware nÃ y pháº£i Ä‘Æ°á»£c Ä‘áº·t SAU AuthMiddleware vÃ¬ nÃ³ phá»¥ thuá»™c vÃ o JWT Claims.
 func RequireRole(roles ...string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		claimsObj, exists := c.Get("tokenClaims")
@@ -27,7 +26,6 @@ func RequireRole(roles ...string) gin.HandlerFunc {
 		hasRole := false
 		for _, requiredRole := range roles {
 			for _, userRole := range claims.Roles {
-				// Náº¿u user lÃ  admin thÃ¬ luÃ´n Ä‘Æ°á»£c phÃ©p bypass
 				if userRole == "admin" {
 					hasRole = true
 					break

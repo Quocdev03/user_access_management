@@ -28,7 +28,9 @@ Hệ thống UAM bao gồm **39 Use Cases** chia thành **6 nhóm** chức năng
 
 - **Đối tượng**: Người dùng đã đăng ký
 - **Mô tả**: Xác thực email bằng mã OTP gửi qua email.
-- **Endpoint**: `POST /api/v1/auth/verify-email`
+- **Endpoints**: 
+  - `POST /api/v1/auth/verify-email` (Xác thực mã OTP)
+  - `POST /api/v1/auth/resend-verification-email` (Gửi lại mã OTP xác thực)
 - **Luồng chính**:
   1. Người dùng nhập email và mã OTP.
   2. Hệ thống kiểm tra OTP: đúng, chưa hết hạn, chưa sử dụng.
@@ -60,7 +62,7 @@ Hệ thống UAM bao gồm **39 Use Cases** chia thành **6 nhóm** chức năng
 
 - **Đối tượng**: Người dùng đã đăng nhập
 - **Mô tả**: Dùng refresh token để lấy access token mới khi access token hết hạn.
-- **Endpoint**: `POST /api/v1/auth/refresh`
+- **Endpoint**: `POST /api/v1/auth/refresh-token`
 - **Luồng chính**:
   1. Client gửi refresh token.
   2. Hệ thống validate refresh token (đúng, chưa hết hạn, chưa bị revoke).
@@ -145,6 +147,24 @@ Hệ thống UAM bao gồm **39 Use Cases** chia thành **6 nhóm** chức năng
   2. Middleware Permission kiểm tra user có permission yêu cầu cho endpoint.
   3. Permission được định nghĩa theo format: `{resource}.{action}`.
 
+### UC-32: Quản lý Vai trò và Quyền (Roles & Permissions Management)
+
+- **Đối tượng**: Admin
+- **Mô tả**: Admin có quyền quản lý các vai trò (roles) và gán danh sách quyền hạn (permissions) tương ứng cho từng vai trò, cũng như gán hoặc gỡ vai trò của người dùng.
+- **Endpoints**:
+  - `GET /api/v1/admin/roles` (Xem danh sách vai trò)
+  - `POST /api/v1/admin/roles` (Tạo vai trò mới)
+  - `PUT /api/v1/admin/roles/{id}` (Cập nhật vai trò)
+  - `DELETE /api/v1/admin/roles/{id}` (Xóa vai trò)
+  - `GET /api/v1/admin/roles/{id}/permissions` (Xem quyền của vai trò)
+  - `PUT /api/v1/admin/roles/{id}/permissions` (Gán quyền cho vai trò)
+  - `POST /api/v1/admin/users/{id}/roles` (Gán vai trò cho người dùng)
+  - `DELETE /api/v1/admin/users/{id}/roles/{roleId}` (Gỡ vai trò khỏi người dùng)
+- **Quy tắc nghiệp vụ**:
+  - Chỉ admin mới có quyền thực hiện.
+  - Sau khi gán/gỡ vai trò hoặc thay đổi quyền của vai trò, hệ thống sẽ thực hiện thu hồi phiên hoạt động của các user bị ảnh hưởng để các thay đổi phân quyền có hiệu lực ngay lập tức.
+  - Ghi audit log cho tất cả các thao tác thay đổi cấu hình phân quyền (→ UC-29).
+
 ---
 
 ## Nhóm 2 — Hồ sơ & Quản lý người dùng (User Profile & User Service)
@@ -165,13 +185,24 @@ Hệ thống UAM bao gồm **39 Use Cases** chia thành **6 nhóm** chức năng
 
 ### UC-13: Đổi Email (Change Email)
 
-- **Đối tượng**: Người dùng đã đăng nhập
-- **Mô tả**: Đổi email sang email mới, cần xác thực OTP trên email mới.
-- **Endpoints**: `PUT /api/v1/users/me/email` → `POST /api/v1/users/me/email/verify`
+- **Đối tượng**: Người dùng đã đăng nhập.
+- **Mô tả**: Đổi địa chỉ email của tài khoản. Để bảo mật cao chống cướp tài khoản (Account Takeover), quy trình yêu cầu nhập mật khẩu hiện tại, sau đó xác thực mã OTP gửi đến email cũ và email mới.
+- **Endpoints**: 
+  - `POST /api/v1/users/me/email/request-change` (Xác thực mật khẩu -> Gửi OTP đến email cũ)
+  - `POST /api/v1/users/me/email/verify-old` (Xác thực OTP email cũ -> Sinh session token đổi email -> Gửi OTP đến email mới)
+  - `POST /api/v1/users/me/email/verify-new` (Xác thực session token & OTP email mới -> Cập nhật email trong DB -> Gửi mail thông báo bảo mật đến cả 2 email)
 - **Luồng chính**:
-  1. Nhập email mới → hệ thống gửi OTP đến email mới.
-  2. Nhập OTP để xác nhận → cập nhật email.
-- **Quy tắc**: Email mới phải chưa tồn tại trong hệ thống.
+  1. Người dùng gửi yêu cầu đổi email kèm mật khẩu hiện tại và email mới.
+  2. Hệ thống xác thực mật khẩu. Nếu đúng, gửi mã OTP đến **email cũ**.
+  3. Người dùng nhập OTP gửi tới email cũ. Nếu đúng, hệ thống sinh một `session_token` tạm thời (lưu Redis TTL 15 phút cùng email mới) trả về cho client, đồng thời gửi mã OTP thứ hai đến **email mới**.
+  4. Người dùng gửi `session_token` và nhập OTP gửi tới email mới.
+  5. Hệ thống kiểm tra trùng email mới trong DB, xác thực OTP và session token. Nếu hợp lệ, cập nhật email trong database và gửi thư thông báo bảo mật đến cả email cũ và email mới.
+- **Quy tắc & Luồng ngoại lệ**:
+  - **Re-authentication**: Bắt buộc nhập đúng mật khẩu hiện tại ở bước 1 để chặn truy cập trái phép.
+  - **Race Condition Check**: Kiểm tra tính duy nhất của email mới ở cả bước yêu cầu (bước 1) và bước cập nhật cuối cùng (bước 5).
+  - **Mất quyền truy cập email cũ**: Đây là luồng tự động tự phục vụ (self-service). Nếu người dùng mất quyền truy cập email cũ, họ bắt buộc phải liên hệ bộ phận hỗ trợ (Customer Support) để xác minh danh tính thủ công.
+  - **Brute-Force OTP**: Mỗi mã OTP chỉ được thử sai tối đa 5 lần. Quá 5 lần, mã OTP sẽ bị vô hiệu hóa.
+  - **Security Notification**: Sau khi đổi thành công, hệ thống bắt buộc gửi email thông báo bảo mật đến email cũ cảnh báo về thay đổi này để chủ tài khoản thực tế kịp thời phát hiện nếu bị hack.
 
 ### UC-14: Upload ảnh đại diện (Upload Avatar)
 
@@ -232,9 +263,10 @@ Hệ thống UAM bao gồm **39 Use Cases** chia thành **6 nhóm** chức năng
 
 - **Đối tượng**: Người dùng đã đăng nhập
 - **Mô tả**: Xem danh sách phiên đăng nhập đang hoạt động.
-- **Endpoint**: `GET /api/v1/users/me/sessions`
-- **Dữ liệu**: IP, thiết bị, thời gian tạo, thời gian hết hạn.
-- **Cho phép hủy từng session**: `DELETE /api/v1/users/me/sessions/{id}`
+- **Endpoints**: 
+  - `GET /api/v1/users/me/sessions` (Xem danh sách phiên đăng nhập đang hoạt động)
+  - `DELETE /api/v1/users/me/sessions/{id}` (Hủy một phiên đăng nhập cụ thể)
+  - `GET /api/v1/users/me/devices` (Xem danh sách thiết bị đã từng đăng nhập)
 
 ### UC-21: Hủy tất cả phiên (Revoke All Sessions)
 
@@ -258,9 +290,11 @@ Hệ thống UAM bao gồm **39 Use Cases** chia thành **6 nhóm** chức năng
 - **Mô tả**: Giới hạn số request trên mỗi IP/user trong khoảng thời gian, dùng Redis.
 - **Cơ chế**: Sliding window counter lưu trong Redis.
 - **Cấu hình mặc định**:
-  - API chung: 100 request/phút/IP.
-  - Login: 10 request/phút/IP.
-  - OTP: 3 request/phút/email.
+  - Cơ chế 2 tầng: Tầng Soft Limit (báo lỗi 429) và Hard Ban (Khóa IP 15 phút nếu spam quá lớn).
+  - API chung: 100 request/phút (ban 300).
+  - Auth (Login): 15 request/phút (ban 50).
+  - Auth (Register/Reset PW): 10 request/phút (ban 30).
+  - Bổ sung: Validate Data ở Service layer LUÔN thực thi trước khi đánh Rate Limit Token Bucket.
 
 ### UC-24: Chính sách mật khẩu (Password Policy)
 

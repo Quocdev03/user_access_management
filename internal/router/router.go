@@ -17,14 +17,11 @@ import (
 	"go.uber.org/zap"
 )
 
-
 func Setup(db *sqlx.DB, redisClient *redis.Client, logger *zap.Logger, cfg *config.Config) *gin.Engine {
 	r := gin.Default()
 
-
 	r.Use(middleware.CORSMiddleware())
 
-	// Phục vụ giao diện API Tester tại root URL (/)
 	r.StaticFile("/", "./ui_test/index.html")
 
 	userRepo := repository.NewUserRepository(db)
@@ -35,11 +32,24 @@ func Setup(db *sqlx.DB, redisClient *redis.Client, logger *zap.Logger, cfg *conf
 	auditLogRepo := repository.NewAuditLogRepository(db)
 	mailService := service.NewMailService(cfg, logger)
 	txManager := database.NewTxManager(db)
-	
-	authService := service.NewAuthService(userRepo, otpRepo, roleRepo, sessionRepo, auditLogRepo, mailService, txManager, cfg, logger)
+
+	otpService := service.NewOTPService(otpRepo, mailService, txManager, logger)
+
+	authService := service.NewAuthService(userRepo, otpService, roleRepo, sessionRepo, auditLogRepo, txManager, cfg, logger)
 	passwordService := service.NewPasswordService(userRepo, sessionRepo, passwordRepo, mailService, txManager, cfg, logger)
+	userService := service.NewUserService(service.UserServiceParams{
+		UserRepo:    userRepo,
+		OtpService:  otpService,
+		RoleRepo:    roleRepo,
+		SessionRepo: sessionRepo,
+		MailService: mailService,
+		TxManager:   txManager,
+		Cfg:         cfg,
+		Logger:      logger,
+	})
 
 	authHandler := handler.NewAuthHandler(authService, passwordService)
+	userHandler := handler.NewUserHandler(userService)
 
 	authMiddleware := middleware.AuthMiddleware(cfg, sessionRepo, logger)
 
@@ -49,16 +59,14 @@ func Setup(db *sqlx.DB, redisClient *redis.Client, logger *zap.Logger, cfg *conf
 			c.JSON(http.StatusOK, gin.H{"status": "UP"})
 		})
 
-		health.GET("/ready", func(c *gin.Context) {
+		health.GET("/ready", middleware.RateLimitMiddleware(redisClient, "ready", 10, 30, time.Minute, 15*time.Minute), func(c *gin.Context) {
 			ctx, cancel := context.WithTimeout(c.Request.Context(), 2*time.Second)
 			defer cancel()
 
-			// Ping DB
 			if err := db.PingContext(ctx); err != nil {
 				c.JSON(http.StatusServiceUnavailable, gin.H{"status": "DOWN", "error": "MySQL down"})
 				return
 			}
-			// Ping Redis
 			if err := redisClient.Ping(ctx).Err(); err != nil {
 				c.JSON(http.StatusServiceUnavailable, gin.H{"status": "DOWN", "error": "Redis down"})
 				return
@@ -67,31 +75,12 @@ func Setup(db *sqlx.DB, redisClient *redis.Client, logger *zap.Logger, cfg *conf
 		})
 	}
 
-
 	v1 := r.Group("/api/v1")
-	// Rate limit chung: 100 requests/phút, vi phạm ban IP 15 phút
-	v1.Use(middleware.RateLimitMiddleware(redisClient, cfg.Security.RateLimitRequests, cfg.Security.RateLimitWindow, 15*time.Minute))
+	v1.Use(middleware.RateLimitMiddleware(redisClient, "global", cfg.Security.RateLimitRequests, cfg.Security.RateLimitRequests*3, cfg.Security.RateLimitWindow, 15*time.Minute))
 	{
-		auth := v1.Group("/auth")
-		{
-			// Rate limit cho các hành động gửi OTP/email: 3 requests/phút
-			auth.POST("/register", middleware.RateLimitMiddleware(redisClient, 3, time.Minute, 15*time.Minute), authHandler.Register)
-			auth.POST("/verify-email", authHandler.VerifyEmail)
-			auth.POST("/resend-verification-email", middleware.RateLimitMiddleware(redisClient, 3, time.Minute, 15*time.Minute), authHandler.ResendVerificationEmail)
-			
-			// Rate limit cho đăng nhập: 10 requests/phút
-			auth.POST("/login", middleware.RateLimitMiddleware(redisClient, 10, time.Minute, 15*time.Minute), authHandler.Login)
-			auth.POST("/refresh-token", authHandler.RefreshToken)
-			auth.POST("/logout", authMiddleware, authHandler.Logout)
-			auth.POST("/logout-all", authMiddleware, authHandler.LogoutAll)
-			
-			auth.POST("/forgot-password", middleware.RateLimitMiddleware(redisClient, 3, time.Minute, 15*time.Minute), authHandler.ForgotPassword)
-			auth.POST("/reset-password", authHandler.ResetPassword)
-			auth.POST("/change-password", authMiddleware, authHandler.ChangePassword)
-		}
+		setupAuthRoutes(v1, authHandler, authMiddleware, redisClient)
+		setupUserRoutes(v1, userHandler, authMiddleware, redisClient)
 	}
-
 
 	return r
 }
-

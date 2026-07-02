@@ -1,31 +1,37 @@
 # AI Project Instructions
 
-## Bước 1: Load Skills Index (BẮT BUỘC — KHÔNG ĐƯỢC BỎ QUA)
+## Bước 1: Load TOÀN BỘ Skills (BẮT BUỘC — KHÔNG ĐƯỢC BỎ QUA)
 
 > ⛔ **HARD BLOCK**: Đây là bước **số 0**, thực hiện **trước tất cả mọi thứ** — kể cả trước khi đọc docs, trước khi nghĩ về plan, trước khi gọi bất kỳ tool nào khác. Vi phạm quy tắc này → output sẽ sai domain và phải làm lại từ đầu.
 
-Không có skills nào được tự động inject. Bạn **phải đọc index** bằng cách:
+Đọc lần lượt **TOÀN BỘ** các file SKILL.md dưới đây bằng `view_file`, **không được bỏ sót bất kỳ file nào**, kể cả khi thấy task hiện tại "có vẻ" không liên quan đến skill đó:
 
-```bash
-view_file .agents/skills/INDEX.md
+```
+.agents/skills/brainstorming/SKILL.md
+.agents/skills/devops-engineer/SKILL.md
+.agents/skills/golang-concurrency/SKILL.md
+.agents/skills/golang-code-style/SKILL.md
+.agents/skills/golang-database/SKILL.md
+.agents/skills/golang-dependency-injection/SKILL.md
+.agents/skills/golang-dependency-management/SKILL.md
+.agents/skills/golang-design-patterns/SKILL.md
+.agents/skills/golang-documentation/SKILL.md
+.agents/skills/golang-modernize/SKILL.md
+.agents/skills/golang-performance/SKILL.md
+.agents/skills/golang-project-layout/SKILL.md
+.agents/skills/golang-security/SKILL.md
+.agents/skills/mysql-best-practices/SKILL.md
+.agents/skills/security-review/SKILL.md
+.agents/skills/code-comments/SKILL.md
 ```
 
-File này chứa toàn bộ danh sách skills và trigger tương ứng. **Chỉ đọc 1 file duy nhất này** — không `list_directory`, không đọc từng SKILL.md trước.
+**Quy tắc:**
 
-**Quy trình bắt buộc (theo thứ tự nghiêm ngặt):**
+- Đọc đủ **15/15 file** trước khi chuyển sang Bước 2. Không dừng sớm dù task có vẻ đơn giản hay chỉ chạm 1 domain.
+- Không cần liệt kê, giải thích hay note lại nội dung đã đọc trong response — chỉ dùng làm context nội bộ để áp dụng khi code.
+- Nếu một skill mới được thêm vào thư mục `.agents/skills/` mà chưa có trong danh sách trên → vẫn phải đọc, và báo cho user biết để cập nhật danh sách này.
 
-1. `view_file .agents/skills/INDEX.md` → đọc toàn bộ bảng mapping.
-2. Phân tích task hiện tại → đối chiếu **từng dòng** với cột "Đọc khi task liên quan đến...".
-3. Với **mỗi skill match** → `view_file <path>/SKILL.md` và đọc **toàn bộ nội dung** trước khi tiếp tục.
-4. Chỉ sau khi xong bước 1-3 mới được chuyển sang Bước 2.
-
-**Dấu hiệu nhận biết model đang skip (KHÔNG ĐƯỢC LÀM):**
-
-- Trả lời ngay mà không có tool call `view_file` nào trước.
-- Chỉ gọi tool docs mà không gọi skills index.
-- Nói "task này không cần skill" mà không đọc index để kiểm tra.
-
-> **QUY TẮC CỨNG**: Nếu không có skill phù hợp sau khi đọc index → tiếp tục bình thường, **nhưng vẫn phải đọc index trước**. Không được skip bước đọc index dù task có vẻ đơn giản.
+> **QUY TẮC CỨNG**: Không có khái niệm "skill không liên quan nên bỏ qua". Đọc hết, áp dụng cái nào phù hợp.
 
 ---
 
@@ -88,15 +94,16 @@ grep -r "<TênEntity>" internal/ --include="*.go" -l
 2. Không thay đổi cấu trúc thư mục đã định nghĩa trong `docs/02-architecture.md`.
 3. Không thay đổi API response format, error codes đã định nghĩa trong `docs/04-api-design.md`.
 4. Giữ naming nhất quán theo `docs/03-coding-conventions.md`.
+5. **Dọn dẹp comment (BẮT BUỘC)**: Khi sửa đổi hoặc xóa code, PHẢI xóa hoặc cập nhật các comment (docstrings, inline comments) liên quan đến đoạn code đó. Tuyệt đối không để lại comment cũ gây hiểu lầm (stale comments) khiến các AI Agent sau này đọc nhầm và sinh code sai logic.
 
 ---
 
 ## Quy tắc tối ưu token (áp dụng xuyên suốt)
 
-1. Dùng `grep`/`search` tìm đúng đoạn cần đọc — không đọc toàn bộ file lớn.
+1. Dùng `grep`/`search` tìm đúng đoạn cần đọc trong **docs và code** — không đọc toàn bộ file lớn (quy tắc này KHÔNG áp dụng cho Bước 1, skill luôn đọc full).
 2. Khi sửa file → dùng replace chính xác đoạn cần sửa, không rewrite toàn file.
 3. Gom nhiều thay đổi nhỏ trong cùng 1 file thành 1 lần sửa duy nhất.
-4. Không liệt kê lại nội dung docs trong response — dùng làm context nội bộ.
+4. Không liệt kê lại nội dung docs/skills trong response — dùng làm context nội bộ.
 5. Không giải thích code khi không được hỏi — chỉ viết code + comment ngắn inline.
 6. **Không được ngắt nội dung giữa chừng**. Nếu code block hoặc nội dung response quá dài, phải dùng tool `write_to_file` / `replace_file_content` để áp thẳng vào file — không cắt rồi đẩy lên chat từng phần.
 
@@ -143,3 +150,11 @@ Hỏi thay vì giả định. Đặc biệt khi:
 - Không rõ UC nào áp dụng.
 - Có 2+ cách implement và không có convention sẵn.
 - Task yêu cầu thay đổi file docs hoặc cấu trúc thư mục.
+
+---
+
+## Quy tắc thiết kế Validation & Anti-Spam (BẮT BUỘC)
+
+1. **Luôn đặt các kiểm tra Validation (CPU-bound) ở ĐẦU hàm**: Các kiểm tra rẻ (như độ dài `len`, format, regex, `ValidatePasswordComplexity`, so sánh chuỗi) phải được chạy TRƯỚC khi gọi Database, TRƯỚC khi tính toán nặng (Bcrypt), và TRƯỚC khi lưu Rate Limit.
+2. **KHÔNG khóa user vì lỗi nhập liệu**: Không được phép gọi các hàm RateLimit, LockAccount hoặc trừ quota của người dùng nếu request của họ bị lỗi do nhập liệu sai (Validation Error). Chỉ áp dụng Rate Limit/Quota cho các request đã qua vòng kiểm tra tính hợp lệ cơ bản.
+3. **Cơ chế Rate Limit (Anti-Spam)**: Tránh thiết kế khóa cứng (Debounce/SetNX) gây lỗi UX. Sử dụng Token Bucket Counter (ví dụ: `IncrementRateLimit(..., 3, 1*time.Minute)`) để cho phép người dùng có biên độ lỗi (chẳng hạn gõ sai 2-3 lần) thay vì phạt khóa họ ngay từ lần đầu tiên.

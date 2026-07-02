@@ -19,13 +19,13 @@ import (
 )
 
 type PasswordService struct {
-	userRepo          *repository.UserRepository
-	sessionRepo       *repository.SessionRepository
+	userRepo     *repository.UserRepository
+	sessionRepo  *repository.SessionRepository
 	passwordRepo *repository.PasswordRepository
-	mailService       *MailService
-	txManager         *database.TxManager
-	cfg               *config.Config
-	logger            *zap.Logger
+	mailService  *MailService
+	txManager    *database.TxManager
+	cfg          *config.Config
+	logger       *zap.Logger
 }
 
 func NewPasswordService(
@@ -49,12 +49,10 @@ func NewPasswordService(
 }
 
 func (s *PasswordService) ForgotPassword(ctx context.Context, req dto.ForgotPasswordRequest) error {
-	// Kiểm tra rate limit trước để tránh spam email không tồn tại
-	isLimited, _ := s.sessionRepo.IsRateLimited(ctx, "forgot_pw", req.Email)
+	isLimited, _ := s.sessionRepo.IncrementRateLimit(ctx, "forgot_pw", req.Email, 3, 1*time.Minute)
 	if isLimited {
-		return apperror.ErrRateLimitedMinute
+		return apperror.ErrRateLimited
 	}
-	_ = s.sessionRepo.SetRateLimit(ctx, "forgot_pw", req.Email, 1*time.Minute)
 
 	user, err := s.userRepo.FindByEmail(ctx, req.Email)
 	if err != nil {
@@ -71,7 +69,7 @@ func (s *PasswordService) ForgotPassword(ctx context.Context, req dto.ForgotPass
 		return fmt.Errorf("failed to generate random token: %w", err)
 	}
 	token := hex.EncodeToString(tokenBytes)
-	tokenHash := hashToken(token)
+	tokenHash := hash.SHA256(token)
 	expiresAt := time.Now().Add(1 * time.Hour)
 
 	_ = s.passwordRepo.InvalidateAllUserTokens(ctx, user.ID)
@@ -91,7 +89,11 @@ func (s *PasswordService) ForgotPassword(ctx context.Context, req dto.ForgotPass
 }
 
 func (s *PasswordService) ResetPassword(ctx context.Context, req dto.ResetPasswordRequest) error {
-	tokenHash := hashToken(req.Token)
+	if err := hash.ValidatePasswordComplexity(req.NewPassword); err != nil {
+		return apperror.ErrValidationError.WithMessage(err.Error())
+	}
+
+	tokenHash := hash.SHA256(req.Token)
 	resetToken, err := s.passwordRepo.FindByTokenHash(ctx, tokenHash)
 	if err != nil {
 		return fmt.Errorf("passwordResetRepo.FindByTokenHash: %w", err)
@@ -144,6 +146,14 @@ func (s *PasswordService) ResetPassword(ctx context.Context, req dto.ResetPasswo
 }
 
 func (s *PasswordService) ChangePassword(ctx context.Context, userID uint64, req dto.ChangePasswordRequest) error {
+	if req.OldPassword == req.NewPassword {
+		return apperror.ErrSamePassword
+	}
+
+	if err := hash.ValidatePasswordComplexity(req.NewPassword); err != nil {
+		return apperror.ErrValidationError.WithMessage(err.Error())
+	}
+
 	user, err := s.userRepo.FindByID(ctx, userID)
 	if err != nil {
 		return fmt.Errorf("userRepo.FindByID: %w", err)
@@ -153,15 +163,19 @@ func (s *PasswordService) ChangePassword(ctx context.Context, userID uint64, req
 	}
 
 	if user.Status == model.StatusLocked {
-		return apperror.ErrAccountLocked
+		if user.LockedUntil == nil || user.LockedUntil.After(time.Now().UTC()) {
+			return apperror.ErrAccountLocked
+		}
+		user.Status = model.StatusActive
+		user.LockedUntil = nil
+		user.FailedLoginAttempts = 0
+		if err := s.userRepo.UpdateUser(ctx, user); err != nil {
+			s.logger.Error("Không thể reset trạng thái khóa của user trong database", zap.Error(err))
+		}
 	}
 
 	if !hash.CheckPassword(req.OldPassword, user.PasswordHash) {
 		return handleFailedLogin(ctx, s.userRepo, s.logger, user)
-	}
-
-	if req.OldPassword == req.NewPassword {
-		return apperror.ErrSamePassword
 	}
 
 	hashedPassword, err := hash.HashPassword(req.NewPassword)

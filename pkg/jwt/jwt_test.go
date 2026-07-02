@@ -46,7 +46,7 @@ func TestExpiredToken(t *testing.T) {
 	secret := "my-super-secret-key-1234567890"
 	userID := uint64(42)
 	tokenType := "access"
-	expiry := -1 * time.Minute // expired in past
+	expiry := -1 * time.Minute
 
 	token, _, err := GenerateToken(userID, []string{"user"}, tokenType, expiry, secret)
 	if err != nil {
@@ -74,7 +74,6 @@ func TestTamperedToken(t *testing.T) {
 		t.Fatalf("Expected no error, got %v", err)
 	}
 
-	// Tamper with the token by changing the last character of signature
 	tamperedToken := token[:len(token)-1] + "A"
 	if tamperedToken == token {
 		tamperedToken = token + "A"

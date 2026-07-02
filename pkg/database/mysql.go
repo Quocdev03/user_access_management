@@ -9,9 +9,7 @@ import (
 	"github.com/quocdev03/user-access-management/internal/config"
 )
 
-// ConnectMySQL khởi tạo một connection pool kết nối tới cơ sở dữ liệu MySQL
 func ConnectMySQL(cfg config.DatabaseConfig) (*sqlx.DB, error) {
-	// Sử dụng mysql.Config để xây dựng DSN chuẩn Clean Code
 	mysqlCfg := mysql.Config{
 		User:                 cfg.User,
 		Passwd:               cfg.Password,
@@ -25,7 +23,6 @@ func ConnectMySQL(cfg config.DatabaseConfig) (*sqlx.DB, error) {
 		AllowNativePasswords: true,
 	}
 
-	// Cấu hình bắt buộc cho Render/Aiven
 	if cfg.Host != "localhost" && cfg.Host != "mysql" {
 		mysqlCfg.TLSConfig = "skip-verify"
 	}
@@ -37,7 +34,6 @@ func ConnectMySQL(cfg config.DatabaseConfig) (*sqlx.DB, error) {
 		return nil, fmt.Errorf("failed to connect to MySQL: %w", err)
 	}
 
-	// Thiết lập cấu hình connection pool khuyến nghị cho Go
 	db.SetMaxOpenConns(25)
 	db.SetMaxIdleConns(10)
 	db.SetConnMaxLifetime(5 * time.Minute)

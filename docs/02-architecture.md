@@ -118,27 +118,39 @@ user_access_management/
 │   │   ├── user_service.go
 │   │   ├── admin_service.go
 │   │   ├── mail_service.go
+│   │   ├── otp_service.go
 │   │   └── audit_service.go
 │   ├── repository/                 # Tầng Repository (Data Access)
 │   │   ├── user_repository.go
 │   │   ├── role_repository.go
 │   │   ├── session_repository.go
+│   │   ├── otp_repository.go
+│   │   ├── password_repository.go
 │   │   └── audit_repository.go
 │   ├── model/                      # Entity / Domain Model
 │   │   ├── user_model.go
 │   │   ├── role_model.go
 │   │   ├── permission_model.go
 │   │   ├── session_model.go
+│   │   ├── otp_model.go
 │   │   └── audit_log_model.go
 │   ├── dto/                        # Data Transfer Objects (Request/Response)
 │   │   ├── auth_dto.go
 │   │   ├── user_dto.go
 │   │   └── admin_dto.go
-│   ├── middleware/                  # Middleware
+│   ├── middleware/                 # Middleware
 │   │   ├── auth_middleware.go
 │   │   ├── rbac_middleware.go
 │   │   ├── rate_limit_middleware.go
 │   │   └── logger_middleware.go
+│   ├── router/                     # Định tuyến API
+│   │   ├── router.go
+│   │   ├── auth_routes.go
+│   │   └── user_routes.go
+│   ├── worker/                     # Background tasks
+│   │   └── cleanup.go
+│   ├── constant/                   # Constants dùng chung
+│   │   └── constant.go
 │   └── config/                     # Cấu hình ứng dụng
 │       └── config.go
 ├── pkg/                            # Shared utilities (có thể tái sử dụng)
@@ -165,15 +177,18 @@ user_access_management/
 
 | Thư mục | Vai trò |
 |---------|--------|
-| `cmd/server/` | Entry point — khởi tạo dependency injection, cấu hình router, start HTTP server |
+| `cmd/server/` | Entry point — khởi tạo dependency injection, background worker, router, HTTP server |
 | `internal/handler/` | Nhận HTTP request, validate, gọi service, trả JSON response |
 | `internal/service/` | Chứa toàn bộ business logic, gọi repository qua con trỏ struct |
 | `internal/repository/` | Thao tác database (MySQL) và cache (Redis) |
 | `internal/model/` | Định nghĩa entity/domain model tương ứng với bảng database |
 | `internal/dto/` | Định nghĩa cấu trúc request/response, tách biệt với model |
 | `internal/middleware/` | Xử lý xác thực, phân quyền, rate limit, logging |
+| `internal/router/` | Khởi tạo cấu hình và thiết lập các Sub-Router |
+| `internal/worker/` | Quản lý các task chạy ngầm (VD: cleanup database) |
+| `internal/constant/` | Khai báo hằng số hệ thống tránh hard-code |
 | `internal/config/` | Đọc và quản lý cấu hình từ .env |
-| `pkg/` | Các utility dùng chung, có thể import từ bất kỳ tầng nào |
+| `pkg/` | Các utility dùng chung (JWT, Hash, Validator) |
 | `migrations/` | File SQL migration quản lý bởi golang-migrate |
 
 ---
@@ -183,7 +198,7 @@ user_access_management/
 Tất cả dependency được khởi tạo tại `cmd/server/main.go` và inject qua constructor:
 
 ```
-main.go (qua router.Setup)
+main.go
   ├── config.Load()
   ├── db.Connect()          → *sqlx.DB
   ├── redis.Connect()       → *redis.Client
@@ -192,11 +207,17 @@ main.go (qua router.Setup)
   ├── NewUserRepository(db)           → *repository.UserRepository
   ├── NewRoleRepository(db)           → *repository.RoleRepository
   ├── NewSessionRepository(redis)     → *repository.SessionRepository
+  ├── NewOTPRepository(db)            → *repository.OTPRepository
+  ├── NewPasswordRepository(db)       → *repository.PasswordRepository
   │
+  ├── NewOTPService(...)              → *service.OTPService
   ├── NewAuthService(...)             → *service.AuthService
   ├── NewPasswordService(...)         → *service.PasswordService
   ├── NewUserService(userRepo)        → *service.UserService
   ├── NewAdminService(...)            → *service.AdminService
+  │
+  ├── NewCleanupWorker(...)           → *worker.CleanupWorker
+  ├── go worker.Start()               → [Background Routine]
   │
   ├── NewAuthHandler(authSvc, pwdSvc) → *handler.AuthHandler
   ├── NewUserHandler(userService)     → *handler.UserHandler

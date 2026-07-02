@@ -10,7 +10,6 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-// ConnectRedis khởi tạo một kết nối tới máy chủ cơ sở dữ liệu Redis
 func ConnectRedis(cfg config.RedisConfig) (*redis.Client, error) {
 	var opt *redis.Options
 	var err error

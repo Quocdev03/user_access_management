@@ -10,23 +10,19 @@ import (
 )
 
 var (
-	// ErrInvalidToken báo lỗi khi token không hợp lệ hoặc chữ ký sai
 	ErrInvalidToken = errors.New("invalid token")
-	// ErrExpiredToken báo lỗi khi token đã hết hạn sử dụng
 	ErrExpiredToken = errors.New("token is expired")
 )
 
-// Claims định nghĩa các thông tin payload được lưu trữ trong JWT
 type Claims struct {
-	UserID uint64   `json:"sub"`   // ID của người dùng
-	Type   string   `json:"type"`  // Loại token: "access" hoặc "refresh"
-	Roles  []string `json:"roles"` // Danh sách vai trò của người dùng (dành cho RBAC)
-	golangjwt.RegisteredClaims     // Các claims chuẩn đăng ký sẵn theo RFC 7519
+	UserID uint64   `json:"sub"`
+	Type   string   `json:"type"`
+	Roles  []string `json:"roles"`
+	golangjwt.RegisteredClaims
 }
 
-// GenerateToken sinh JWT token mới dựa trên ID người dùng, roles, loại token, thời hạn và khóa bí mật
 func GenerateToken(userID uint64, roles []string, tokenType string, expiry time.Duration, secret string) (string, string, error) {
-	jti := uuid.New().String() // Tạo mã ID duy nhất cho token (JTI)
+	jti := uuid.New().String()
 	now := time.Now()
 	claims := Claims{
 		UserID: userID,
@@ -49,10 +45,8 @@ func GenerateToken(userID uint64, roles []string, tokenType string, expiry time.
 	return tokenString, jti, nil
 }
 
-// ParseToken thực hiện phân tích và xác thực tính hợp lệ của chuỗi JWT token
 func ParseToken(tokenStr string, secret string) (*Claims, error) {
 	token, err := golangjwt.ParseWithClaims(tokenStr, &Claims{}, func(token *golangjwt.Token) (interface{}, error) {
-		// Kiểm tra thuật toán ký mã hóa token
 		if _, ok := token.Method.(*golangjwt.SigningMethodHMAC); !ok {
 			return nil, ErrInvalidToken
 		}
@@ -73,4 +67,3 @@ func ParseToken(tokenStr string, secret string) (*Claims, error) {
 
 	return claims, nil
 }
-

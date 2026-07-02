@@ -8,6 +8,7 @@ import (
 	"github.com/quocdev03/user-access-management/internal/service"
 	"github.com/quocdev03/user-access-management/pkg/jwt"
 	"github.com/quocdev03/user-access-management/pkg/response"
+	"github.com/quocdev03/user-access-management/pkg/validator"
 )
 
 
@@ -25,18 +26,8 @@ func NewAuthHandler(authService *service.AuthService, passwordService *service.P
 }
 
 
-func bindAndValidate[T any](c *gin.Context) (*T, bool) {
-	var req T
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.ValidationError(c, err)
-		return nil, false
-	}
-	return &req, true
-}
-
-
 func (h *AuthHandler) Register(c *gin.Context) {
-	req, ok := bindAndValidate[dto.RegisterRequest](c)
+	req, ok := validator.BindAndValidate[dto.RegisterRequest](c)
 	if !ok {
 		return
 	}
@@ -52,7 +43,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 
 
 func (h *AuthHandler) VerifyEmail(c *gin.Context) {
-	req, ok := bindAndValidate[dto.VerifyEmailRequest](c)
+	req, ok := validator.BindAndValidate[dto.VerifyEmailRequest](c)
 	if !ok {
 		return
 	}
@@ -68,7 +59,7 @@ func (h *AuthHandler) VerifyEmail(c *gin.Context) {
 
 
 func (h *AuthHandler) ResendVerificationEmail(c *gin.Context) {
-	req, ok := bindAndValidate[dto.ResendVerificationEmailRequest](c)
+	req, ok := validator.BindAndValidate[dto.ResendVerificationEmailRequest](c)
 	if !ok {
 		return
 	}
@@ -84,7 +75,7 @@ func (h *AuthHandler) ResendVerificationEmail(c *gin.Context) {
 
 
 func (h *AuthHandler) Login(c *gin.Context) {
-	req, ok := bindAndValidate[dto.LoginRequest](c)
+	req, ok := validator.BindAndValidate[dto.LoginRequest](c)
 	if !ok {
 		return
 	}
@@ -100,7 +91,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 
 func (h *AuthHandler) RefreshToken(c *gin.Context) {
-	req, ok := bindAndValidate[dto.RefreshTokenRequest](c)
+	req, ok := validator.BindAndValidate[dto.RefreshTokenRequest](c)
 	if !ok {
 		return
 	}
@@ -143,7 +134,7 @@ func (h *AuthHandler) LogoutAll(c *gin.Context) {
 
 
 func (h *AuthHandler) ForgotPassword(c *gin.Context) {
-	req, ok := bindAndValidate[dto.ForgotPasswordRequest](c)
+	req, ok := validator.BindAndValidate[dto.ForgotPasswordRequest](c)
 	if !ok {
 		return
 	}
@@ -154,13 +145,12 @@ func (h *AuthHandler) ForgotPassword(c *gin.Context) {
 		return
 	}
 
-	// Luôn trả về thông báo chung để chống dò email
 	response.Success(c, http.StatusOK, "Nếu email hợp lệ, hệ thống sẽ gửi một link khôi phục mật khẩu. Vui lòng kiểm tra hộp thư của bạn.", nil)
 }
 
 
 func (h *AuthHandler) ResetPassword(c *gin.Context) {
-	req, ok := bindAndValidate[dto.ResetPasswordRequest](c)
+	req, ok := validator.BindAndValidate[dto.ResetPasswordRequest](c)
 	if !ok {
 		return
 	}
@@ -176,7 +166,7 @@ func (h *AuthHandler) ResetPassword(c *gin.Context) {
 
 
 func (h *AuthHandler) ChangePassword(c *gin.Context) {
-	req, ok := bindAndValidate[dto.ChangePasswordRequest](c)
+	req, ok := validator.BindAndValidate[dto.ChangePasswordRequest](c)
 	if !ok {
 		return
 	}
