@@ -560,7 +560,7 @@
     <script>
         lucide.createIcons();
 
-        let BASE_URL = 'https://chiquocdev.me';
+        let BASE_URL = window.location.origin;
 
         function setEnv(isProd) {
             BASE_URL = isProd ? 'https://chiquocdev.me' : 'http://localhost:8080';
@@ -690,9 +690,18 @@
                 html.classList.add('dark');
                 html.classList.remove('light');
             }
-            // Set indicator text once DOM is ready
+            // Set indicator text and detect BASE_URL once DOM is ready
             window.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('themeName').textContent = html.classList.contains('light') ? 'light' : 'dark';
+                
+                // Tự động phát hiện base URL dựa trên host hiện tại
+                BASE_URL = window.location.origin;
+                document.getElementById('baseUrlDisplay').textContent = 'base: ' + BASE_URL;
+                
+                // Cập nhật trạng thái nút local/production trên giao diện
+                const isLocal = BASE_URL.includes('localhost') || BASE_URL.includes('127.0.0.1');
+                document.getElementById('envLabelProd').classList.toggle('active', !isLocal);
+                document.getElementById('envLabelLocal').classList.toggle('active', isLocal);
             });
         })();
     </script>

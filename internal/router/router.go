@@ -24,6 +24,8 @@ func Setup(db *sqlx.DB, redisClient *redis.Client, logger *zap.Logger, cfg *conf
 
 	r.Use(middleware.CORSMiddleware())
 
+	// Phục vụ giao diện API Tester tại root URL (/)
+	r.StaticFile("/", "./ui_test/index.html")
 
 	userRepo := repository.NewUserRepository(db)
 	otpRepo := repository.NewOTPRepository(db)

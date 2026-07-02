@@ -112,6 +112,7 @@
 | R5 | Refactor `mail_service.go` vi phạm Open/Closed Principle | Áp dụng Strategy Pattern và Dependency Injection (Interface `MailSender`), tách biệt logic gửi qua Resend SDK (HTTP API) và Gomail (SMTP) giúp code dễ bảo trì và dễ mock. |
 | M9 | Loại bỏ Prometheus & Grafana | Dọn dẹp cấu hình giám sát không cần thiết khỏi file `docker-compose.yml` và tài liệu để hệ thống nhẹ nhàng hơn. |
 | M10 | Cài đặt GitHub Actions CI/CD | Cấu hình `.github/workflows/ci.yml` tự động build, test Go (1.26.2), đồng thời tích hợp GitHub Deployments API để quản lý lịch sử deploy và gọi webhook tự động cập nhật Render khi test pass. |
+| M11 | Phục vụ API Tester UI tại Root URL | Cấu hình router serve `ui_test/index.html` tại root `/`. Cập nhật Dockerfile để bundle thư mục `ui_test`. Tự động hóa phát hiện Base URL và active class trên UI. |
 ---
 
 ## 🚧 Chưa làm / TODO

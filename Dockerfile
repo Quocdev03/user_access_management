@@ -39,6 +39,7 @@ RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 # Copy binary and necessary assets from builder
 COPY --from=builder /app/bin/server ./server
 COPY --from=builder /app/migrations ./migrations
+COPY --from=builder /app/ui_test ./ui_test
 
 # Create uploads directory and set permissions
 RUN mkdir -p ./uploads && chown -R appuser:appgroup ./uploads
