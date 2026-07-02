@@ -121,7 +121,10 @@ func (s *AuthService) Register(ctx context.Context, req dto.RegisterRequest) (*d
 		EmailVerified: false,
 	}
 
-	otp, _ := generateOTP()
+	otp, err := generateOTP()
+	if err != nil {
+		return nil, fmt.Errorf("generateOTP: %w", err)
+	}
 	expiresAt := time.Now().Add(otpExpiry)
 
 	err = s.txManager.RunInTx(ctx, func(txCtx context.Context) error {
@@ -133,10 +136,14 @@ func (s *AuthService) Register(ctx context.Context, req dto.RegisterRequest) (*d
 		}
 
 		role, err := s.roleRepo.FindByName(txCtx, "user")
-		if err != nil || role == nil {
-			s.logger.Warn("Không tìm được default role", zap.Error(err))
-		} else if err := s.roleRepo.AssignRoleToUser(txCtx, user.ID, role.ID); err != nil {
-			s.logger.Warn("Không gán được role cho user", zap.Uint64("user_id", user.ID), zap.Error(err))
+		if err != nil {
+			return fmt.Errorf("roleRepo.FindByName: %w", err)
+		}
+		if role == nil {
+			return fmt.Errorf("default role 'user' not found")
+		}
+		if err := s.roleRepo.AssignRoleToUser(txCtx, user.ID, role.ID); err != nil {
+			return fmt.Errorf("roleRepo.AssignRoleToUser: %w", err)
 		}
 
 		if err := s.otpRepo.Create(txCtx, user.ID, otp, "email_verification", expiresAt); err != nil {
@@ -149,9 +156,11 @@ func (s *AuthService) Register(ctx context.Context, req dto.RegisterRequest) (*d
 		return nil, err
 	}
 
-	if err := s.mailService.SendVerificationEmail(user.Email, otp); err != nil {
-		s.logger.Error("Không thể gửi email OTP đăng ký", zap.String("email", user.Email), zap.Error(err))
-	}
+	go func() {
+		if err := s.mailService.SendVerificationEmail(user.Email, otp); err != nil {
+			s.logger.Error("Không thể gửi email OTP đăng ký", zap.String("email", user.Email), zap.Error(err))
+		}
+	}()
 
 	return &dto.RegisterResponse{
 		ID:       user.ID,
@@ -245,10 +254,11 @@ func (s *AuthService) ResendVerificationEmail(ctx context.Context, req dto.Resen
 		return err
 	}
 
-	if err := s.mailService.SendVerificationEmail(user.Email, otp); err != nil {
-		s.logger.Error("Không thể gửi email OTP (Resend)", zap.String("email", user.Email), zap.Error(err))
-		return fmt.Errorf("failed to send verification email: %w", err)
-	}
+	go func() {
+		if err := s.mailService.SendVerificationEmail(user.Email, otp); err != nil {
+			s.logger.Error("Không thể gửi email OTP (Resend)", zap.String("email", user.Email), zap.Error(err))
+		}
+	}()
 
 	s.logger.Info("Đã gửi lại email xác thực", zap.String("email", user.Email))
 	return nil
@@ -275,8 +285,13 @@ func (s *AuthService) Login(ctx context.Context, req dto.LoginRequest, ipAddress
 		if user.LockedUntil == nil || user.LockedUntil.After(time.Now()) {
 			return nil, apperror.ErrAccountLocked
 		}
+		// Reset trạng thái khóa ngay lập tức và lưu xuống DB
 		user.Status = model.StatusActive
 		user.FailedLoginAttempts = 0
+		user.LockedUntil = nil
+		if err := s.userRepo.UpdateUser(ctx, user); err != nil {
+			s.logger.Error("Không thể reset trạng thái khóa của user trong database", zap.Error(err))
+		}
 	}
 
 	if user.Status == model.StatusInactive {
@@ -300,6 +315,14 @@ func (s *AuthService) Login(ctx context.Context, req dto.LoginRequest, ipAddress
 	user.Status = model.StatusActive
 	user.LockedUntil = nil
 	_ = s.userRepo.UpdateUser(ctx, user)
+
+	_ = s.auditLogRepo.Create(ctx, &model.AuditLog{
+		UserID:    &user.ID,
+		Action:    "LOGIN",
+		IPAddress: &ipAddress,
+		UserAgent: &userAgent,
+		Status:    "success",
+	})
 
 	roles, err := s.roleRepo.GetRolesByUserID(ctx, user.ID)
 	if err != nil {
@@ -458,6 +481,7 @@ func handleFailedLogin(ctx context.Context, userRepo *repository.UserRepository,
 		lockedUntil := time.Now().Add(lockDuration)
 		user.Status = model.StatusLocked
 		user.LockedUntil = &lockedUntil
+		user.FailedLoginAttempts = attempts // Đồng bộ số lần nhập sai thực tế
 		_ = userRepo.UpdateUser(ctx, user)
 		
 		logger.Warn("Tài khoản bị khóa do sai mật khẩu nhiều lần",

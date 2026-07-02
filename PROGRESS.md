@@ -113,6 +113,9 @@
 | M9 | Loại bỏ Prometheus & Grafana | Dọn dẹp cấu hình giám sát không cần thiết khỏi file `docker-compose.yml` và tài liệu để hệ thống nhẹ nhàng hơn. |
 | M10 | Cài đặt GitHub Actions CI/CD | Cấu hình `.github/workflows/ci.yml` tự động build, test Go (1.26.2), đồng thời tích hợp GitHub Deployments API để quản lý lịch sử deploy và gọi webhook tự động cập nhật Render khi test pass. |
 | M11 | Phục vụ API Tester UI tại Root URL | Cấu hình router serve `ui_test/index.html` tại root `/`. Cập nhật Dockerfile để bundle thư mục `ui_test`. Tự động hóa phát hiện Base URL và active class trên UI. |
+| M12 | Sửa lỗi logic khóa tài khoản & Tích hợp Ban IP | Sửa lỗi reset khóa/ghi đè failed login attempts trong auth service. Triển khai `RateLimitMiddleware` (sử dụng Redis) ban IP 15 phút khi phát hiện spam trên API chung, login, register, forgot-password, resend OTP. |
+| M13 | Tối ưu hóa Concurrency & Bảo mật API Auth | Gửi mail xác thực và reset mật khẩu bất đồng bộ bằng Goroutines. Chặn spam mail ảo bằng cách di chuyển rate limit trong ForgotPassword lên đầu. Ghi audit log khi login thành công. Ràng buộc rollback đăng ký nếu gán default role thất bại. |
+| M14 | Tái cấu trúc tài liệu tránh ràng buộc code | Loại bỏ mã nguồn chi tiết trong `03-coding-conventions.md`. Đồng bộ hóa path `/auth/refresh-token` trong `04-api-design.md`. |
 ---
 
 ## 🚧 Chưa làm / TODO

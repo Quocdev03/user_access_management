@@ -41,111 +41,69 @@
 
 ## 2. Cấu trúc code theo tầng
 
-### Handler (Controller)
+### Handler (Presentation Layer)
+- **Trách nhiệm**: Nhận HTTP request, bind & validate input DTO, gọi đúng 1 phương thức Service tương ứng, định dạng và trả về JSON response.
+- **Quy tắc**: Không chứa logic nghiệp vụ hay truy xuất database trực tiếp.
 
 ```go
-// Chỉ xử lý HTTP: bind input, validate, gọi service, trả response
-func (h *AuthHandler) Login(c *gin.Context) {
-    var req dto.LoginRequest
+// Khung cấu trúc Handler mẫu
+func (h *AuthHandler) Action(c *gin.Context) {
+    var req dto.ActionRequest
     if err := c.ShouldBindJSON(&req); err != nil {
         response.ValidationError(c, err)
         return
     }
-
-    result, err := h.authService.Login(c.Request.Context(), req)
+    res, err := h.service.Action(c.Request.Context(), req)
     if err != nil {
         response.Error(c, err)
         return
     }
-
-    response.Success(c, http.StatusOK, "Đăng nhập thành công", result)
+    response.Success(c, http.StatusOK, "Thành công", res)
 }
 ```
 
-**Quy tắc Handler:**
-- Không chứa business logic.
-- Không truy cập database trực tiếp.
-- Chỉ gọi 1 service method cho mỗi handler.
-- Dùng DTO cho request/response, không dùng model trực tiếp.
-
-### Service (Business Logic)
+### Service (Business Logic Layer)
+- **Trách nhiệm**: Xử lý toàn bộ logic nghiệp vụ (business rules), điều phối giao dịch (transactions), mã hóa dữ liệu, gửi email, tích hợp bên thứ ba.
+- **Quy tắc**: 
+  - Gọi Repository thông qua con trỏ struct trực tiếp (Concrete Type).
+  - Bắt buộc dùng `database.TxManager` bọc trong `RunInTx` nếu nghiệp vụ ghi/sửa nhiều bảng hoặc nhiều dòng dữ liệu.
+  - Trả về error có ý nghĩa (`AppError` hoặc sentinel errors).
 
 ```go
-// Chứa toàn bộ business logic, gọi repository qua con trỏ struct
-func (s *AuthService) Login(ctx context.Context, req dto.LoginRequest) (*dto.LoginResponse, error) {
-    user, err := s.userRepo.FindByEmail(ctx, req.Email)
-    if err != nil {
-        return nil, ErrInvalidCredentials
-    }
-
-    if user.Status == model.StatusLocked {
-        return nil, ErrAccountLocked
-    }
-
-    if !hash.CheckPassword(req.Password, user.PasswordHash) {
-        s.handleFailedLogin(ctx, user)
-        return nil, ErrInvalidCredentials
-    }
-
-    // Tạo token, lưu session...
+// Khung cấu trúc Service mẫu
+func (s *Service) Action(ctx context.Context, req dto.ActionRequest) (*dto.ActionResponse, error) {
+    // 1. Thực hiện logic nghiệp vụ...
+    // 2. Gọi Repository...
+    // 3. Đóng gói kết quả trả về...
     return response, nil
 }
 ```
 
-**Quy tắc Service:**
-- Chứa toàn bộ nghiệp vụ.
-- Bắt buộc dùng `database.TxManager` bọc trong `RunInTx` nếu nghiệp vụ ghi/sửa nhiều bảng hoặc nhiều dòng dữ liệu.
-- Gọi repository qua con trỏ struct (không tạo interface thừa).
-- Nhận context.Context ở tham số đầu tiên.
-- Trả error có ý nghĩa (custom error, không dùng string).
-
-### Repository (Data Access)
+### Repository (Data Access Layer)
+- **Trách nhiệm**: Chỉ thực hiện các thao tác đọc/ghi cơ sở dữ liệu (MySQL, Redis, v.v.).
+- **Quy tắc**:
+  - Không chứa logic nghiệp vụ.
+  - Dùng `database.GetDB(ctx, r.db)` để tự động hỗ trợ transaction.
+  - Luôn sử dụng parameterized queries đề phòng SQL Injection.
 
 ```go
-
-func (r *userRepository) FindByEmail(ctx context.Context, email string) (*model.User, error) {
-    var user model.User
-    query := "SELECT id, username, email, password_hash, status FROM users WHERE email = ?"
-    err := r.db.QueryRowContext(ctx, query, email).Scan(
-        &user.ID, &user.Username, &user.Email, &user.PasswordHash, &user.Status,
-    )
-    if err == sql.ErrNoRows {
-        return nil, ErrNotFound
-    }
-    return &user, err
+// Khung cấu trúc Repository mẫu
+func (r *Repository) FindByID(ctx context.Context, id uint64) (*model.Entity, error) {
+    var entity model.Entity
+    query := "SELECT * FROM table WHERE id = ? LIMIT 1"
+    err := database.GetDB(ctx, r.db).GetContext(ctx, &entity, query, id)
+    return &entity, err
 }
 ```
-
-**Quy tắc Repository:**
-- Không định nghĩa interface tại tầng Repository. Chỉ dùng struct.
-- Implementation chỉ xử lý data access, không chứa business logic.
-- Dùng `database.GetDB(ctx, r.db)` thay vì `r.db` trực tiếp để hỗ trợ Transaction (Unit of Work).
-- Dùng parameterized queries (chống SQL injection).
-- Trả model/entity, không trả DTO.
 
 ---
 
 ## 3. Xử lý lỗi (Error Handling)
 
-### Định nghĩa lỗi tập trung
-
-```go
-// pkg/apperror/errors.go
-var (
-    ErrInvalidCredentials = NewAppError("INVALID_CREDENTIALS", "Sai email hoặc mật khẩu", http.StatusUnauthorized)
-    ErrAccountLocked      = NewAppError("ACCOUNT_LOCKED", "Tài khoản đã bị khóa", http.StatusLocked)
-    ErrNotFound           = NewAppError("NOT_FOUND", "Không tìm thấy tài nguyên", http.StatusNotFound)
-    ErrConflict           = NewAppError("CONFLICT", "Dữ liệu đã tồn tại", http.StatusConflict)
-    ErrForbidden          = NewAppError("FORBIDDEN", "Không có quyền truy cập", http.StatusForbidden)
-)
-```
-
-### Quy tắc
-
-- Dùng custom error type `AppError` với mã lỗi, message, HTTP status.
-- Không dùng `fmt.Errorf` cho business error → dùng sentinel error hoặc `AppError`.
-- Wrap error khi cần thêm context: `fmt.Errorf("tìm user theo email: %w", err)`.
-- Handler chuyển đổi error thành HTTP response thông qua helper `response.Error()`.
+- Định nghĩa lỗi tập trung dưới dạng các `AppError` chứa mã lỗi (`Code`), thông báo dễ hiểu (`Message`) và HTTP status code.
+- Luôn sử dụng sentinel errors / custom `AppError` được định nghĩa tập trung ở package `pkg/apperror`, không trả lỗi thô dạng string.
+- Khi cần wrap lỗi cấp dưới, dùng `fmt.Errorf("context message: %w", err)` để giữ stack trace của lỗi gốc phục vụ cho debugging.
+- Tầng Handler có trách nhiệm chuyển đổi error sang HTTP response bằng helper `response.Error()`.
 
 ---
 
@@ -213,23 +171,18 @@ type RegisterRequest struct {
 - Mock bằng interface, không dùng framework mock phức tạp.
 
 ```go
-func TestAuthService_Login_Success(t *testing.T) {
-    // Để mock, định nghĩa interface cục bộ tại đây nếu cần thiết
-    // type mockUserRepo interface { ... }
-    
-    // Arrange
-    mockRepo := &mockUserRepository{...}
-    service := NewAuthService(mockRepo)
+// Khung viết Unit Test mẫu cho Service
+func TestService_Action_Success(t *testing.T) {
+    // Arrange (Thiết lập dependencies mock cục bộ hoặc struct cụ thể)
+    mockRepo := &mockRepository{...}
+    svc := NewService(mockRepo)
 
-    // Act
-    result, err := service.Login(context.Background(), dto.LoginRequest{
-        Email:    "test@example.com",
-        Password: "password123",
-    })
+    // Act (Thực hiện hành động)
+    res, err := svc.Action(context.Background(), req)
 
-    // Assert
+    // Assert (Xác minh kết quả)
     assert.NoError(t, err)
-    assert.NotEmpty(t, result.AccessToken)
+    assert.Equal(t, expected, res.Field)
 }
 ```
 

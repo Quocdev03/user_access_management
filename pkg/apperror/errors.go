@@ -103,6 +103,7 @@ var (
 	// 7. Limit (429)
 	ErrRateLimited       = NewAppError("RATE_LIMITED", "Bạn thao tác quá nhanh, vui lòng thử lại sau", http.StatusTooManyRequests)
 	ErrRateLimitedMinute = NewAppError("RATE_LIMITED", "Bạn thao tác quá nhanh, vui lòng chờ 1 phút trước khi yêu cầu lại", http.StatusTooManyRequests)
+	ErrIPBanned          = NewAppError("IP_BANNED", "Địa chỉ IP của bạn đã bị khóa tạm thời do phát hiện hành vi spam", http.StatusForbidden)
 
 	// 8. System (500)
 	ErrInternalServer = NewAppError("INTERNAL_ERROR", "Đã xảy ra lỗi hệ thống, vui lòng thử lại sau", http.StatusInternalServerError)

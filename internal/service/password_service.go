@@ -49,6 +49,13 @@ func NewPasswordService(
 }
 
 func (s *PasswordService) ForgotPassword(ctx context.Context, req dto.ForgotPasswordRequest) error {
+	// Kiểm tra rate limit trước để tránh spam email không tồn tại
+	isLimited, _ := s.sessionRepo.IsRateLimited(ctx, "forgot_pw", req.Email)
+	if isLimited {
+		return apperror.ErrRateLimitedMinute
+	}
+	_ = s.sessionRepo.SetRateLimit(ctx, "forgot_pw", req.Email, 1*time.Minute)
+
 	user, err := s.userRepo.FindByEmail(ctx, req.Email)
 	if err != nil {
 		return fmt.Errorf("userRepo.FindByEmail: %w", err)
@@ -58,12 +65,6 @@ func (s *PasswordService) ForgotPassword(ctx context.Context, req dto.ForgotPass
 		s.logger.Info("Yêu cầu quên mật khẩu cho email không tồn tại", zap.String("email", req.Email))
 		return nil
 	}
-
-	isLimited, _ := s.sessionRepo.IsRateLimited(ctx, "forgot_pw", req.Email)
-	if isLimited {
-		return apperror.ErrRateLimitedMinute
-	}
-	_ = s.sessionRepo.SetRateLimit(ctx, "forgot_pw", req.Email, 1*time.Minute)
 
 	tokenBytes := make([]byte, 32)
 	if _, err := rand.Read(tokenBytes); err != nil {
@@ -79,10 +80,11 @@ func (s *PasswordService) ForgotPassword(ctx context.Context, req dto.ForgotPass
 		return fmt.Errorf("passwordResetRepo.Create: %w", err)
 	}
 
-	if err := s.mailService.SendPasswordResetEmail(user.Email, token); err != nil {
-		s.logger.Error("Lỗi khi gửi email khôi phục mật khẩu", zap.Error(err))
-		return nil
-	}
+	go func() {
+		if err := s.mailService.SendPasswordResetEmail(user.Email, token); err != nil {
+			s.logger.Error("Lỗi khi gửi email khôi phục mật khẩu", zap.Error(err))
+		}
+	}()
 
 	s.logger.Info("Đã gửi email khôi phục mật khẩu", zap.String("email", user.Email))
 	return nil

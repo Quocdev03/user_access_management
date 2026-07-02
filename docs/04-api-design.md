@@ -102,7 +102,7 @@ Các endpoint trả danh sách hỗ trợ query params:
 | POST | `/auth/register` | Đăng ký tài khoản | Không |
 | POST | `/auth/verify-email` | Xác thực email bằng OTP | Không |
 | POST | `/auth/login` | Đăng nhập | Không |
-| POST | `/auth/refresh` | Làm mới access token | Không (dùng refresh token) |
+| POST | `/auth/refresh-token` | Làm mới access token | Không (dùng refresh token) |
 | POST | `/auth/logout` | Đăng xuất | Có |
 | POST | `/auth/logout-all` | Đăng xuất tất cả thiết bị | Có |
 | POST | `/auth/forgot-password` | Yêu cầu đặt lại mật khẩu | Không |
@@ -254,7 +254,7 @@ Xác thực email bằng mã OTP.
 }
 ```
 
-### POST `/auth/refresh`
+### POST `/auth/refresh-token`
 
 Làm mới access token bằng refresh token.
 

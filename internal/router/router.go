@@ -69,21 +69,28 @@ func Setup(db *sqlx.DB, redisClient *redis.Client, logger *zap.Logger, cfg *conf
 
 
 	v1 := r.Group("/api/v1")
+	// Rate limit chung: 100 requests/phút, vi phạm ban IP 15 phút
+	v1.Use(middleware.RateLimitMiddleware(redisClient, cfg.Security.RateLimitRequests, cfg.Security.RateLimitWindow, 15*time.Minute))
 	{
 		auth := v1.Group("/auth")
 		{
-			auth.POST("/register", authHandler.Register)
+			// Rate limit cho các hành động gửi OTP/email: 3 requests/phút
+			auth.POST("/register", middleware.RateLimitMiddleware(redisClient, 3, time.Minute, 15*time.Minute), authHandler.Register)
 			auth.POST("/verify-email", authHandler.VerifyEmail)
-			auth.POST("/resend-verification-email", authHandler.ResendVerificationEmail)
-			auth.POST("/login", authHandler.Login)
+			auth.POST("/resend-verification-email", middleware.RateLimitMiddleware(redisClient, 3, time.Minute, 15*time.Minute), authHandler.ResendVerificationEmail)
+			
+			// Rate limit cho đăng nhập: 10 requests/phút
+			auth.POST("/login", middleware.RateLimitMiddleware(redisClient, 10, time.Minute, 15*time.Minute), authHandler.Login)
 			auth.POST("/refresh-token", authHandler.RefreshToken)
 			auth.POST("/logout", authMiddleware, authHandler.Logout)
 			auth.POST("/logout-all", authMiddleware, authHandler.LogoutAll)
-			auth.POST("/forgot-password", authHandler.ForgotPassword)
+			
+			auth.POST("/forgot-password", middleware.RateLimitMiddleware(redisClient, 3, time.Minute, 15*time.Minute), authHandler.ForgotPassword)
 			auth.POST("/reset-password", authHandler.ResetPassword)
 			auth.POST("/change-password", authMiddleware, authHandler.ChangePassword)
 		}
 	}
+
 
 	return r
 }
