@@ -437,7 +437,7 @@
         </style>
     </head>
     <body class="relative min-h-screen">
-        <div class="relative z-10 mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+        <div class="relative z-10 mx-auto max-w-9xl px-4 py-10 sm:px-6 lg:px-8">
             <!-- Top window bar spanning the whole "app" -->
             <div
                 class="flex items-center gap-2 mb-8 px-4 py-2.5 rounded-t-md"
@@ -525,9 +525,10 @@
                 </div>
             </div>
 
-            <div
-                class="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3"
-            >
+            <!-- ================= SYSTEM HEALTH ================= -->
+            <div class="mb-10">
+                <h2 class="text-xl font-bold mb-4 flex items-center gap-2" style="color: var(--text)"><i data-lucide="activity" class="w-5 h-5" style="color: var(--accent)"></i> System Health</h2>
+                <div class="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
                 <!-- Health Check -->
                 <div class="term">
                     <div class="term-bar">
@@ -589,6 +590,13 @@
                         <div id="res-ready" class="out"></div>
                     </div>
                 </div>
+                </div>
+            </div>
+
+            <!-- ================= AUTHENTICATION ================= -->
+            <div class="mb-10">
+                <h2 class="text-xl font-bold mb-4 flex items-center gap-2" style="color: var(--text)"><i data-lucide="key" class="w-5 h-5" style="color: var(--accent)"></i> Authentication</h2>
+                <div class="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
 
                 <!-- Register -->
                 <div class="term">
@@ -1025,9 +1033,8 @@
                         <div id="res-reset-pwd" class="out"></div>
                     </div>
                 </div>
-
                 <!-- Change Password -->
-                <div class="term md:col-span-2 lg:col-span-3">
+                <div class="term">
                     <div class="term-bar">
                         <span
                             class="term-dot"
@@ -1042,63 +1049,60 @@
                             style="background: #7fb88f"
                         ></span>
                         <span class="term-path"
-                            >/api/v1/auth/change-password</span
+                            >/auth/change-password</span
                         >
                         <span class="auth-tag">auth</span>
                         <span class="term-method m-post">POST</span>
                     </div>
                     <div class="term-body">
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div class="field">
-                                <label>access_token</label
-                                ><input
-                                    class="tin"
-                                    id="cp-token"
-                                    placeholder="access token…"
-                                />
-                            </div>
-                            <div class="field">
-                                <label>old_password</label
-                                ><input
-                                    class="tin"
-                                    type="password"
-                                    id="cp-old"
-                                    placeholder="••••••••"
-                                />
-                            </div>
-                            <div class="field">
-                                <label>new_password</label
-                                ><input
-                                    class="tin"
-                                    type="password"
-                                    id="cp-new"
-                                    placeholder="••••••••"
-                                />
-                            </div>
+                        <div class="field">
+                            <label>access_token</label
+                            ><input
+                                class="tin"
+                                id="cp-token"
+                                placeholder="access token…"
+                            />
                         </div>
-                        <div class="flex justify-end">
-                            <button
-                                class="runbtn md:w-auto px-8"
-                                onclick="
-                                    handleRequest(
-                                        'change-pwd',
-                                        'POST',
-                                        '/api/v1/auth/change-password',
-                                        {
-                                            old_password: getVal('cp-old'),
-                                            new_password: getVal('cp-new'),
-                                        },
-                                        getVal('cp-token'),
-                                    )
-                                "
-                            >
-                                <i data-lucide="play" class="w-3.5 h-3.5"></i
-                                >change password
-                            </button>
+                        <div class="field">
+                            <label>old_password</label
+                            ><input
+                                class="tin"
+                                type="password"
+                                id="cp-old"
+                                placeholder="••••••••"
+                            />
                         </div>
+                        <div class="field">
+                            <label>new_password</label
+                            ><input
+                                class="tin"
+                                type="password"
+                                id="cp-new"
+                                placeholder="••••••••"
+                            />
+                        </div>
+                        <button
+                            class="runbtn"
+                            onclick="
+                                handleRequest(
+                                    'change-pwd',
+                                    'POST',
+                                    '/api/v1/auth/change-password',
+                                    {
+                                        old_password: getVal('cp-old'),
+                                        new_password: getVal('cp-new'),
+                                    },
+                                    getVal('cp-token'),
+                                )
+                            "
+                        >
+                            <i data-lucide="play" class="w-3.5 h-3.5"></i
+                            >change password
+                        </button>
                         <div id="res-change-pwd" class="out"></div>
                     </div>
                 </div>
+
 
                 <!-- Logout -->
                 <div class="term">
@@ -1196,8 +1200,13 @@
                         <div id="res-logout-all" class="out"></div>
                     </div>
                 </div>
+                </div>
+            </div>
 
-                <!-- ================= USER ENDPOINTS ================= -->
+            <!-- ================= USER MODULE ================= -->
+            <div class="mb-10">
+                <h2 class="text-xl font-bold mb-4 flex items-center gap-2" style="color: var(--text)"><i data-lucide="user" class="w-5 h-5" style="color: var(--accent)"></i> User</h2>
+                <div class="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
 
                 <!-- Get Profile -->
                 <div class="term">
@@ -1307,10 +1316,19 @@
                             onclick="
                                 (() => {
                                     let p = {};
-                                    let fn = getVal('put-me-full-name'); if(fn) p.full_name = fn;
-                                    let ph = getVal('put-me-phone'); if(ph) p.phone = ph;
-                                    let dob = getVal('put-me-dob'); if(dob) p.date_of_birth = dob;
-                                    handleRequest('put-me', 'PATCH', '/api/v1/users/me', p, getVal('put-me-token'));
+                                    let fn = getVal('put-me-full-name');
+                                    if (fn) p.full_name = fn;
+                                    let ph = getVal('put-me-phone');
+                                    if (ph) p.phone = ph;
+                                    let dob = getVal('put-me-dob');
+                                    if (dob) p.date_of_birth = dob;
+                                    handleRequest(
+                                        'put-me',
+                                        'PATCH',
+                                        '/api/v1/users/me',
+                                        p,
+                                        getVal('put-me-token'),
+                                    );
                                 })()
                             "
                         >
@@ -1420,6 +1438,7 @@
                     </div>
                 </div>
 
+
                 <!-- Change Email - Step 1: Request -->
                 <div class="term">
                     <div class="term-bar">
@@ -1475,7 +1494,11 @@
                                     'req-email',
                                     'POST',
                                     '/api/v1/users/me/email/request-change',
-                                    { current_password: getVal('req-email-pwd'), new_email: getVal('req-email-new') },
+                                    {
+                                        current_password:
+                                            getVal('req-email-pwd'),
+                                        new_email: getVal('req-email-new'),
+                                    },
                                     getVal('req-email-token'),
                                 )
                             "
@@ -1490,19 +1513,47 @@
                 <!-- Change Email - Resend OTP -->
                 <div class="term">
                     <div class="term-bar">
-                        <span class="term-dot" style="background: #e2685a"></span>
-                        <span class="term-dot" style="background: #d9a057"></span>
-                        <span class="term-dot" style="background: #7fb88f"></span>
-                        <span class="term-path">/users/me/email/resend-otp</span>
+                        <span
+                            class="term-dot"
+                            style="background: #e2685a"
+                        ></span>
+                        <span
+                            class="term-dot"
+                            style="background: #d9a057"
+                        ></span>
+                        <span
+                            class="term-dot"
+                            style="background: #7fb88f"
+                        ></span>
+                        <span class="term-path"
+                            >/users/me/email/resend-otp</span
+                        >
                         <span class="auth-tag">auth</span>
                         <span class="term-method m-post">POST</span>
                     </div>
                     <div class="term-body">
                         <div class="field">
-                            <label>access_token</label><input class="tin" id="re-email-resend-token" placeholder="access token…" />
+                            <label>access_token</label
+                            ><input
+                                class="tin"
+                                id="re-email-resend-token"
+                                placeholder="access token…"
+                            />
                         </div>
-                        <button class="runbtn" onclick="handleRequest('re-email-resend', 'POST', '/api/v1/users/me/email/resend-otp', {}, getVal('re-email-resend-token'))">
-                            <i data-lucide="play" class="w-3.5 h-3.5"></i>resend otp
+                        <button
+                            class="runbtn"
+                            onclick="
+                                handleRequest(
+                                    're-email-resend',
+                                    'POST',
+                                    '/api/v1/users/me/email/resend-otp',
+                                    {},
+                                    getVal('re-email-resend-token'),
+                                )
+                            "
+                        >
+                            <i data-lucide="play" class="w-3.5 h-3.5"></i>resend
+                            otp
                         </button>
                         <div id="res-re-email-resend" class="out"></div>
                     </div>
@@ -1511,28 +1562,68 @@
                 <!-- Change Email - Step 2: Verify -->
                 <div class="term">
                     <div class="term-bar">
-                        <span class="term-dot" style="background: #e2685a"></span>
-                        <span class="term-dot" style="background: #d9a057"></span>
-                        <span class="term-dot" style="background: #7fb88f"></span>
+                        <span
+                            class="term-dot"
+                            style="background: #e2685a"
+                        ></span>
+                        <span
+                            class="term-dot"
+                            style="background: #d9a057"
+                        ></span>
+                        <span
+                            class="term-dot"
+                            style="background: #7fb88f"
+                        ></span>
                         <span class="term-path">/users/me/email/verify</span>
                         <span class="auth-tag">auth</span>
                         <span class="term-method m-post">POST</span>
                     </div>
                     <div class="term-body">
                         <div class="field">
-                            <label>access_token</label><input class="tin" id="v-email-token" placeholder="access token…" />
+                            <label>access_token</label
+                            ><input
+                                class="tin"
+                                id="v-email-token"
+                                placeholder="access token…"
+                            />
                         </div>
                         <div class="field">
-                            <label>old_otp</label><input class="tin" id="v-email-old-otp" placeholder="123456" />
+                            <label>old_otp</label
+                            ><input
+                                class="tin"
+                                id="v-email-old-otp"
+                                placeholder="123456"
+                            />
                         </div>
                         <div class="field">
-                            <label>new_otp</label><input class="tin" id="v-email-new-otp" placeholder="123456" />
+                            <label>new_otp</label
+                            ><input
+                                class="tin"
+                                id="v-email-new-otp"
+                                placeholder="123456"
+                            />
                         </div>
-                        <button class="runbtn" onclick="handleRequest('v-email', 'POST', '/api/v1/users/me/email/verify', { old_otp: getVal('v-email-old-otp'), new_otp: getVal('v-email-new-otp') }, getVal('v-email-token'))">
-                            <i data-lucide="play" class="w-3.5 h-3.5"></i>verify email change
+                        <button
+                            class="runbtn"
+                            onclick="
+                                handleRequest(
+                                    'v-email',
+                                    'POST',
+                                    '/api/v1/users/me/email/verify',
+                                    {
+                                        old_otp: getVal('v-email-old-otp'),
+                                        new_otp: getVal('v-email-new-otp'),
+                                    },
+                                    getVal('v-email-token'),
+                                )
+                            "
+                        >
+                            <i data-lucide="play" class="w-3.5 h-3.5"></i>verify
+                            email change
                         </button>
                         <div id="res-v-email" class="out"></div>
                     </div>
+                </div>
                 </div>
             </div>
 
@@ -1629,25 +1720,31 @@
                     if (!response.ok) {
                         const logData = {
                             "[REQUEST]": `${method} ${path}`,
-                            ...(body && Object.keys(body).length > 0 ? { "Payload": body } : {}),
-                            "[RESPONSE]": { status: response.status, ...data }
+                            ...(body && Object.keys(body).length > 0
+                                ? { Payload: body }
+                                : {}),
+                            "[RESPONSE]": { status: response.status, ...data },
                         };
                         showResponse(id, logData, false);
                         return { ok: false, data };
                     }
-                    
+
                     const logData = {
                         "[REQUEST]": `${method} ${path}`,
-                        ...(body && Object.keys(body).length > 0 ? { "Payload": body } : {}),
-                        "[RESPONSE]": data
+                        ...(body && Object.keys(body).length > 0
+                            ? { Payload: body }
+                            : {}),
+                        "[RESPONSE]": data,
                     };
                     showResponse(id, logData, true);
                     return { ok: true, data };
                 } catch (error) {
                     const logData = {
                         "[REQUEST]": `${method} ${path}`,
-                        ...(body && Object.keys(body).length > 0 ? { "Payload": body } : {}),
-                        "[ERROR]": error.message
+                        ...(body && Object.keys(body).length > 0
+                            ? { Payload: body }
+                            : {}),
+                        "[ERROR]": error.message,
                     };
                     showResponse(id, logData, false);
                     return { ok: false, error };
