@@ -1,3 +1,9 @@
+> [!IMPORTANT]
+> **LƯU Ý DÀNH CHO DEVELOPER (AI & HUMAN):**
+> Các tài liệu thiết kế này mang tính chất là **KHUNG ĐỊNH HƯỚNG (Framework / Guidelines)**.
+> KHÔNG ĐƯỢC áp dụng một cách rập khuôn, máy móc hoặc sao chép hoàn toàn 100%.
+> Tùy thuộc vào bối cảnh thực tế của task, bạn phải linh hoạt tùy biến (ví dụ: dùng Atomic Query, Pessimistic Locking FOR UPDATE cho Concurrency, hoặc cấu trúc lại struct).
+
 # Quy tắc Code & Quy trình phát triển
 
 ## 1. Quy tắc đặt tên (Naming Conventions)
@@ -66,8 +72,9 @@ func (h *AuthHandler) Action(c *gin.Context) {
 ### Service (Business Logic Layer)
 - **Trách nhiệm**: Xử lý toàn bộ logic nghiệp vụ (business rules), điều phối giao dịch (transactions), mã hóa dữ liệu, gửi email, tích hợp bên thứ ba.
 - **Quy tắc**: 
-  - Gọi Repository thông qua con trỏ struct trực tiếp (Concrete Type).
+  - Gọi Repository thông qua con trỏ struct trực tiếp (Concrete Type), không dùng God object Interface.
   - Bắt buộc dùng `database.TxManager` bọc trong `RunInTx` nếu nghiệp vụ ghi/sửa nhiều bảng hoặc nhiều dòng dữ liệu.
+  - **Chống Lost Update**: Khi cập nhật entity, phải dùng `FindByIDForUpdate` bên trong Transaction hoặc dùng Atomic Query thay vì fetch rồi ghi đè toàn bộ struct.
   - Trả về error có ý nghĩa (`AppError` hoặc sentinel errors).
 
 ```go
@@ -86,6 +93,7 @@ func (s *Service) Action(ctx context.Context, req dto.ActionRequest) (*dto.Actio
   - Không chứa logic nghiệp vụ.
   - Dùng `database.GetDB(ctx, r.db)` để tự động hỗ trợ transaction.
   - Luôn sử dụng parameterized queries đề phòng SQL Injection.
+  - Ưu tiên sử dụng Atomic Queries cho các thao tác cập nhật đơn lẻ (VD: `UnlockIfExpired`, `IncrementAttempts`) để giảm thiểu việc phải dùng `SELECT FOR UPDATE` cồng kềnh.
 
 ```go
 // Khung cấu trúc Repository mẫu

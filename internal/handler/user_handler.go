@@ -8,6 +8,7 @@ import (
 	"github.com/quocdev03/user-access-management/internal/service"
 	"github.com/quocdev03/user-access-management/pkg/apperror"
 	"github.com/quocdev03/user-access-management/pkg/response"
+	"github.com/quocdev03/user-access-management/pkg/validator"
 )
 
 type UserHandler struct {
@@ -52,13 +53,12 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 		return
 	}
 
-	var req dto.UpdateProfileRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.ValidationError(c, err)
+	req, ok := validator.BindAndValidate[dto.UpdateProfileRequest](c)
+	if !ok {
 		return
 	}
 
-	err := h.userService.UpdateProfile(c.Request.Context(), userID, req)
+	err := h.userService.UpdateProfile(c.Request.Context(), userID, *req)
 	if err != nil {
 		response.Error(c, err)
 		return
@@ -72,53 +72,31 @@ func (h *UserHandler) RequestEmailChange(c *gin.Context) {
 		return
 	}
 
-	var req dto.RequestEmailChangeRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.ValidationError(c, err)
+	req, ok := validator.BindAndValidate[dto.RequestEmailChangeRequest](c)
+	if !ok {
 		return
 	}
 
-	err := h.userService.RequestEmailChange(c.Request.Context(), userID, req)
+	err := h.userService.RequestEmailChange(c.Request.Context(), userID, *req)
 	if err != nil {
 		response.Error(c, err)
 		return
 	}
-	response.Success(c, http.StatusOK, "Yêu cầu đổi email thành công. Mã xác thực OTP đã được gửi đến email cũ.", nil)
+	response.Success(c, http.StatusOK, "Yêu cầu đổi email thành công. Mã xác thực OTP đã được gửi đến email cũ và email mới.", nil)
 }
 
-func (h *UserHandler) VerifyOldEmail(c *gin.Context) {
+func (h *UserHandler) VerifyEmailChange(c *gin.Context) {
 	userID, ok := getUserID(c)
 	if !ok {
 		return
 	}
 
-	var req dto.VerifyOldEmailRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.ValidationError(c, err)
-		return
-	}
-
-	res, err := h.userService.VerifyOldEmail(c.Request.Context(), userID, req)
-	if err != nil {
-		response.Error(c, err)
-		return
-	}
-	response.Success(c, http.StatusOK, "Xác thực email cũ thành công. Mã OTP mới đã được gửi đến email mới.", res)
-}
-
-func (h *UserHandler) VerifyNewEmail(c *gin.Context) {
-	userID, ok := getUserID(c)
+	req, ok := validator.BindAndValidate[dto.VerifyEmailChangeRequest](c)
 	if !ok {
 		return
 	}
 
-	var req dto.VerifyNewEmailRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.ValidationError(c, err)
-		return
-	}
-
-	err := h.userService.VerifyNewEmail(c.Request.Context(), userID, req)
+	err := h.userService.VerifyEmailChange(c.Request.Context(), userID, *req)
 	if err != nil {
 		response.Error(c, err)
 		return
@@ -159,4 +137,18 @@ func (h *UserHandler) DeleteAvatar(c *gin.Context) {
 		return
 	}
 	response.Success(c, http.StatusOK, "Xóa ảnh đại diện thành công", nil)
+}
+
+func (h *UserHandler) ResendChangeEmailOTP(c *gin.Context) {
+	userID, ok := getUserID(c)
+	if !ok {
+		return
+	}
+
+	err := h.userService.ResendChangeEmailOTP(c.Request.Context(), userID)
+	if err != nil {
+		response.Error(c, err)
+		return
+	}
+	response.Success(c, http.StatusOK, "Đã gửi lại mã OTP. Vui lòng kiểm tra email.", nil)
 }

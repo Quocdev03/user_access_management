@@ -18,9 +18,12 @@ import (
 )
 
 func Setup(db *sqlx.DB, redisClient *redis.Client, logger *zap.Logger, cfg *config.Config) *gin.Engine {
-	r := gin.Default()
+	r := gin.New()
+	r.Use(gin.Recovery())
+	// Custom zap logger middleware if needed, but for now simple setup
+	r.Use(gin.Logger())
 
-	r.Use(middleware.CORSMiddleware())
+	r.Use(middleware.CORSMiddleware(cfg))
 
 	r.StaticFile("/", "./ui_test/index.html")
 
@@ -33,20 +36,20 @@ func Setup(db *sqlx.DB, redisClient *redis.Client, logger *zap.Logger, cfg *conf
 	mailService := service.NewMailService(cfg, logger)
 	txManager := database.NewTxManager(db)
 
-	otpService := service.NewOTPService(otpRepo, mailService, txManager, logger)
+	otpService := service.NewOTPService(otpRepo, mailService, logger)
 
 	authService := service.NewAuthService(userRepo, otpService, roleRepo, sessionRepo, auditLogRepo, txManager, cfg, logger)
 	passwordService := service.NewPasswordService(userRepo, sessionRepo, passwordRepo, mailService, txManager, cfg, logger)
-	userService := service.NewUserService(service.UserServiceParams{
-		UserRepo:    userRepo,
-		OtpService:  otpService,
-		RoleRepo:    roleRepo,
-		SessionRepo: sessionRepo,
-		MailService: mailService,
-		TxManager:   txManager,
-		Cfg:         cfg,
-		Logger:      logger,
-	})
+	userService := service.NewUserService(
+		userRepo,
+		otpService,
+		roleRepo,
+		sessionRepo,
+		mailService,
+		txManager,
+		cfg,
+		logger,
+	)
 
 	authHandler := handler.NewAuthHandler(authService, passwordService)
 	userHandler := handler.NewUserHandler(userService)

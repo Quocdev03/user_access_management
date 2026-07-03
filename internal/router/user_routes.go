@@ -13,10 +13,12 @@ func setupUserRoutes(rg *gin.RouterGroup, userHandler *handler.UserHandler, auth
 	users := rg.Group("/users", authMiddleware)
 	{
 		users.GET("/me", userHandler.GetProfile)
-		users.PUT("/me", userHandler.UpdateProfile)
-		users.POST("/me/email/request-change", userHandler.RequestEmailChange)
-		users.POST("/me/email/verify-old", userHandler.VerifyOldEmail)
-		users.POST("/me/email/verify-new", userHandler.VerifyNewEmail)
+		users.PATCH("/me", userHandler.UpdateProfile)
+		emailRL := middleware.RateLimitMiddleware(redisClient, "change-email", 5, 20, time.Minute, 15*time.Minute)
+
+		users.POST("/me/email/request-change", emailRL, userHandler.RequestEmailChange)
+		users.POST("/me/email/verify", emailRL, userHandler.VerifyEmailChange)
+		users.POST("/me/email/resend-otp", emailRL, userHandler.ResendChangeEmailOTP)
 
 		users.POST("/me/avatar", middleware.RateLimitMiddleware(redisClient, "upload-avatar", 5, 20, time.Minute, 15*time.Minute), userHandler.UploadAvatar)
 

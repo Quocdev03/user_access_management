@@ -1,3 +1,9 @@
+> [!IMPORTANT]
+> **LƯU Ý DÀNH CHO DEVELOPER (AI & HUMAN):**
+> Các tài liệu thiết kế này mang tính chất là **KHUNG ĐỊNH HƯỚNG (Framework / Guidelines)**.
+> KHÔNG ĐƯỢC áp dụng một cách rập khuôn, máy móc hoặc sao chép hoàn toàn 100%.
+> Tùy thuộc vào bối cảnh thực tế của task, bạn phải linh hoạt tùy biến (ví dụ: dùng Atomic Query, Pessimistic Locking FOR UPDATE cho Concurrency, hoặc cấu trúc lại struct).
+
 # Luồng xác thực & Phân quyền
 
 ## 1. Tổng quan

@@ -11,7 +11,7 @@ import (
 
 	"github.com/quocdev03/user-access-management/internal/config"
 	"github.com/quocdev03/user-access-management/internal/dto"
-	"github.com/quocdev03/user-access-management/internal/model"
+	"github.com/quocdev03/user-access-management/internal/constant"
 	"github.com/quocdev03/user-access-management/internal/repository"
 	"github.com/quocdev03/user-access-management/pkg/apperror"
 	"github.com/quocdev03/user-access-management/pkg/database"
@@ -72,10 +72,18 @@ func (s *PasswordService) ForgotPassword(ctx context.Context, req dto.ForgotPass
 	tokenHash := hash.SHA256(token)
 	expiresAt := time.Now().Add(1 * time.Hour)
 
-	_ = s.passwordRepo.InvalidateAllUserTokens(ctx, user.ID)
+	err = s.txManager.RunInTx(ctx, func(txCtx context.Context) error {
+		if err := s.passwordRepo.InvalidateAllUserTokens(txCtx, user.ID); err != nil {
+			return fmt.Errorf("passwordResetRepo.InvalidateAllUserTokens: %w", err)
+		}
 
-	if err := s.passwordRepo.Create(ctx, user.ID, tokenHash, expiresAt); err != nil {
-		return fmt.Errorf("passwordResetRepo.Create: %w", err)
+		if err := s.passwordRepo.Create(txCtx, user.ID, tokenHash, expiresAt); err != nil {
+			return fmt.Errorf("passwordResetRepo.Create: %w", err)
+		}
+		return nil
+	})
+	if err != nil {
+		return err
 	}
 
 	go func() {
@@ -122,12 +130,15 @@ func (s *PasswordService) ResetPassword(ctx context.Context, req dto.ResetPasswo
 
 		_ = s.sessionRepo.RevokeAllUserTokens(txCtx, resetToken.UserID, s.cfg.JWT.RefreshExpiry)
 
-		user, err := s.userRepo.FindByID(txCtx, resetToken.UserID)
-		if err != nil || user == nil {
-			return fmt.Errorf("userRepo.FindByID: %w", err)
+		user, err := s.userRepo.FindByIDForUpdate(txCtx, resetToken.UserID)
+		if err != nil {
+			return fmt.Errorf("userRepo.FindByIDForUpdate: %w", err)
+		}
+		if user == nil {
+			return apperror.ErrNotFound
 		}
 		user.PasswordHash = hashedPassword
-		user.Status = model.StatusActive
+		user.Status = constant.StatusActive
 		user.LockedUntil = nil
 		user.FailedLoginAttempts = 0
 
@@ -146,9 +157,7 @@ func (s *PasswordService) ResetPassword(ctx context.Context, req dto.ResetPasswo
 }
 
 func (s *PasswordService) ChangePassword(ctx context.Context, userID uint64, req dto.ChangePasswordRequest) error {
-	if req.OldPassword == req.NewPassword {
-		return apperror.ErrSamePassword
-	}
+
 
 	if err := hash.ValidatePasswordComplexity(req.NewPassword); err != nil {
 		return apperror.ErrValidationError.WithMessage(err.Error())
@@ -162,20 +171,18 @@ func (s *PasswordService) ChangePassword(ctx context.Context, userID uint64, req
 		return apperror.ErrNotFound
 	}
 
-	if user.Status == model.StatusLocked {
+	if user.Status == constant.StatusLocked {
 		if user.LockedUntil == nil || user.LockedUntil.After(time.Now().UTC()) {
 			return apperror.ErrAccountLocked
-		}
-		user.Status = model.StatusActive
-		user.LockedUntil = nil
-		user.FailedLoginAttempts = 0
-		if err := s.userRepo.UpdateUser(ctx, user); err != nil {
-			s.logger.Error("Không thể reset trạng thái khóa của user trong database", zap.Error(err))
 		}
 	}
 
 	if !hash.CheckPassword(req.OldPassword, user.PasswordHash) {
 		return handleFailedLogin(ctx, s.userRepo, s.logger, user)
+	}
+
+	if req.OldPassword == req.NewPassword {
+		return apperror.ErrSamePassword
 	}
 
 	hashedPassword, err := hash.HashPassword(req.NewPassword)
@@ -191,8 +198,20 @@ func (s *PasswordService) ChangePassword(ctx context.Context, userID uint64, req
 
 		_ = s.sessionRepo.RevokeAllUserTokens(txCtx, userID, s.cfg.JWT.RefreshExpiry)
 
-		user.PasswordHash = hashedPassword
-		if err := s.userRepo.UpdateUser(txCtx, user); err != nil {
+		userForUpdate, err := s.userRepo.FindByIDForUpdate(txCtx, userID)
+		if err != nil {
+			return fmt.Errorf("userRepo.FindByIDForUpdate: %w", err)
+		}
+		if userForUpdate == nil {
+			return apperror.ErrNotFound
+		}
+
+		userForUpdate.PasswordHash = hashedPassword
+		userForUpdate.Status = constant.StatusActive
+		userForUpdate.LockedUntil = nil
+		userForUpdate.FailedLoginAttempts = 0
+
+		if err := s.userRepo.UpdateUser(txCtx, userForUpdate); err != nil {
 			return fmt.Errorf("userRepo.UpdateUser: %w", err)
 		}
 		return nil

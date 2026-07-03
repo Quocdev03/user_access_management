@@ -1270,7 +1270,7 @@
                                 border-color: rgba(156, 119, 192, 0.35);
                                 background: rgba(156, 119, 192, 0.08);
                             "
-                            >PUT</span
+                            >PATCH</span
                         >
                     </div>
                     <div class="term-body">
@@ -1305,17 +1305,13 @@
                         <button
                             class="runbtn"
                             onclick="
-                                handleRequest(
-                                    'put-me',
-                                    'PUT',
-                                    '/api/v1/users/me',
-                                    {
-                                        full_name: getVal('put-me-full-name'),
-                                        phone: getVal('put-me-phone'),
-                                        date_of_birth: getVal('put-me-dob'),
-                                    },
-                                    getVal('put-me-token'),
-                                )
+                                (() => {
+                                    let p = {};
+                                    let fn = getVal('put-me-full-name'); if(fn) p.full_name = fn;
+                                    let ph = getVal('put-me-phone'); if(ph) p.phone = ph;
+                                    let dob = getVal('put-me-dob'); if(dob) p.date_of_birth = dob;
+                                    handleRequest('put-me', 'PATCH', '/api/v1/users/me', p, getVal('put-me-token'));
+                                })()
                             "
                         >
                             <i data-lucide="play" class="w-3.5 h-3.5"></i>update
@@ -1491,125 +1487,51 @@
                     </div>
                 </div>
 
-                <!-- Change Email - Step 2: Verify Old -->
+                <!-- Change Email - Resend OTP -->
                 <div class="term">
                     <div class="term-bar">
-                        <span
-                            class="term-dot"
-                            style="background: #e2685a"
-                        ></span>
-                        <span
-                            class="term-dot"
-                            style="background: #d9a057"
-                        ></span>
-                        <span
-                            class="term-dot"
-                            style="background: #7fb88f"
-                        ></span>
-                        <span class="term-path"
-                            >/users/me/email/verify-old</span
-                        >
+                        <span class="term-dot" style="background: #e2685a"></span>
+                        <span class="term-dot" style="background: #d9a057"></span>
+                        <span class="term-dot" style="background: #7fb88f"></span>
+                        <span class="term-path">/users/me/email/resend-otp</span>
                         <span class="auth-tag">auth</span>
                         <span class="term-method m-post">POST</span>
                     </div>
                     <div class="term-body">
                         <div class="field">
-                            <label>access_token</label
-                            ><input
-                                class="tin"
-                                id="vo-email-token"
-                                placeholder="access token…"
-                            />
+                            <label>access_token</label><input class="tin" id="re-email-resend-token" placeholder="access token…" />
                         </div>
-                        <div class="field">
-                            <label>otp</label
-                            ><input
-                                class="tin"
-                                id="vo-email-otp"
-                                placeholder="123456"
-                            />
-                        </div>
-                        <button
-                            class="runbtn"
-                            onclick="
-                                handleRequest(
-                                    'vo-email',
-                                    'POST',
-                                    '/api/v1/users/me/email/verify-old',
-                                    { otp: getVal('vo-email-otp') },
-                                    getVal('vo-email-token'),
-                                )
-                            "
-                        >
-                            <i data-lucide="play" class="w-3.5 h-3.5"></i>verify
-                            old email
+                        <button class="runbtn" onclick="handleRequest('re-email-resend', 'POST', '/api/v1/users/me/email/resend-otp', {}, getVal('re-email-resend-token'))">
+                            <i data-lucide="play" class="w-3.5 h-3.5"></i>resend otp
                         </button>
-                        <div id="res-vo-email" class="out"></div>
+                        <div id="res-re-email-resend" class="out"></div>
                     </div>
                 </div>
 
-                <!-- Change Email - Step 3: Verify New -->
+                <!-- Change Email - Step 2: Verify -->
                 <div class="term">
                     <div class="term-bar">
-                        <span
-                            class="term-dot"
-                            style="background: #e2685a"
-                        ></span>
-                        <span
-                            class="term-dot"
-                            style="background: #d9a057"
-                        ></span>
-                        <span
-                            class="term-dot"
-                            style="background: #7fb88f"
-                        ></span>
-                        <span class="term-path"
-                            >/users/me/email/verify-new</span
-                        >
+                        <span class="term-dot" style="background: #e2685a"></span>
+                        <span class="term-dot" style="background: #d9a057"></span>
+                        <span class="term-dot" style="background: #7fb88f"></span>
+                        <span class="term-path">/users/me/email/verify</span>
                         <span class="auth-tag">auth</span>
                         <span class="term-method m-post">POST</span>
                     </div>
                     <div class="term-body">
                         <div class="field">
-                            <label>access_token</label
-                            ><input
-                                class="tin"
-                                id="vn-email-token"
-                                placeholder="access token…"
-                            />
+                            <label>access_token</label><input class="tin" id="v-email-token" placeholder="access token…" />
                         </div>
                         <div class="field">
-                            <label>email_change_token</label
-                            ><input
-                                class="tin"
-                                id="vn-email-change-token"
-                                placeholder="token from step 2…"
-                            />
+                            <label>old_otp</label><input class="tin" id="v-email-old-otp" placeholder="123456" />
                         </div>
                         <div class="field">
-                            <label>otp</label
-                            ><input
-                                class="tin"
-                                id="vn-email-otp"
-                                placeholder="123456"
-                            />
+                            <label>new_otp</label><input class="tin" id="v-email-new-otp" placeholder="123456" />
                         </div>
-                        <button
-                            class="runbtn"
-                            onclick="
-                                handleRequest(
-                                    'vn-email',
-                                    'POST',
-                                    '/api/v1/users/me/email/verify-new',
-                                    { email_change_token: getVal('vn-email-change-token'), otp: getVal('vn-email-otp') },
-                                    getVal('vn-email-token'),
-                                )
-                            "
-                        >
-                            <i data-lucide="play" class="w-3.5 h-3.5"></i>verify
-                            new email
+                        <button class="runbtn" onclick="handleRequest('v-email', 'POST', '/api/v1/users/me/email/verify', { old_otp: getVal('v-email-old-otp'), new_otp: getVal('v-email-new-otp') }, getVal('v-email-token'))">
+                            <i data-lucide="play" class="w-3.5 h-3.5"></i>verify email change
                         </button>
-                        <div id="res-vn-email" class="out"></div>
+                        <div id="res-v-email" class="out"></div>
                     </div>
                 </div>
             </div>
@@ -1705,17 +1627,29 @@
                     } catch (e) {}
 
                     if (!response.ok) {
-                        showResponse(
-                            id,
-                            { status: response.status, ...data },
-                            false,
-                        );
+                        const logData = {
+                            "[REQUEST]": `${method} ${path}`,
+                            ...(body && Object.keys(body).length > 0 ? { "Payload": body } : {}),
+                            "[RESPONSE]": { status: response.status, ...data }
+                        };
+                        showResponse(id, logData, false);
                         return { ok: false, data };
                     }
-                    showResponse(id, data, true);
+                    
+                    const logData = {
+                        "[REQUEST]": `${method} ${path}`,
+                        ...(body && Object.keys(body).length > 0 ? { "Payload": body } : {}),
+                        "[RESPONSE]": data
+                    };
+                    showResponse(id, logData, true);
                     return { ok: true, data };
                 } catch (error) {
-                    showResponse(id, { error: error.message }, false);
+                    const logData = {
+                        "[REQUEST]": `${method} ${path}`,
+                        ...(body && Object.keys(body).length > 0 ? { "Payload": body } : {}),
+                        "[ERROR]": error.message
+                    };
+                    showResponse(id, logData, false);
                     return { ok: false, error };
                 }
             }
@@ -1751,9 +1685,9 @@
                             res.data.data.access_token;
                         document.getElementById("req-email-token").value =
                             res.data.data.access_token;
-                        document.getElementById("vo-email-token").value =
+                        document.getElementById("re-email-resend-token").value =
                             res.data.data.access_token;
-                        document.getElementById("vn-email-token").value =
+                        document.getElementById("v-email-token").value =
                             res.data.data.access_token;
                     }
                     if (res.data.data.refresh_token) {
@@ -1795,9 +1729,9 @@
                             res.data.data.access_token;
                         document.getElementById("req-email-token").value =
                             res.data.data.access_token;
-                        document.getElementById("vo-email-token").value =
+                        document.getElementById("re-email-resend-token").value =
                             res.data.data.access_token;
-                        document.getElementById("vn-email-token").value =
+                        document.getElementById("v-email-token").value =
                             res.data.data.access_token;
                     }
                     if (res.data.data.refresh_token) {

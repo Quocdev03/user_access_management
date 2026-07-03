@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/quocdev03/user-access-management/internal/constant"
 	"github.com/quocdev03/user-access-management/internal/model"
 	"github.com/quocdev03/user-access-management/pkg/database"
 )
@@ -50,18 +51,7 @@ func (r *UserRepository) FindByEmail(ctx context.Context, email string) (*model.
 	return &user, nil
 }
 
-func (r *UserRepository) FindByUsername(ctx context.Context, username string) (*model.User, error) {
-	var user model.User
-	query := `SELECT * FROM users WHERE username = ? LIMIT 1`
-	err := database.GetDB(ctx, r.db).GetContext(ctx, &user, query, username)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, nil
-		}
-		return nil, err
-	}
-	return &user, nil
-}
+
 
 func (r *UserRepository) FindByID(ctx context.Context, userID uint64) (*model.User, error) {
 	var user model.User
@@ -76,6 +66,36 @@ func (r *UserRepository) FindByID(ctx context.Context, userID uint64) (*model.Us
 	return &user, nil
 }
 
+func (r *UserRepository) FindByEmailForUpdate(ctx context.Context, email string) (*model.User, error) {
+	var user model.User
+	query := `SELECT * FROM users WHERE email = ? LIMIT 1 FOR UPDATE`
+	err := database.GetDB(ctx, r.db).GetContext(ctx, &user, query, email)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &user, nil
+}
+
+func (r *UserRepository) FindByIDForUpdate(ctx context.Context, userID uint64) (*model.User, error) {
+	var user model.User
+	query := `SELECT * FROM users WHERE id = ? LIMIT 1 FOR UPDATE`
+	err := database.GetDB(ctx, r.db).GetContext(ctx, &user, query, userID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &user, nil
+}
+
+// UpdateUser cập nhật toàn bộ thông tin của user.
+// CẢNH BÁO: Để tránh rủi ro Lost Update trong môi trường concurrent,
+// caller nên chạy hàm này trong một transaction và fetch user
+// bằng SELECT FOR UPDATE trước khi thực hiện cập nhật.
 func (r *UserRepository) UpdateUser(ctx context.Context, user *model.User) error {
 	user.UpdatedAt = time.Now().UTC()
 	query := `UPDATE users SET 
@@ -97,22 +117,41 @@ func (r *UserRepository) UpdateUser(ctx context.Context, user *model.User) error
 	return err
 }
 
-// IncrementFailedLogins tăng số lần đăng nhập sai một cách nguyên tử
+// IncrementFailedLogins tăng số lần đăng nhập sai một cách nguyên tử (dùng optimistic locking)
 func (r *UserRepository) IncrementFailedLogins(ctx context.Context, userID uint64) (int, error) {
-	updateQuery := "UPDATE users SET failed_login_attempts = failed_login_attempts + 1, updated_at = ? WHERE id = ?"
-	if _, err := database.GetDB(ctx, r.db).ExecContext(ctx, updateQuery, time.Now().UTC(), userID); err != nil {
-		return 0, err
-	}
+	for i := 0; i < 3; i++ {
+		var attempts int
+		if err := database.GetDB(ctx, r.db).GetContext(ctx, &attempts, "SELECT failed_login_attempts FROM users WHERE id = ?", userID); err != nil {
+			return 0, err
+		}
 
-	var attempts int
-	err := database.GetDB(ctx, r.db).GetContext(ctx, &attempts, "SELECT failed_login_attempts FROM users WHERE id = ?", userID)
-	return attempts, err
+		newAttempts := attempts + 1
+		updateQuery := "UPDATE users SET failed_login_attempts = ?, updated_at = ? WHERE id = ? AND failed_login_attempts = ?"
+		res, err := database.GetDB(ctx, r.db).ExecContext(ctx, updateQuery, newAttempts, time.Now().UTC(), userID, attempts)
+		if err != nil {
+			return 0, err
+		}
+
+		rows, _ := res.RowsAffected()
+		if rows == 1 {
+			return newAttempts, nil
+		}
+	}
+	return 0, errors.New("không thể tăng số lần đăng nhập sai do xung đột dữ liệu")
 }
 
 // LockAccount khóa tài khoản một cách nguyên tử để tránh race condition
 func (r *UserRepository) LockAccount(ctx context.Context, userID uint64, lockedUntil time.Time, attempts int) error {
 	query := "UPDATE users SET status = ?, locked_until = ?, failed_login_attempts = ?, updated_at = ? WHERE id = ?"
-	_, err := database.GetDB(ctx, r.db).ExecContext(ctx, query, model.StatusLocked, lockedUntil, attempts, time.Now().UTC(), userID)
+	_, err := database.GetDB(ctx, r.db).ExecContext(ctx, query, constant.StatusLocked, lockedUntil, attempts, time.Now().UTC(), userID)
+	return err
+}
+
+// UnlockIfExpired mở khóa tài khoản nếu thời gian khóa đã qua, dùng atomic query để chống Lost Update
+func (r *UserRepository) UnlockIfExpired(ctx context.Context, userID uint64) error {
+	query := `UPDATE users SET status = ?, locked_until = NULL, failed_login_attempts = 0, updated_at = ? 
+              WHERE id = ? AND status = ? AND locked_until <= ?`
+	_, err := database.GetDB(ctx, r.db).ExecContext(ctx, query, constant.StatusActive, time.Now().UTC(), userID, constant.StatusLocked, time.Now().UTC())
 	return err
 }
 

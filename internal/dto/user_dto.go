@@ -17,8 +17,9 @@ type UserProfileResponse struct {
 }
 
 type UpdateProfileRequest struct {
-	FullName string `json:"full_name" binding:"required,max=100"`
-	Phone    string `json:"phone" binding:"required,max=20"`
+	FullName    *string `json:"full_name" binding:"omitempty,max=100"`
+	Phone       *string `json:"phone" binding:"omitempty,max=20"`
+	DateOfBirth *string `json:"date_of_birth" binding:"omitempty,datetime=2006-01-02"`
 }
 
 type RequestEmailChangeRequest struct {
@@ -26,17 +27,9 @@ type RequestEmailChangeRequest struct {
 	NewEmail        string `json:"new_email" binding:"required,email"`
 }
 
-type VerifyOldEmailRequest struct {
-	OTP string `json:"otp" binding:"required,len=6"`
-}
-
-type VerifyOldEmailResponse struct {
-	EmailChangeToken string `json:"email_change_token"`
-}
-
-type VerifyNewEmailRequest struct {
-	EmailChangeToken string `json:"email_change_token" binding:"required"`
-	OTP              string `json:"otp" binding:"required,len=6"`
+type VerifyEmailChangeRequest struct {
+	OldOTP string `json:"old_otp" binding:"required,len=6"`
+	NewOTP string `json:"new_otp" binding:"required,len=6"`
 }
 
 type UploadAvatarResponse struct {

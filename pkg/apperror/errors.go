@@ -50,7 +50,6 @@ func NewAppError(code, message string, httpStatus int) *AppError {
 var (
 	ErrBadRequest        = NewAppError("BAD_REQUEST", "Yêu cầu không hợp lệ", http.StatusBadRequest)
 	ErrValidationError   = NewAppError("VALIDATION_ERROR", "Dữ liệu đầu vào không hợp lệ", http.StatusBadRequest)
-	ErrInvalidParam      = NewAppError("INVALID_PARAM", "Tham số truyền vào không hợp lệ", http.StatusBadRequest)
 	ErrInvalidDateFormat = NewAppError("INVALID_DATE_FORMAT", "Ngày sinh không đúng định dạng YYYY-MM-DD", http.StatusBadRequest)
 	ErrResetTokenInvalid = NewAppError("INVALID_TOKEN", "Link khôi phục mật khẩu không hợp lệ hoặc đã hết hạn", http.StatusBadRequest)
 	ErrResetTokenUsed    = NewAppError("INVALID_TOKEN", "Link khôi phục mật khẩu đã được sử dụng hoặc hết hạn", http.StatusBadRequest)
@@ -88,9 +87,7 @@ var (
 	ErrInvalidFileType = NewAppError("INVALID_FILE_TYPE", "Định dạng file không được hỗ trợ", http.StatusUnsupportedMediaType)
 
 	ErrRateLimited       = NewAppError("RATE_LIMITED", "Bạn thao tác quá nhanh, vui lòng thử lại sau", http.StatusTooManyRequests)
-	ErrRateLimitedMinute = NewAppError("RATE_LIMITED", "Bạn thao tác quá nhanh, vui lòng chờ 1 phút trước khi yêu cầu lại", http.StatusTooManyRequests)
 	ErrIPBanned          = NewAppError("IP_BANNED", "Địa chỉ IP của bạn đã bị khóa tạm thời do phát hiện hành vi spam", http.StatusForbidden)
 
 	ErrInternalServer = NewAppError("INTERNAL_ERROR", "Đã xảy ra lỗi hệ thống, vui lòng thử lại sau", http.StatusInternalServerError)
-	ErrDatabase       = NewAppError("DATABASE_ERROR", "Lỗi thao tác cơ sở dữ liệu", http.StatusInternalServerError)
 )

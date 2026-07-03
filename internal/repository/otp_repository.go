@@ -35,15 +35,39 @@ func (r *OTPRepository) Create(ctx context.Context, userID uint64, code string, 
 
 func (r *OTPRepository) getLatestValidCode(ctx context.Context, userID uint64, otpType string, forUpdate bool) (*model.OTPCode, error) {
 	var otp model.OTPCode
+	now := time.Now().UTC()
+
+	if forUpdate {
+		var id uint64
+		idQuery := `
+			SELECT id FROM otp_codes 
+			WHERE user_id = ? AND type = ? AND is_used = false AND expires_at > ? 
+			ORDER BY created_at DESC LIMIT 1
+		`
+		err := database.GetDB(ctx, r.db).GetContext(ctx, &id, idQuery, userID, otpType, now)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return nil, nil
+			}
+			return nil, err
+		}
+
+		err = database.GetDB(ctx, r.db).GetContext(ctx, &otp, "SELECT * FROM otp_codes WHERE id = ? AND is_used = false FOR UPDATE", id)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return nil, nil
+			}
+			return nil, err
+		}
+		return &otp, nil
+	}
+
 	query := `
 		SELECT * FROM otp_codes 
 		WHERE user_id = ? AND type = ? AND is_used = false AND expires_at > ? 
 		ORDER BY created_at DESC LIMIT 1
 	`
-	if forUpdate {
-		query += " FOR UPDATE"
-	}
-	err := database.GetDB(ctx, r.db).GetContext(ctx, &otp, query, userID, otpType, time.Now().UTC())
+	err := database.GetDB(ctx, r.db).GetContext(ctx, &otp, query, userID, otpType, now)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -62,14 +86,19 @@ func (r *OTPRepository) GetLatestValidCodeForUpdate(ctx context.Context, userID 
 }
 
 func (r *OTPRepository) IncrementAttempts(ctx context.Context, otpID uint64) (int, error) {
-	updateQuery := "UPDATE otp_codes SET attempts = attempts + 1 WHERE id = ?"
-	if _, err := database.GetDB(ctx, r.db).ExecContext(ctx, updateQuery, otpID); err != nil {
+	var attempts int
+	selectQuery := "SELECT attempts FROM otp_codes WHERE id = ? FOR UPDATE"
+	if err := database.GetDB(ctx, r.db).GetContext(ctx, &attempts, selectQuery, otpID); err != nil {
 		return 0, err
 	}
 
-	var attempts int
-	err := database.GetDB(ctx, r.db).GetContext(ctx, &attempts, "SELECT attempts FROM otp_codes WHERE id = ?", otpID)
-	return attempts, err
+	attempts++
+	updateQuery := "UPDATE otp_codes SET attempts = ? WHERE id = ?"
+	if _, err := database.GetDB(ctx, r.db).ExecContext(ctx, updateQuery, attempts, otpID); err != nil {
+		return 0, err
+	}
+
+	return attempts, nil
 }
 
 func (r *OTPRepository) MarkAsUsed(ctx context.Context, otpID uint64) error {

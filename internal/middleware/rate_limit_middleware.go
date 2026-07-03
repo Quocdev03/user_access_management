@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -17,7 +18,12 @@ func RateLimitMiddleware(redisClient *redis.Client, name string, limit int, banL
 
 		banKey := fmt.Sprintf("ip_ban:%s", ip)
 		isBanned, err := redisClient.Exists(ctx, banKey).Result()
-		if err == nil && isBanned > 0 {
+		if err != nil {
+			response.Error(c, apperror.NewAppError("ERR_SERVICE_UNAVAILABLE", "Hệ thống tạm thời không khả dụng", http.StatusServiceUnavailable))
+			c.Abort()
+			return
+		}
+		if isBanned > 0 {
 			response.Error(c, apperror.ErrIPBanned)
 			c.Abort()
 			return
@@ -37,7 +43,8 @@ func RateLimitMiddleware(redisClient *redis.Client, name string, limit int, banL
 		_, err = pipe.Exec(ctx)
 
 		if err != nil {
-			c.Next()
+			response.Error(c, apperror.NewAppError("ERR_SERVICE_UNAVAILABLE", "Hệ thống tạm thời không khả dụng", http.StatusServiceUnavailable))
+			c.Abort()
 			return
 		}
 

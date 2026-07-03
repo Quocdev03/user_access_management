@@ -158,3 +158,13 @@ Hỏi thay vì giả định. Đặc biệt khi:
 1. **Luôn đặt các kiểm tra Validation (CPU-bound) ở ĐẦU hàm**: Các kiểm tra rẻ (như độ dài `len`, format, regex, `ValidatePasswordComplexity`, so sánh chuỗi) phải được chạy TRƯỚC khi gọi Database, TRƯỚC khi tính toán nặng (Bcrypt), và TRƯỚC khi lưu Rate Limit.
 2. **KHÔNG khóa user vì lỗi nhập liệu**: Không được phép gọi các hàm RateLimit, LockAccount hoặc trừ quota của người dùng nếu request của họ bị lỗi do nhập liệu sai (Validation Error). Chỉ áp dụng Rate Limit/Quota cho các request đã qua vòng kiểm tra tính hợp lệ cơ bản.
 3. **Cơ chế Rate Limit (Anti-Spam)**: Tránh thiết kế khóa cứng (Debounce/SetNX) gây lỗi UX. Sử dụng Token Bucket Counter (ví dụ: `IncrementRateLimit(..., 3, 1*time.Minute)`) để cho phép người dùng có biên độ lỗi (chẳng hạn gõ sai 2-3 lần) thay vì phạt khóa họ ngay từ lần đầu tiên.
+
+---
+
+## Quy tắc thiết kế Concurrency & Database (BẮT BUỘC)
+
+1. **Chống Lost Update**: TUYỆT ĐỐI KHÔNG dùng mẫu `FindByID` -> thay đổi struct -> `Update` toàn bộ struct mà không có cơ chế khóa. Hành vi này sẽ gây ghi đè dữ liệu (Lost Update) trong môi trường concurrent.
+2. **Bắt buộc dùng `FOR UPDATE` hoặc Atomic Queries**:
+   - Nếu cần cập nhật một vài field cục bộ, **ưu tiên dùng Atomic Query** (ví dụ: `UPDATE users SET status = ? WHERE id = ?`).
+   - Nếu nghiệp vụ phức tạp bắt buộc phải load struct lên để tính toán rồi lưu lại, **phải** dùng `SELECT ... FOR UPDATE` (ví dụ: `FindByIDForUpdate`) bên trong một **Transaction** (`TxManager`).
+3. **Fail-Closed Middleware**: Mọi middleware liên quan đến Security (Auth, Rate Limit, RBAC) phải thiết kế theo pattern Fail-Closed. Nếu external service (như Redis) gặp sự cố, phải trả về HTTP 503 (Service Unavailable) thay vì bỏ qua lỗi và cho phép request đi qua.

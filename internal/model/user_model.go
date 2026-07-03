@@ -1,13 +1,8 @@
-﻿package model
+package model
 
 import "time"
 
 
-const (
-	StatusActive   = "active"
-	StatusInactive = "inactive"
-	StatusLocked   = "locked"
-)
 
 type User struct {
 	ID                  uint64     `db:"id"`

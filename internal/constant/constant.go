@@ -6,7 +6,8 @@ const (
 
 	OTPTypeEmailVerification = "email_verification"
 	OTPTypeForgotPassword    = "forgot_password"
-	OTPTypeChangeEmail       = "change_email"
+	OTPTypeChangeEmailOld    = "change_email_old"
+	OTPTypeChangeEmailNew    = "change_email_new"
 
 	RoleAdmin     = "admin"
 	RoleModerator = "moderator"

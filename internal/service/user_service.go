@@ -2,18 +2,15 @@ package service
 
 import (
 	"context"
-	"crypto/rand"
-	"crypto/subtle"
-	"encoding/hex"
 	"fmt"
 	"io"
 	"mime/multipart"
-	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/go-sql-driver/mysql"
 	"go.uber.org/zap"
 
 	"github.com/quocdev03/user-access-management/internal/config"
@@ -36,27 +33,25 @@ type UserService struct {
 	logger      *zap.Logger
 }
 
-type UserServiceParams struct {
-	UserRepo    *repository.UserRepository
-	OtpService  *OTPService
-	RoleRepo    *repository.RoleRepository
-	SessionRepo *repository.SessionRepository
-	MailService *MailService
-	TxManager   *database.TxManager
-	Cfg         *config.Config
-	Logger      *zap.Logger
-}
-
-func NewUserService(params UserServiceParams) *UserService {
+func NewUserService(
+	userRepo *repository.UserRepository,
+	otpService *OTPService,
+	roleRepo *repository.RoleRepository,
+	sessionRepo *repository.SessionRepository,
+	mailService *MailService,
+	txManager *database.TxManager,
+	cfg *config.Config,
+	logger *zap.Logger,
+) *UserService {
 	return &UserService{
-		userRepo:    params.UserRepo,
-		otpService:  params.OtpService,
-		roleRepo:    params.RoleRepo,
-		sessionRepo: params.SessionRepo,
-		mailService: params.MailService,
-		txManager:   params.TxManager,
-		cfg:         params.Cfg,
-		logger:      params.Logger,
+		userRepo:    userRepo,
+		otpService:  otpService,
+		roleRepo:    roleRepo,
+		sessionRepo: sessionRepo,
+		mailService: mailService,
+		txManager:   txManager,
+		cfg:         cfg,
+		logger:      logger,
 	}
 }
 
@@ -90,21 +85,33 @@ func (s *UserService) GetProfile(ctx context.Context, userID uint64) (*dto.UserP
 }
 
 func (s *UserService) UpdateProfile(ctx context.Context, userID uint64, req dto.UpdateProfileRequest) error {
-	user, err := s.userRepo.FindByID(ctx, userID)
-	if err != nil {
-		return fmt.Errorf("userRepo.FindByID: %w", err)
-	}
-	if user == nil {
-		return apperror.ErrNotFound
-	}
+	return s.txManager.RunInTx(ctx, func(txCtx context.Context) error {
+		userForUpdate, err := s.userRepo.FindByIDForUpdate(txCtx, userID)
+		if err != nil {
+			return fmt.Errorf("userRepo.FindByIDForUpdate: %w", err)
+		}
+		if userForUpdate == nil {
+			return apperror.ErrNotFound
+		}
 
-	user.FullName = req.FullName
-	user.Phone = req.Phone
-
-	if err := s.userRepo.UpdateUser(ctx, user); err != nil {
-		return fmt.Errorf("userRepo.UpdateUser: %w", err)
-	}
-	return nil
+		if req.FullName != nil {
+			userForUpdate.FullName = *req.FullName
+		}
+		if req.Phone != nil {
+			userForUpdate.Phone = *req.Phone
+		}
+		if req.DateOfBirth != nil {
+			parsedDate, err := time.Parse("2006-01-02", *req.DateOfBirth)
+			if err != nil {
+				return apperror.ErrBadRequest.WithMessage("Định dạng ngày sinh không hợp lệ (YYYY-MM-DD)")
+			}
+			userForUpdate.DateOfBirth = parsedDate
+		}
+		if err := s.userRepo.UpdateUser(txCtx, userForUpdate); err != nil {
+			return fmt.Errorf("userRepo.UpdateUser: %w", err)
+		}
+		return nil
+	})
 }
 
 func (s *UserService) RequestEmailChange(ctx context.Context, userID uint64, req dto.RequestEmailChangeRequest) error {
@@ -120,6 +127,11 @@ func (s *UserService) RequestEmailChange(ctx context.Context, userID uint64, req
 		return apperror.ErrInvalidCredentials
 	}
 
+	isLimited, _ := s.sessionRepo.IncrementRateLimit(ctx, "email_change", user.Email, 3, 1*time.Minute)
+	if isLimited {
+		return apperror.ErrRateLimited
+	}
+
 	existing, err := s.userRepo.FindByEmail(ctx, req.NewEmail)
 	if err != nil {
 		return fmt.Errorf("userRepo.FindByEmail: %w", err)
@@ -128,112 +140,68 @@ func (s *UserService) RequestEmailChange(ctx context.Context, userID uint64, req
 		return apperror.ErrConflict
 	}
 
-	isLimited, _ := s.sessionRepo.IncrementRateLimit(ctx, "email_change", user.Email, 3, 1*time.Minute)
-	if isLimited {
-		return apperror.ErrRateLimited
-	}
-
-	sendEmail, err := s.otpService.CreateAndSendOTP(ctx, userID, user.Email, constant.OTPTypeChangeEmail, time.Now().UTC().Add(5*time.Minute))
-	if err != nil {
-		return err
-	}
-
-	if err := s.sessionRepo.SetEmailChangePending(ctx, userID, req.NewEmail, 15*time.Minute); err != nil {
-		return fmt.Errorf("sessionRepo.SetEmailChangePending: %w", err)
-	}
-	
-	go sendEmail()
-
-	return nil
-}
-
-func (s *UserService) VerifyOldEmail(ctx context.Context, userID uint64, req dto.VerifyOldEmailRequest) (*dto.VerifyOldEmailResponse, error) {
-	user, err := s.userRepo.FindByID(ctx, userID)
-	if err != nil {
-		return nil, fmt.Errorf("userRepo.FindByID: %w", err)
-	}
-	if user == nil {
-		return nil, apperror.ErrNotFound
-	}
-
-	newEmail, err := s.sessionRepo.GetEmailChangePending(ctx, userID)
-	if err != nil {
-		return nil, fmt.Errorf("sessionRepo.GetEmailChangePending: %w", err)
-	}
-	if newEmail == "" {
-		return nil, apperror.ErrBadRequest.WithMessage("Không có yêu cầu đổi email nào đang chờ xử lý")
-	}
-
-	var changeToken string
-	var sendEmail func()
+	var sendEmailOld, sendEmailNew func()
 	err = s.txManager.RunInTx(ctx, func(txCtx context.Context) error {
-		if err := s.otpService.VerifyOTP(txCtx, userID, constant.OTPTypeChangeEmail, req.OTP); err != nil {
-			return err
-		}
-
-		tokenBytes := make([]byte, 32)
-		if _, err := rand.Read(tokenBytes); err != nil {
-			return fmt.Errorf("failed to generate random token: %w", err)
-		}
-		changeToken = hex.EncodeToString(tokenBytes)
-
-		fn, err := s.otpService.CreateAndSendOTP(txCtx, userID, newEmail, constant.OTPTypeChangeEmail, time.Now().UTC().Add(5*time.Minute))
+		fnOld, err := s.otpService.CreateAndSendOTP(txCtx, userID, user.Email, constant.OTPTypeChangeEmailOld, time.Now().UTC().Add(15*time.Minute))
 		if err != nil {
 			return err
 		}
-		sendEmail = fn
 
+		fnNew, err := s.otpService.CreateAndSendOTP(txCtx, userID, req.NewEmail, constant.OTPTypeChangeEmailNew, time.Now().UTC().Add(15*time.Minute))
+		if err != nil {
+			return err
+		}
+
+		if err := s.sessionRepo.SetEmailChangePending(txCtx, userID, req.NewEmail, 15*time.Minute); err != nil {
+			return fmt.Errorf("sessionRepo.SetEmailChangePending: %w", err)
+		}
+		
+		sendEmailOld = fnOld
+		sendEmailNew = fnNew
 		return nil
 	})
 
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	if err := s.sessionRepo.SetEmailChangeToken(ctx, userID, changeToken, 15*time.Minute); err != nil {
-		return nil, fmt.Errorf("sessionRepo.SetEmailChangeToken: %w", err)
-	}
-	
-	go sendEmail()
-
-	return &dto.VerifyOldEmailResponse{
-		EmailChangeToken: changeToken,
-	}, nil
+	go sendEmailOld()
+	go sendEmailNew()
+	return nil
 }
 
-func (s *UserService) VerifyNewEmail(ctx context.Context, userID uint64, req dto.VerifyNewEmailRequest) error {
-	user, err := s.userRepo.FindByID(ctx, userID)
-	if err != nil {
-		return fmt.Errorf("userRepo.FindByID: %w", err)
-	}
-	if user == nil {
-		return apperror.ErrNotFound
-	}
-
+func (s *UserService) VerifyEmailChange(ctx context.Context, userID uint64, req dto.VerifyEmailChangeRequest) error {
 	newEmail, err := s.sessionRepo.GetEmailChangePending(ctx, userID)
 	if err != nil {
 		return fmt.Errorf("sessionRepo.GetEmailChangePending: %w", err)
 	}
-	storedToken, err := s.sessionRepo.GetEmailChangeToken(ctx, userID)
-	if err != nil {
-		return fmt.Errorf("sessionRepo.GetEmailChangeToken: %w", err)
+	if newEmail == "" {
+		return apperror.ErrBadRequest.WithMessage("Không có yêu cầu đổi email nào đang chờ xử lý hoặc đã hết hạn")
 	}
 
-	if newEmail == "" || storedToken == "" || subtle.ConstantTimeCompare([]byte(storedToken), []byte(req.EmailChangeToken)) != 1 {
-		return apperror.ErrBadRequest.WithMessage("Phiên giao dịch đổi email không hợp lệ hoặc đã hết hạn")
-	}
-
-	oldEmail := user.Email
-
+	var oldEmail string
 	err = s.txManager.RunInTx(ctx, func(txCtx context.Context) error {
-		if err := s.otpService.VerifyOTP(txCtx, userID, constant.OTPTypeChangeEmail, req.OTP); err != nil {
+		// Verify both OTPs
+		if err := s.otpService.VerifyOTP(txCtx, userID, constant.OTPTypeChangeEmailOld, req.OldOTP); err != nil {
+			return err
+		}
+		if err := s.otpService.VerifyOTP(txCtx, userID, constant.OTPTypeChangeEmailNew, req.NewOTP); err != nil {
 			return err
 		}
 
-		user.Email = newEmail
-		user.EmailVerified = true
-		if err := s.userRepo.UpdateUser(txCtx, user); err != nil {
-			if strings.Contains(err.Error(), "Duplicate entry") {
+		userForUpdate, err := s.userRepo.FindByIDForUpdate(txCtx, userID)
+		if err != nil {
+			return fmt.Errorf("userRepo.FindByIDForUpdate: %w", err)
+		}
+		if userForUpdate == nil {
+			return apperror.ErrNotFound
+		}
+
+		oldEmail = userForUpdate.Email
+		userForUpdate.Email = newEmail
+		userForUpdate.EmailVerified = true
+		if err := s.userRepo.UpdateUser(txCtx, userForUpdate); err != nil {
+			if mysqlErr, ok := err.(*mysql.MySQLError); ok && mysqlErr.Number == 1062 {
 				return apperror.ErrConflict
 			}
 			return fmt.Errorf("userRepo.UpdateUser: %w", err)
@@ -269,10 +237,6 @@ func (s *UserService) UploadAvatar(ctx context.Context, userID uint64, file *mul
 		return nil, apperror.ErrNotFound
 	}
 
-	if file.Size > 2*1024*1024 {
-		return nil, apperror.ErrBadRequest.WithMessage("Kích thước tệp tin không được vượt quá 2MB")
-	}
-
 	ext := strings.ToLower(filepath.Ext(file.Filename))
 	if ext != ".jpg" && ext != ".jpeg" && ext != ".png" && ext != ".webp" {
 		return nil, apperror.ErrBadRequest.WithMessage("Định dạng tệp không được hỗ trợ. Chỉ cho phép JPEG, PNG, WebP")
@@ -292,20 +256,6 @@ func (s *UserService) UploadAvatar(ctx context.Context, userID uint64, file *mul
 	}
 	defer src.Close()
 
-	buffer := make([]byte, 512)
-	n, err := src.Read(buffer)
-	if err != nil && err != io.EOF {
-		return nil, fmt.Errorf("failed to read file for content type detection: %w", err)
-	}
-	contentType := http.DetectContentType(buffer[:n])
-	if contentType != "image/jpeg" && contentType != "image/png" && contentType != "image/webp" {
-		return nil, apperror.ErrBadRequest.WithMessage("Nội dung tệp không hợp lệ. Chỉ cho phép JPEG, PNG, WebP")
-	}
-	
-	if _, err := src.Seek(0, io.SeekStart); err != nil {
-		return nil, fmt.Errorf("failed to seek file: %w", err)
-	}
-
 	dst, err := os.Create(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create destination file: %w", err)
@@ -321,17 +271,38 @@ func (s *UserService) UploadAvatar(ctx context.Context, userID uint64, file *mul
 	}
 
 	avatarURL := fmt.Sprintf("/uploads/avatars/%s", fileName)
+	var oldAvatarURL string
 
-	if user.AvatarURL != nil && *user.AvatarURL != "" {
-		if strings.HasPrefix(*user.AvatarURL, "/uploads/avatars/") {
-			oldPath := filepath.Join(".", *user.AvatarURL)
-			_ = os.Remove(filepath.Clean(oldPath))
+	err = s.txManager.RunInTx(ctx, func(txCtx context.Context) error {
+		userForUpdate, err := s.userRepo.FindByIDForUpdate(txCtx, userID)
+		if err != nil {
+			return fmt.Errorf("userRepo.FindByIDForUpdate: %w", err)
 		}
+		if userForUpdate == nil {
+			return apperror.ErrNotFound
+		}
+
+		if userForUpdate.AvatarURL != nil {
+			oldAvatarURL = *userForUpdate.AvatarURL
+		}
+
+		userForUpdate.AvatarURL = &avatarURL
+		if err := s.userRepo.UpdateUser(txCtx, userForUpdate); err != nil {
+			return fmt.Errorf("userRepo.UpdateUser: %w", err)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
 	}
 
-	user.AvatarURL = &avatarURL
-	if err := s.userRepo.UpdateUser(ctx, user); err != nil {
-		return nil, fmt.Errorf("userRepo.UpdateUser: %w", err)
+	if oldAvatarURL != "" {
+		if strings.HasPrefix(oldAvatarURL, "/uploads/avatars/") {
+			oldPath := filepath.Join(".", strings.TrimPrefix(oldAvatarURL, "/"))
+			if err := os.Remove(filepath.Clean(oldPath)); err != nil {
+				s.logger.Warn("Không thể xóa avatar cũ", zap.String("path", oldPath), zap.Error(err))
+			}
+		}
 	}
 
 	return &dto.UploadAvatarResponse{
@@ -340,6 +311,44 @@ func (s *UserService) UploadAvatar(ctx context.Context, userID uint64, file *mul
 }
 
 func (s *UserService) DeleteAvatar(ctx context.Context, userID uint64) error {
+	var oldAvatarURL string
+	err := s.txManager.RunInTx(ctx, func(txCtx context.Context) error {
+		userForUpdate, err := s.userRepo.FindByIDForUpdate(txCtx, userID)
+		if err != nil {
+			return fmt.Errorf("userRepo.FindByIDForUpdate: %w", err)
+		}
+		if userForUpdate == nil {
+			return apperror.ErrNotFound
+		}
+
+		if userForUpdate.AvatarURL == nil || *userForUpdate.AvatarURL == "" {
+			return nil
+		}
+
+		oldAvatarURL = *userForUpdate.AvatarURL
+		userForUpdate.AvatarURL = nil
+		if err := s.userRepo.UpdateUser(txCtx, userForUpdate); err != nil {
+			return fmt.Errorf("userRepo.UpdateUser: %w", err)
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	if oldAvatarURL != "" {
+		if strings.HasPrefix(oldAvatarURL, "/uploads/avatars/") {
+			oldPath := filepath.Join(".", strings.TrimPrefix(oldAvatarURL, "/"))
+			if err := os.Remove(filepath.Clean(oldPath)); err != nil {
+				s.logger.Warn("Không thể xóa avatar cũ", zap.String("path", oldPath), zap.Error(err))
+			}
+		}
+	}
+
+	return nil
+}
+
+func (s *UserService) ResendChangeEmailOTP(ctx context.Context, userID uint64) error {
 	user, err := s.userRepo.FindByID(ctx, userID)
 	if err != nil {
 		return fmt.Errorf("userRepo.FindByID: %w", err)
@@ -348,18 +357,41 @@ func (s *UserService) DeleteAvatar(ctx context.Context, userID uint64) error {
 		return apperror.ErrNotFound
 	}
 
-	if user.AvatarURL == nil || *user.AvatarURL == "" {
+	newEmail, err := s.sessionRepo.GetEmailChangePending(ctx, userID)
+	if err != nil {
+		return fmt.Errorf("sessionRepo.GetEmailChangePending: %w", err)
+	}
+	if newEmail == "" {
+		return apperror.ErrBadRequest.WithMessage("Không có yêu cầu đổi email nào đang chờ xử lý")
+	}
+
+	isLimited, _ := s.sessionRepo.IncrementRateLimit(ctx, "resend_email_otp", user.Email, 3, 1*time.Minute)
+	if isLimited {
+		return apperror.ErrRateLimited
+	}
+
+	var sendEmailOld, sendEmailNew func()
+	err = s.txManager.RunInTx(ctx, func(txCtx context.Context) error {
+		fnOld, err := s.otpService.CreateAndSendOTP(txCtx, userID, user.Email, constant.OTPTypeChangeEmailOld, time.Now().UTC().Add(15*time.Minute))
+		if err != nil {
+			return err
+		}
+
+		fnNew, err := s.otpService.CreateAndSendOTP(txCtx, userID, newEmail, constant.OTPTypeChangeEmailNew, time.Now().UTC().Add(15*time.Minute))
+		if err != nil {
+			return err
+		}
+
+		sendEmailOld = fnOld
+		sendEmailNew = fnNew
 		return nil
+	})
+
+	if err != nil {
+		return err
 	}
 
-	if strings.HasPrefix(*user.AvatarURL, "/uploads/avatars/") {
-		oldPath := filepath.Join(".", *user.AvatarURL)
-		_ = os.Remove(filepath.Clean(oldPath))
-	}
-
-	user.AvatarURL = nil
-	if err := s.userRepo.UpdateUser(ctx, user); err != nil {
-		return fmt.Errorf("userRepo.UpdateUser: %w", err)
-	}
+	go sendEmailOld()
+	go sendEmailNew()
 	return nil
 }

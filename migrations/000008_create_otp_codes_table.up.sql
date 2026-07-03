@@ -2,7 +2,7 @@ CREATE TABLE IF NOT EXISTS `otp_codes` (
     `id`         BIGINT                                                     NOT NULL AUTO_INCREMENT,
     `user_id`    BIGINT                                                     NOT NULL,
     `code`       VARCHAR(10)                                                NOT NULL,
-    `type`       ENUM('email_verification', 'forgot_password', 'change_email') NOT NULL,
+    `type`       ENUM('email_verification', 'forgot_password', 'change_email', 'change_email_old', 'change_email_new') NOT NULL,
     `attempts`   INT                                                        NOT NULL DEFAULT 0,
     `is_used`    TINYINT(1)                                                 NOT NULL DEFAULT 0,
     `expires_at` DATETIME                                                   NOT NULL,

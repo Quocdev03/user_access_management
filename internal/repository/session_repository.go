@@ -83,9 +83,7 @@ func (r *SessionRepository) findByRefreshTokenHash(ctx context.Context, hash str
 	return &session, nil
 }
 
-func (r *SessionRepository) FindByRefreshTokenHash(ctx context.Context, hash string) (*model.Session, error) {
-	return r.findByRefreshTokenHash(ctx, hash, false)
-}
+
 
 func (r *SessionRepository) FindByRefreshTokenHashForUpdate(ctx context.Context, hash string) (*model.Session, error) {
 	return r.findByRefreshTokenHash(ctx, hash, true)
@@ -136,16 +134,15 @@ func (r *SessionRepository) IsRefreshTokenRevoked(ctx context.Context, hash stri
 func (r *SessionRepository) IncrementRateLimit(ctx context.Context, action string, identifier string, limit int, window time.Duration) (bool, error) {
 	key := "ratelimit:" + action + ":" + identifier
 	
-	count, err := r.redis.Incr(ctx, key).Result()
+	pipe := r.redis.TxPipeline()
+	incr := pipe.Incr(ctx, key)
+	pipe.Expire(ctx, key, window)
+	_, err := pipe.Exec(ctx)
 	if err != nil {
 		return false, err
 	}
 	
-	if count == 1 {
-		r.redis.Expire(ctx, key, window)
-	}
-	
-	return count > int64(limit), nil
+	return incr.Val() > int64(limit), nil
 }
 
 func (r *SessionRepository) RevokeAllUserTokens(ctx context.Context, userID uint64, ttl time.Duration) error {
@@ -183,27 +180,9 @@ func (r *SessionRepository) GetEmailChangePending(ctx context.Context, userID ui
 	return val, nil
 }
 
-func (r *SessionRepository) SetEmailChangeToken(ctx context.Context, userID uint64, token string, ttl time.Duration) error {
-	key := "email_change_token:" + strconv.FormatUint(userID, 10)
-	return r.redis.Set(ctx, key, token, ttl).Err()
-}
-
-func (r *SessionRepository) GetEmailChangeToken(ctx context.Context, userID uint64) (string, error) {
-	key := "email_change_token:" + strconv.FormatUint(userID, 10)
-	val, err := r.redis.Get(ctx, key).Result()
-	if err != nil {
-		if errors.Is(err, redis.Nil) {
-			return "", nil
-		}
-		return "", err
-	}
-	return val, nil
-}
-
 func (r *SessionRepository) DeleteEmailChangePending(ctx context.Context, userID uint64) error {
 	keyPending := "email_change_pending:" + strconv.FormatUint(userID, 10)
-	keyToken := "email_change_token:" + strconv.FormatUint(userID, 10)
-	return r.redis.Del(ctx, keyPending, keyToken).Err()
+	return r.redis.Del(ctx, keyPending).Err()
 }
 
 func (r *SessionRepository) DeleteExpired(ctx context.Context, threshold time.Time) error {

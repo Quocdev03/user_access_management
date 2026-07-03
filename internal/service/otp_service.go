@@ -12,7 +12,6 @@ import (
 
 	"github.com/quocdev03/user-access-management/internal/repository"
 	"github.com/quocdev03/user-access-management/pkg/apperror"
-	"github.com/quocdev03/user-access-management/pkg/database"
 )
 
 const maxOTPAttempts = 5
@@ -20,15 +19,13 @@ const maxOTPAttempts = 5
 type OTPService struct {
 	otpRepo     *repository.OTPRepository
 	mailService *MailService
-	txManager   *database.TxManager
 	logger      *zap.Logger
 }
 
-func NewOTPService(otpRepo *repository.OTPRepository, mailService *MailService, txManager *database.TxManager, logger *zap.Logger) *OTPService {
+func NewOTPService(otpRepo *repository.OTPRepository, mailService *MailService, logger *zap.Logger) *OTPService {
 	return &OTPService{
 		otpRepo:     otpRepo,
 		mailService: mailService,
-		txManager:   txManager,
 		logger:      logger,
 	}
 }

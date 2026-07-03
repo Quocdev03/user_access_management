@@ -18,16 +18,7 @@ type MockSender struct {
 }
 
 func (s *MockSender) SendEmail(to, subject, body string) error {
-	s.logger.Info("[MOCK MAIL] Bỏ qua gửi email thực tế. Nội dung email được in ra bên dưới:", zap.String("to", to), zap.String("subject", subject))
-
-	fmt.Println()
-	fmt.Println("================ MOCK EMAIL CONTENT ================")
-	fmt.Println("TO      :", to)
-	fmt.Println("SUBJECT :", subject)
-	fmt.Println("BODY    :", body)
-	fmt.Println("====================================================")
-	fmt.Println()
-
+	s.logger.Info("[MOCK MAIL] Gửi email giả lập thành công", zap.String("to", to), zap.String("subject", subject), zap.String("body", body))
 	return nil
 }
 
@@ -128,7 +119,11 @@ func (s *MailService) SendEmailChangeNotification(oldEmail, newEmail string) err
 		<p>Nếu bạn không thực hiện thay đổi này, tài khoản của bạn có thể đã bị xâm nhập trái phép. Vui lòng liên hệ với bộ phận hỗ trợ khách hàng của chúng tôi ngay lập tức để được hỗ trợ bảo mật.</p>
 	`, oldEmail, newEmail)
 
-	_ = s.SendEmail(oldEmail, subject, body)
-	_ = s.SendEmail(newEmail, subject, body)
+	if err := s.SendEmail(oldEmail, subject, body); err != nil {
+		return err
+	}
+	if err := s.SendEmail(newEmail, subject, body); err != nil {
+		return err
+	}
 	return nil
 }

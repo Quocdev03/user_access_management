@@ -72,24 +72,24 @@
 #### DTOs
 | File | Nội dung |
 |------|---------|
-| `internal/dto/user_dto.go` | `UserProfileResponse`, `UpdateProfileRequest`, `RequestEmailChangeRequest`, `VerifyOldEmailRequest/Response`, `VerifyNewEmailRequest`, `UploadAvatarResponse` |
+| `internal/dto/user_dto.go` | `UserProfileResponse`, `UpdateProfileRequest`, `RequestEmailChangeRequest`, `VerifyEmailChangeRequest`, `UploadAvatarResponse` |
 
 #### Repository Layer (MySQL & Redis)
 | File | Methods |
 |------|---------|
-| `internal/repository/session_repository.go` | `SetEmailChangePending`, `GetEmailChangePending`, `SetEmailChangeToken`, `GetEmailChangeToken`, `DeleteEmailChangePending` |
+| `internal/repository/session_repository.go` | `SetEmailChangePending`, `GetEmailChangePending`, `DeleteEmailChangePending` |
 
 #### Service Layer (Business Logic)
 | File | Logic đã implement |
 |------|------------------|
-| `internal/service/user_service.go` | `GetProfile`, `UpdateProfile`, `RequestEmailChange`, `VerifyOldEmail`, `VerifyNewEmail`, `UploadAvatar`, `DeleteAvatar` |
+| `internal/service/user_service.go` | `GetProfile`, `UpdateProfile`, `RequestEmailChange`, `VerifyEmailChange`, `ResendChangeEmailOTP`, `UploadAvatar`, `DeleteAvatar` |
 | `internal/service/mail_service.go` | `SendEmailChangeNotification` |
 
 #### Handler & Routes
 | File | Routes |
 |------|-------|
 | `internal/handler/user_handler.go` | Các handler tương ứng cho Profile, Email, Avatar |
-| `internal/router/router.go` | `GET /api/v1/users/me`, `PUT /api/v1/users/me`, `POST /api/v1/users/me/email/request-change`, `POST /api/v1/users/me/email/verify-old`, `POST /api/v1/users/me/email/verify-new`, `POST /api/v1/users/me/avatar`, `DELETE /api/v1/users/me/avatar` |
+| `internal/router/router.go` | `GET /api/v1/users/me`, `PUT /api/v1/users/me`, `POST /api/v1/users/me/email/request-change`, `POST /api/v1/users/me/email/verify`, `POST /api/v1/users/me/email/resend-otp`, `POST /api/v1/users/me/avatar`, `DELETE /api/v1/users/me/avatar` |
 
 ---
 
@@ -151,6 +151,8 @@
 | R7 | Giải quyết các vấn đề từ Audit Report (Refactoring) | Gộp OTP logic vào `OTPService`, dọn rác DB bằng `CleanupWorker` chạy ngầm, gỡ bỏ `resend-go` SDK để đơn giản hóa Mail Service, tách nhỏ Router (`auth_routes.go`, `user_routes.go`), và tập trung constant vào `constant.go`. |
 | R8 | Khắc phục các lỗi Logic và Security từ Audit Report | Vá lỗi Race Condition (Email gửi ngoài Transaction, Atomic LockAccount), chuẩn hóa toàn bộ `time.Now().UTC()`, thêm `context.WithTimeout` cho CleanupWorker, bổ sung giới hạn Max Length 72 cho Password (phòng chống DoS bcrypt). |
 | R9 | Tái cấu trúc RateLimitMiddleware & Cải thiện UX Anti-Spam | Phân tách Soft Limit (429 Too Many Requests) và Hard Ban (403 IP Banned) trong RateLimitMiddleware. Tăng số lần thử đăng nhập tối đa lên 10 lần sai sẽ khóa 15 phút. Nới lỏng cấu hình Rate Limit cho toàn bộ API để tránh chặn oan người dùng. |
+| R10 | Quét toàn diện codebase & Fix triệt để 51 lỗi Logic/Security/Dead Code | Loại bỏ mã chết (unused error/const, struct `UserServiceParams`), sửa deadlock & tối ưu transaction (RunInTx) trong User, Auth & Password Service. Gắn Fail-Closed cho Middleware (trả 503 khi Redis lỗi). Bổ sung API Resend & Cancel Email Change OTP. Đổi BindJSON sang Validator chuẩn. |
+| R11 | Đơn giản hóa kiến trúc luồng Đổi Email (UC-14) | Rút gọn từ 5 API xuống 2 API, loại bỏ EmailChangeToken rườm rà. Gửi đồng thời 2 OTP và verify atomic bằng FOR UPDATE để chống spam, lỗi state và Race Condition. |
 
 ---
 
@@ -159,11 +161,13 @@
 | UC | Tính năng | Ghi chú |
 |----|----------|---------|
 | UC-15~18 | Admin quản lý user | Chưa có |
+| UC-19 | Chặn/Mở khóa User | Chưa có |
 | UC-38 | Unit & Integration Test | Đã viết unit test cho `pkg/jwt`, các module khác chưa có |
 
 ---
 
 ## 🔑 Bước tiếp theo đề xuất
 
-1. **UC-11~14 User Profile** → Quản lý hồ sơ, cập nhật thông tin và avatar.
-2. **UC-15~18 Admin Management** → Admin quản lý user.
+1. **UC-15~18 Admin Management** → API để Admin quản lý thông tin User (Xem danh sách, thêm sửa xóa).
+2. **UC-19 Block/Unblock** → Admin khóa hoặc mở khóa tài khoản người dùng vi phạm.
+3. **Viết Unit/Integration Test** → Đảm bảo độ che phủ code (coverage) cho các module Auth & User.

@@ -3,9 +3,9 @@ package service
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
+	"github.com/go-sql-driver/mysql"
 	"go.uber.org/zap"
 
 	"github.com/quocdev03/user-access-management/internal/config"
@@ -20,8 +20,8 @@ import (
 )
 
 const (
-	maxFailedAttempts = 10
-	lockDuration      = 15 * time.Minute
+	maxFailedAttempts = 5
+	lockDuration      = 30 * time.Minute
 	otpExpiry         = 5 * time.Minute
 	dummyBcryptHash   = "$2a$10$8K1p/a0fsBigaZE0N6cOG.e4s/8sYy1QyYtH4Yk9Y5UvI.G/k8M42"
 )
@@ -108,10 +108,10 @@ func (s *AuthService) Register(ctx context.Context, req dto.RegisterRequest) (*d
 		EmailVerified: false,
 	}
 
-		var sendEmail func()
-		err = s.txManager.RunInTx(ctx, func(txCtx context.Context) error {
+	var sendEmail func()
+	err = s.txManager.RunInTx(ctx, func(txCtx context.Context) error {
 		if err := s.userRepo.Create(txCtx, user); err != nil {
-			if strings.Contains(err.Error(), "Duplicate entry") {
+			if mysqlErr, ok := err.(*mysql.MySQLError); ok && mysqlErr.Number == 1062 {
 				return apperror.ErrConflict
 			}
 			return fmt.Errorf("userRepo.Create: %w", err)
@@ -161,7 +161,7 @@ func (s *AuthService) VerifyEmail(ctx context.Context, req dto.VerifyEmailReques
 		return fmt.Errorf("userRepo.FindByEmail: %w", err)
 	}
 	if user == nil {
-		return apperror.ErrNotFound
+		return nil
 	}
 
 	if user.EmailVerified {
@@ -173,9 +173,17 @@ func (s *AuthService) VerifyEmail(ctx context.Context, req dto.VerifyEmailReques
 			return err
 		}
 
-		user.Status = constant.StatusActive
-		user.EmailVerified = true
-		if err := s.userRepo.UpdateUser(txCtx, user); err != nil {
+		userForUpdate, err := s.userRepo.FindByIDForUpdate(txCtx, user.ID)
+		if err != nil {
+			return fmt.Errorf("userRepo.FindByIDForUpdate: %w", err)
+		}
+		if userForUpdate == nil {
+			return apperror.ErrNotFound
+		}
+
+		userForUpdate.Status = constant.StatusActive
+		userForUpdate.EmailVerified = true
+		if err := s.userRepo.UpdateUser(txCtx, userForUpdate); err != nil {
 			return fmt.Errorf("userRepo.UpdateUser: %w", err)
 		}
 		return nil
@@ -200,7 +208,8 @@ func (s *AuthService) ResendVerificationEmail(ctx context.Context, req dto.Resen
 		return fmt.Errorf("userRepo.FindByEmail: %w", err)
 	}
 	if user == nil {
-		return apperror.ErrEmailNotFound
+		s.logger.Info("Yêu cầu gửi lại OTP cho email không tồn tại", zap.String("email", req.Email))
+		return nil
 	}
 
 	if user.EmailVerified {
@@ -223,6 +232,14 @@ func (s *AuthService) Login(ctx context.Context, req dto.LoginRequest, ipAddress
 	}
 	if len(userAgent) > 500 {
 		userAgent = userAgent[:500]
+	}
+
+	isLimited, err := s.sessionRepo.IncrementRateLimit(ctx, "login_email", req.Email, 5, 1*time.Minute)
+	if err != nil {
+		return nil, fmt.Errorf("sessionRepo.IncrementRateLimit: %w", err)
+	}
+	if isLimited {
+		return nil, apperror.ErrRateLimited
 	}
 
 	user, err := s.userRepo.FindByEmail(ctx, req.Email)
@@ -251,11 +268,12 @@ func (s *AuthService) verifyUserStatus(ctx context.Context, user *model.User) er
 		if user.LockedUntil == nil || user.LockedUntil.After(time.Now().UTC()) {
 			return apperror.ErrAccountLocked
 		}
-		user.Status = constant.StatusActive
-		user.FailedLoginAttempts = 0
-		user.LockedUntil = nil
-		if err := s.userRepo.UpdateUser(ctx, user); err != nil {
+		if err := s.userRepo.UnlockIfExpired(ctx, user.ID); err != nil {
 			s.logger.Error("Không thể reset trạng thái khóa của user trong database", zap.Error(err))
+		} else {
+			user.Status = constant.StatusActive
+			user.FailedLoginAttempts = 0
+			user.LockedUntil = nil
 		}
 	}
 
@@ -276,14 +294,28 @@ func (s *AuthService) logAudit(ctx context.Context, userID uint64, action, ip, u
 }
 
 func (s *AuthService) grantTokensAndSession(ctx context.Context, user *model.User, ipAddress, userAgent string) (*dto.LoginResponse, error) {
-	now := time.Now()
-	user.LastLoginAt = &now
-	user.FailedLoginAttempts = 0
-	user.Status = constant.StatusActive
-	user.LockedUntil = nil
-	_ = s.userRepo.UpdateUser(ctx, user)
+	err := s.txManager.RunInTx(ctx, func(txCtx context.Context) error {
+		userForUpdate, err := s.userRepo.FindByIDForUpdate(txCtx, user.ID)
+		if err != nil {
+			return fmt.Errorf("userRepo.FindByIDForUpdate: %w", err)
+		}
+		if userForUpdate == nil {
+			return apperror.ErrNotFound
+		}
 
-	s.logAudit(ctx, user.ID, "LOGIN", ipAddress, userAgent, "success")
+		now := time.Now()
+		userForUpdate.LastLoginAt = &now
+		userForUpdate.FailedLoginAttempts = 0
+		userForUpdate.Status = constant.StatusActive
+		userForUpdate.LockedUntil = nil
+		if err := s.userRepo.UpdateUser(txCtx, userForUpdate); err != nil {
+			return fmt.Errorf("userRepo.UpdateUser: %w", err)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
 
 	roles, err := s.roleRepo.GetRolesByUserID(ctx, user.ID)
 	if err != nil {
@@ -310,6 +342,8 @@ func (s *AuthService) grantTokensAndSession(ctx context.Context, user *model.Use
 		s.logger.Error("Không thể tạo session trong MySQL", zap.Error(err))
 		return nil, fmt.Errorf("failed to create session: %w", err)
 	}
+
+	s.logAudit(ctx, user.ID, "LOGIN", ipAddress, userAgent, "success")
 
 	return &dto.LoginResponse{
 		AccessToken:  accessToken,
@@ -362,9 +396,17 @@ func (s *AuthService) Refresh(ctx context.Context, req dto.RefreshTokenRequest, 
 		}
 
 		user, err := s.userRepo.FindByID(txCtx, claims.UserID)
-		if err != nil || user == nil || user.Status != constant.StatusActive {
+		if err != nil {
+			return fmt.Errorf("userRepo.FindByID: %w", err)
+		}
+		if user == nil {
 			_ = s.sessionRepo.DeleteByUserID(txCtx, claims.UserID)
 			return apperror.ErrAccountDisabled
+		}
+
+		if err := s.verifyUserStatus(txCtx, user); err != nil {
+			_ = s.sessionRepo.DeleteByUserID(txCtx, claims.UserID)
+			return err
 		}
 
 		roles, err := s.roleRepo.GetRolesByUserID(txCtx, user.ID)
@@ -404,7 +446,10 @@ func (s *AuthService) Refresh(ctx context.Context, req dto.RefreshTokenRequest, 
 }
 
 func (s *AuthService) checkTokenReuse(ctx context.Context, userID uint64, refreshHash string) error {
-	isRevoked, _ := s.sessionRepo.IsRefreshTokenRevoked(ctx, refreshHash)
+	isRevoked, err := s.sessionRepo.IsRefreshTokenRevoked(ctx, refreshHash)
+	if err != nil {
+		return fmt.Errorf("sessionRepo.IsRefreshTokenRevoked: %w", err)
+	}
 	if isRevoked {
 		s.logger.Warn("Phát hiện Token Reuse (Refresh Token bị đánh cắp)", zap.Uint64("user_id", userID))
 		_ = s.sessionRepo.DeleteByUserID(ctx, userID)
@@ -450,7 +495,10 @@ func handleFailedLogin(ctx context.Context, userRepo *repository.UserRepository,
 
 	if attempts >= maxFailedAttempts {
 		lockedUntil := time.Now().UTC().Add(lockDuration)
-		_ = userRepo.LockAccount(ctx, user.ID, lockedUntil, attempts)
+		if err := userRepo.LockAccount(ctx, user.ID, lockedUntil, attempts); err != nil {
+			logger.Error("Không thể khóa tài khoản", zap.Error(err))
+			return apperror.ErrInvalidCredentials 
+		}
 
 		logger.Warn("Tài khoản bị khóa do sai mật khẩu nhiều lần",
 			zap.String("email", user.Email),

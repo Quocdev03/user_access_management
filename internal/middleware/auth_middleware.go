@@ -52,15 +52,25 @@ func AuthMiddleware(cfg *config.Config, sessionRepo *repository.SessionRepositor
 
 		blacklisted, err := sessionRepo.IsBlacklisted(c.Request.Context(), claims.ID)
 		if err != nil {
-			logger.Error("Lỗi kết nối Redis khi check blacklist, bỏ qua kiểm tra", zap.Error(err), zap.String("jti", claims.ID))
-		} else if blacklisted {
+			logger.Error("Lỗi kết nối Redis khi check blacklist, từ chối request", zap.Error(err), zap.String("jti", claims.ID))
+			response.Error(c, apperror.NewAppError("ERR_SERVICE_UNAVAILABLE", "Hệ thống tạm thời không khả dụng", http.StatusServiceUnavailable))
+			c.Abort()
+			return
+		}
+		if blacklisted {
 			response.Error(c, apperror.ErrTokenRevoked)
 			c.Abort()
 			return
 		}
 
 		revokedEpoch, err := sessionRepo.GetUserRevokedEpoch(c.Request.Context(), claims.UserID)
-		if err == nil && revokedEpoch > 0 {
+		if err != nil {
+			logger.Error("Lỗi kết nối Redis khi check revoked epoch, từ chối request", zap.Error(err), zap.Uint64("user_id", claims.UserID))
+			response.Error(c, apperror.NewAppError("ERR_SERVICE_UNAVAILABLE", "Hệ thống tạm thời không khả dụng", http.StatusServiceUnavailable))
+			c.Abort()
+			return
+		}
+		if revokedEpoch > 0 {
 			if claims.IssuedAt.Unix() <= revokedEpoch {
 				response.Error(c, apperror.ErrSessionRevokedGlobal)
 				c.Abort()
@@ -69,7 +79,6 @@ func AuthMiddleware(cfg *config.Config, sessionRepo *repository.SessionRepositor
 		}
 
 		c.Set("userID", claims.UserID)
-		c.Set("jti", claims.ID)
 		c.Set("token", tokenStr)
 		c.Set("tokenClaims", claims)
 
