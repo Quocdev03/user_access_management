@@ -1,5 +1,7 @@
 # 🛡️ UAM (User Access Management) API
 
+![UAM Banner](./reviews/ChatGPT%20Image%2000_16_43%207%20thg%207,%202026.png)
+
 **UAM** là hệ thống backend hoàn chỉnh được xây dựng bằng **Golang** (Clean Architecture), chuyên quản lý tài khoản, xác thực đa lớp, phân quyền nâng cao (RBAC, Permission-based) và giám sát bảo mật tài khoản.
 
 Dự án được thiết kế chuẩn doanh nghiệp (Production-Ready) với hiệu suất cao, khả năng chống Spam/Brute Force, hỗ trợ Live Testing Console và dễ dàng mở rộng cho các hệ thống thực tế.
