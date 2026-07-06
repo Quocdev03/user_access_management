@@ -57,6 +57,9 @@ func (s *OTPService) CreateAndSendOTP(ctx context.Context, userID uint64, email 
 	return sendFunc, nil
 }
 
+// VerifyOTP kiểm tra mã OTP đầu vào.
+// Lưu ý: Nếu được gọi bên trong một database transaction, biến ctx truyền vào phải là txCtx
+// để đảm bảo row level lock (FOR UPDATE) hoạt động đúng trên cùng một kết nối.
 func (s *OTPService) VerifyOTP(ctx context.Context, userID uint64, otpType string, inputCode string) error {
 	otpCode, err := s.otpRepo.GetLatestValidCodeForUpdate(ctx, userID, otpType)
 	if err != nil {

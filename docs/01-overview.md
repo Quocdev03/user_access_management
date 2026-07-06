@@ -35,7 +35,7 @@ Hệ thống giúp tổ chức thực hiện các nghiệp vụ sau:
 - Bảo vệ hệ thống trước brute force, rate limiting và password yếu.
 - Gửi email/OTP cho các luồng xác thực.
 - Ghi audit log cho login và các hành động quan trọng.
-- Expose Health Check, Metrics và Swagger API Documentation phục vụ vận hành.
+- Expose Health Check và Swagger API Documentation phục vụ vận hành.
 - Cung cấp môi trường phát triển hoàn chỉnh bằng Docker Compose.
 
 ---
@@ -83,6 +83,7 @@ Hệ thống cung cấp các công cụ quản trị:
 | UC-08  | Change Password                       |
 | UC-09  | Role-Based Authorization (RBAC)       |
 | UC-10  | Permission-Based Authorization        |
+| UC-32  | Roles & Permissions Management        |
 
 ### Nhóm 2 — User Profile & User Service
 

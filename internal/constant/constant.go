@@ -1,5 +1,7 @@
 package constant
 
+type UserStatus string
+
 const (
 	TokenTypeAccess  = "access"
 	TokenTypeRefresh = "refresh"
@@ -13,7 +15,7 @@ const (
 	RoleModerator = "moderator"
 	RoleUser      = "user"
 
-	StatusActive   = "active"
-	StatusInactive = "inactive"
-	StatusLocked   = "locked"
+	StatusActive   UserStatus = "active"
+	StatusInactive UserStatus = "inactive"
+	StatusLocked   UserStatus = "locked"
 )

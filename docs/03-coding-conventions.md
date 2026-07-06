@@ -49,63 +49,28 @@
 ## 2. Cấu trúc code theo tầng
 
 ### Handler (Presentation Layer)
+
 - **Trách nhiệm**: Nhận HTTP request, bind & validate input DTO, gọi đúng 1 phương thức Service tương ứng, định dạng và trả về JSON response.
 - **Quy tắc**: Không chứa logic nghiệp vụ hay truy xuất database trực tiếp.
 
-```go
-// Khung cấu trúc Handler mẫu
-func (h *AuthHandler) Action(c *gin.Context) {
-    var req dto.ActionRequest
-    if err := c.ShouldBindJSON(&req); err != nil {
-        response.ValidationError(c, err)
-        return
-    }
-    res, err := h.service.Action(c.Request.Context(), req)
-    if err != nil {
-        response.Error(c, err)
-        return
-    }
-    response.Success(c, http.StatusOK, "Thành công", res)
-}
-```
-
 ### Service (Business Logic Layer)
-- **Trách nhiệm**: Xử lý toàn bộ logic nghiệp vụ (business rules), điều phối giao dịch (transactions), mã hóa dữ liệu, gửi email, tích hợp bên thứ ba.
-- **Quy tắc**: 
-  - Gọi Repository thông qua con trỏ struct trực tiếp (Concrete Type), không dùng God object Interface.
-  - Bắt buộc dùng `database.TxManager` bọc trong `RunInTx` nếu nghiệp vụ ghi/sửa nhiều bảng hoặc nhiều dòng dữ liệu.
-  - **Chống Lost Update**: Khi cập nhật entity, phải dùng `FindByIDForUpdate` bên trong Transaction hoặc dùng Atomic Query thay vì fetch rồi ghi đè toàn bộ struct.
-  - Trả về error có ý nghĩa (`AppError` hoặc sentinel errors).
 
-```go
-// Khung cấu trúc Service mẫu
-func (s *Service) Action(ctx context.Context, req dto.ActionRequest) (*dto.ActionResponse, error) {
-    // 1. Thực hiện logic nghiệp vụ...
-    // 2. Gọi Repository...
-    // 3. Đóng gói kết quả trả về...
-    return response, nil
-}
-```
+- **Trách nhiệm**: Xử lý toàn bộ logic nghiệp vụ (business rules), điều phối giao dịch (transactions), mã hóa dữ liệu, gửi email, tích hợp bên thứ ba.
+- **Quy tắc**:
+    - Gọi Repository thông qua con trỏ struct trực tiếp (Concrete Type), không dùng God object Interface.
+    - Bắt buộc dùng `database.TxManager` bọc trong `RunInTx` nếu nghiệp vụ ghi/sửa nhiều bảng hoặc nhiều dòng dữ liệu.
+    - **Chống Lost Update**: Khi cập nhật entity, phải dùng `FindByIDForUpdate` bên trong Transaction hoặc dùng Atomic Query thay vì fetch rồi ghi đè toàn bộ struct.
+    - **Transaction Safety**: TUYỆT ĐỐI KHÔNG gọi các lệnh I/O mạng ngoại vi (thao tác Redis, gửi Email) bên trong block của `RunInTx` để tránh treo Database Connection. Các lệnh mạng phải thực thi ở ngoài Transaction.
+    - Trả về error có ý nghĩa (`AppError` hoặc sentinel errors).
 
 ### Repository (Data Access Layer)
+
 - **Trách nhiệm**: Chỉ thực hiện các thao tác đọc/ghi cơ sở dữ liệu (MySQL, Redis, v.v.).
 - **Quy tắc**:
-  - Không chứa logic nghiệp vụ.
-  - Dùng `database.GetDB(ctx, r.db)` để tự động hỗ trợ transaction.
-  - Luôn sử dụng parameterized queries đề phòng SQL Injection.
-  - Ưu tiên sử dụng Atomic Queries cho các thao tác cập nhật đơn lẻ (VD: `UnlockIfExpired`, `IncrementAttempts`) để giảm thiểu việc phải dùng `SELECT FOR UPDATE` cồng kềnh.
-
-```go
-// Khung cấu trúc Repository mẫu
-func (r *Repository) FindByID(ctx context.Context, id uint64) (*model.Entity, error) {
-    var entity model.Entity
-    query := "SELECT * FROM table WHERE id = ? LIMIT 1"
-    err := database.GetDB(ctx, r.db).GetContext(ctx, &entity, query, id)
-    return &entity, err
-}
-```
-
----
+    - Không chứa logic nghiệp vụ.
+    - Dùng `database.GetDB(ctx, r.db)` để tự động hỗ trợ transaction.
+    - Luôn sử dụng parameterized queries đề phòng SQL Injection.
+    - Ưu tiên sử dụng Atomic Queries cho các thao tác cập nhật đơn lẻ (VD: `UnlockIfExpired`, `IncrementAttempts`) để giảm thiểu việc phải dùng `SELECT FOR UPDATE` cồng kềnh.
 
 ## 3. Xử lý lỗi (Error Handling)
 
@@ -165,12 +130,12 @@ type RegisterRequest struct {
 
 ### Cấu trúc test
 
-| Loại | Tầng | Cách test |
-|------|------|-----------|
-| Unit Test | Service | Định nghĩa Interface tại file test để mock, hoặc dùng Testcontainer |
-| Unit Test | Handler | Định nghĩa Interface tại file test để mock, dùng `httptest` |
-| Integration Test | Repository | Database thật (test container) |
-| API Test | Toàn bộ | HTTP client gọi API thật |
+| Loại             | Tầng       | Cách test                                                           |
+| ---------------- | ---------- | ------------------------------------------------------------------- |
+| Unit Test        | Service    | Định nghĩa Interface tại file test để mock, hoặc dùng Testcontainer |
+| Unit Test        | Handler    | Định nghĩa Interface tại file test để mock, dùng `httptest`         |
+| Integration Test | Repository | Database thật (test container)                                      |
+| API Test         | Toàn bộ    | HTTP client gọi API thật                                            |
 
 ### Quy tắc test
 
@@ -179,22 +144,6 @@ type RegisterRequest struct {
 - Dùng **table-driven tests** khi có nhiều case.
 - Mock bằng interface, không dùng framework mock phức tạp.
 
-```go
-// Khung viết Unit Test mẫu cho Service
-func TestService_Action_Success(t *testing.T) {
-    // Arrange (Thiết lập dependencies mock cục bộ hoặc struct cụ thể)
-    mockRepo := &mockRepository{...}
-    svc := NewService(mockRepo)
-
-    // Act (Thực hiện hành động)
-    res, err := svc.Action(context.Background(), req)
-
-    // Assert (Xác minh kết quả)
-    assert.NoError(t, err)
-    assert.Equal(t, expected, res.Field)
-}
-```
-
 ---
 
 ## 7. Quy trình Git
@@ -202,12 +151,14 @@ func TestService_Action_Success(t *testing.T) {
 ### Branching Strategy
 
 ```
-main          ← Production-ready code
-  └── develop ← Tích hợp các feature
-        ├── feature/uc01-registration    ← Phát triển tính năng
-        ├── feature/uc03-login
-        ├── bugfix/fix-token-expiry      ← Sửa lỗi
-        └── hotfix/security-patch        ← Sửa lỗi khẩn cấp
+
+main ← Production-ready code
+└── develop ← Tích hợp các feature
+├── feature/uc01-registration ← Phát triển tính năng
+├── feature/uc03-login
+├── bugfix/fix-token-expiry ← Sửa lỗi
+└── hotfix/security-patch ← Sửa lỗi khẩn cấp
+
 ```
 
 ### Quy tắc branch
@@ -220,25 +171,28 @@ main          ← Production-ready code
 ### Commit Message Convention
 
 ```
+
 <type>(<scope>): <mô tả ngắn>
 
 <mô tả chi tiết (tùy chọn)>
+
 ```
 
 **Type:**
 
-| Type | Mô tả |
-|------|-------|
-| `feat` | Tính năng mới |
-| `fix` | Sửa lỗi |
-| `docs` | Thay đổi tài liệu |
-| `refactor` | Tái cấu trúc code |
-| `test` | Thêm/sửa test |
-| `chore` | Cấu hình, build, CI |
+| Type       | Mô tả               |
+| ---------- | ------------------- |
+| `feat`     | Tính năng mới       |
+| `fix`      | Sửa lỗi             |
+| `docs`     | Thay đổi tài liệu   |
+| `refactor` | Tái cấu trúc code   |
+| `test`     | Thêm/sửa test       |
+| `chore`    | Cấu hình, build, CI |
 
 **Ví dụ:**
 
 ```
+
 feat(auth): thêm API đăng ký tài khoản
 
 - Tạo RegisterHandler, RegisterService
@@ -247,6 +201,7 @@ feat(auth): thêm API đăng ký tài khoản
 - Gửi OTP xác thực email
 
 Closes #UC-01
+
 ```
 
 ### Pull Request
@@ -267,3 +222,7 @@ Closes #UC-01
 - [ ] API response đúng format chuẩn.
 - [ ] Database query có parameterized (chống SQL injection).
 - [ ] Tài liệu được cập nhật (nếu cần).
+
+```
+
+```

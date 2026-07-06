@@ -22,7 +22,6 @@ func (s *MockSender) SendEmail(to, subject, body string) error {
 	return nil
 }
 
-
 type SMTPSender struct {
 	dialer *gomail.Dialer
 	from   string
@@ -126,4 +125,25 @@ func (s *MailService) SendEmailChangeNotification(oldEmail, newEmail string) err
 		return err
 	}
 	return nil
+}
+
+func (s *MailService) SendAdminResetPasswordEmail(to, tempPassword string) error {
+	subject := "Thông báo đặt lại mật khẩu từ Quản trị viên"
+	body := fmt.Sprintf(`
+		<h2>Đặt lại mật khẩu</h2>
+		<p>Chào bạn,</p>
+		<p>Quản trị viên hệ thống đã đặt lại mật khẩu cho tài khoản của bạn.</p>
+		<p>Mật khẩu tạm thời của bạn là: <strong>%s</strong></p>
+		<p>Vui lòng đăng nhập bằng mật khẩu này. Bạn sẽ được yêu cầu đổi mật khẩu ngay trong lần đăng nhập tiếp theo.</p>
+	`, tempPassword)
+	return s.SendEmail(to, subject, body)
+}
+
+func (s *MailService) SendAdminNotification(to, subject, message string) error {
+	body := fmt.Sprintf(`
+		<h2>Thông báo từ Hệ thống</h2>
+		<p>Chào bạn,</p>
+		<p>%s</p>
+	`, message)
+	return s.SendEmail(to, subject, body)
 }

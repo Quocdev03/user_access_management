@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS `password_reset_tokens` (
-    `id`         BIGINT       NOT NULL AUTO_INCREMENT,
-    `user_id`    BIGINT       NOT NULL,
+    `id`         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `user_id`    BIGINT UNSIGNED NOT NULL,
     `token_hash` VARCHAR(255) NOT NULL,
     `is_used`    TINYINT(1)   NOT NULL DEFAULT 0,
     `expires_at` DATETIME     NOT NULL,

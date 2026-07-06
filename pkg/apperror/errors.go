@@ -48,12 +48,13 @@ func NewAppError(code, message string, httpStatus int) *AppError {
 }
 
 var (
-	ErrBadRequest        = NewAppError("BAD_REQUEST", "Yêu cầu không hợp lệ", http.StatusBadRequest)
-	ErrValidationError   = NewAppError("VALIDATION_ERROR", "Dữ liệu đầu vào không hợp lệ", http.StatusBadRequest)
-	ErrInvalidDateFormat = NewAppError("INVALID_DATE_FORMAT", "Ngày sinh không đúng định dạng YYYY-MM-DD", http.StatusBadRequest)
-	ErrResetTokenInvalid = NewAppError("INVALID_TOKEN", "Link khôi phục mật khẩu không hợp lệ hoặc đã hết hạn", http.StatusBadRequest)
-	ErrResetTokenUsed    = NewAppError("INVALID_TOKEN", "Link khôi phục mật khẩu đã được sử dụng hoặc hết hạn", http.StatusBadRequest)
-	ErrSamePassword      = NewAppError("SAME_PASSWORD", "Mật khẩu mới không được trùng với mật khẩu cũ", http.StatusBadRequest)
+	ErrBadRequest         = NewAppError("BAD_REQUEST", "Yêu cầu không hợp lệ", http.StatusBadRequest)
+	ErrValidationError    = NewAppError("VALIDATION_ERROR", "Dữ liệu đầu vào không hợp lệ", http.StatusBadRequest)
+	ErrInvalidDateFormat  = NewAppError("INVALID_DATE_FORMAT", "Ngày sinh không đúng định dạng YYYY-MM-DD", http.StatusBadRequest)
+	ErrResetTokenInvalid  = NewAppError("RESET_TOKEN_INVALID", "Link khôi phục mật khẩu không hợp lệ hoặc đã hết hạn", http.StatusBadRequest)
+	ErrResetTokenUsed     = NewAppError("RESET_TOKEN_USED", "Link khôi phục mật khẩu đã được sử dụng hoặc hết hạn", http.StatusBadRequest)
+	ErrSamePassword       = NewAppError("SAME_PASSWORD", "Mật khẩu mới không được trùng với mật khẩu cũ", http.StatusBadRequest)
+	ErrMustChangePassword = NewAppError("MUST_CHANGE_PASSWORD", "Bạn bắt buộc phải đổi mật khẩu do Admin yêu cầu", http.StatusForbidden)
 
 	ErrUnauthorized         = NewAppError("UNAUTHORIZED", "Vui lòng đăng nhập để tiếp tục", http.StatusUnauthorized)
 	ErrInvalidCredentials   = NewAppError("INVALID_CREDENTIALS", "Email hoặc mật khẩu không chính xác", http.StatusUnauthorized)
@@ -86,8 +87,8 @@ var (
 	ErrFileTooLarge    = NewAppError("FILE_TOO_LARGE", "Dung lượng file vượt quá giới hạn cho phép", http.StatusRequestEntityTooLarge)
 	ErrInvalidFileType = NewAppError("INVALID_FILE_TYPE", "Định dạng file không được hỗ trợ", http.StatusUnsupportedMediaType)
 
-	ErrRateLimited       = NewAppError("RATE_LIMITED", "Bạn thao tác quá nhanh, vui lòng thử lại sau", http.StatusTooManyRequests)
-	ErrIPBanned          = NewAppError("IP_BANNED", "Địa chỉ IP của bạn đã bị khóa tạm thời do phát hiện hành vi spam", http.StatusForbidden)
+	ErrRateLimited = NewAppError("RATE_LIMITED", "Bạn thao tác quá nhanh, vui lòng thử lại sau", http.StatusTooManyRequests)
+	ErrIPBanned    = NewAppError("IP_BANNED", "Địa chỉ IP của bạn đã bị khóa tạm thời do phát hiện hành vi spam", http.StatusForbidden)
 
 	ErrInternalServer = NewAppError("INTERNAL_ERROR", "Đã xảy ra lỗi hệ thống, vui lòng thử lại sau", http.StatusInternalServerError)
 )

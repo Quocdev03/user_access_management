@@ -33,6 +33,10 @@ func NewTxManager(db *sqlx.DB) *TxManager {
 	return &TxManager{db: db}
 }
 
+// RunInTx thực thi hàm fn trong ngữ cảnh của một transaction.
+// Nếu context truyền vào đã chứa transaction (Nested transaction), nó sẽ chia sẻ chung kết nối hiện tại.
+// Chú ý: TUYỆT ĐỐI không bắt lỗi từ một nested call rồi tiếp tục thao tác trên cùng transaction đó,
+// vì kết nối db đằng sau đã bị poison và bắt buộc phải bị rollback toàn bộ bởi transaction cha ở ngoài cùng.
 func (tm *TxManager) RunInTx(ctx context.Context, fn func(txCtx context.Context) error) error {
 	if _, ok := ctx.Value(txKey{}).(*sqlx.Tx); ok {
 		return fn(ctx)

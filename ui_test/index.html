@@ -617,6 +617,9 @@
                         <span class="term-method m-post">POST</span>
                     </div>
                     <div class="term-body">
+                        <p class="lead">
+                            <span class="cmt">//</span> Register
+                        </p>
                         <div class="field">
                             <label>username</label
                             ><input
@@ -705,10 +708,13 @@
                             class="term-dot"
                             style="background: #7fb88f"
                         ></span>
-                        <span class="term-path">/api/v1/auth/verify-email</span>
+                        <span class="term-path">/api/v1/auth/email/verify</span>
                         <span class="term-method m-post">POST</span>
                     </div>
                     <div class="term-body">
+                        <p class="lead">
+                            <span class="cmt">//</span> Verify Email
+                        </p>
                         <div class="field">
                             <label>email</label
                             ><input
@@ -732,7 +738,7 @@
                                 handleRequest(
                                     'verify-email',
                                     'POST',
-                                    '/api/v1/auth/verify-email',
+                                    '/api/v1/auth/email/verify',
                                     {
                                         email: getVal('ve-email'),
                                         otp: getVal('ve-otp'),
@@ -763,11 +769,14 @@
                             style="background: #7fb88f"
                         ></span>
                         <span class="term-path"
-                            >/api/v1/auth/resend-verification-email</span
+                            >/api/v1/auth/email/resend</span
                         >
                         <span class="term-method m-post">POST</span>
                     </div>
                     <div class="term-body">
+                        <p class="lead">
+                            <span class="cmt">//</span> Resend Verification Email
+                        </p>
                         <div class="field">
                             <label>email</label
                             ><input
@@ -783,7 +792,7 @@
                                 handleRequest(
                                     'resend-verify',
                                     'POST',
-                                    '/api/v1/auth/resend-verification-email',
+                                    '/api/v1/auth/email/resend',
                                     { email: getVal('rve-email') },
                                 )
                             "
@@ -814,6 +823,9 @@
                         <span class="term-method m-post">POST</span>
                     </div>
                     <div class="term-body">
+                        <p class="lead">
+                            <span class="cmt">//</span> Login
+                        </p>
                         <div class="field">
                             <label>email</label
                             ><input
@@ -881,11 +893,14 @@
                             style="background: #7fb88f"
                         ></span>
                         <span class="term-path"
-                            >/api/v1/auth/refresh-token</span
+                            >/api/v1/auth/token/refresh</span
                         >
                         <span class="term-method m-post">POST</span>
                     </div>
                     <div class="term-body">
+                        <p class="lead">
+                            <span class="cmt">//</span> Refresh Token
+                        </p>
                         <div class="field">
                             <label>refresh_token</label
                             ><input
@@ -943,11 +958,14 @@
                             style="background: #7fb88f"
                         ></span>
                         <span class="term-path"
-                            >/api/v1/auth/forgot-password</span
+                            >/api/v1/auth/password/forgot</span
                         >
                         <span class="term-method m-post">POST</span>
                     </div>
                     <div class="term-body">
+                        <p class="lead">
+                            <span class="cmt">//</span> Forgot Password
+                        </p>
                         <div class="field">
                             <label>email</label
                             ><input
@@ -963,7 +981,7 @@
                                 handleRequest(
                                     'forgot-pwd',
                                     'POST',
-                                    '/api/v1/auth/forgot-password',
+                                    '/api/v1/auth/password/forgot',
                                     { email: getVal('fp-email') },
                                 )
                             "
@@ -991,11 +1009,14 @@
                             style="background: #7fb88f"
                         ></span>
                         <span class="term-path"
-                            >/api/v1/auth/reset-password</span
+                            >/api/v1/auth/password/reset</span
                         >
                         <span class="term-method m-post">POST</span>
                     </div>
                     <div class="term-body">
+                        <p class="lead">
+                            <span class="cmt">//</span> Reset Password
+                        </p>
                         <div class="field">
                             <label>token</label
                             ><input
@@ -1019,7 +1040,7 @@
                                 handleRequest(
                                     'reset-pwd',
                                     'POST',
-                                    '/api/v1/auth/reset-password',
+                                    '/api/v1/auth/password/reset',
                                     {
                                         token: getVal('rp-token'),
                                         new_password: getVal('rp-new-pwd'),
@@ -1033,6 +1054,46 @@
                         <div id="res-reset-pwd" class="out"></div>
                     </div>
                 </div>
+                <!-- Force Change Password -->
+                <div class="term">
+                    <div class="term-bar">
+                        <span class="term-dot" style="background: #e2685a"></span>
+                        <span class="term-dot" style="background: #d9a057"></span>
+                        <span class="term-dot" style="background: #7fb88f"></span>
+                        <span class="term-path">/api/v1/auth/password/force-change</span>
+                        <span class="term-method m-post">POST</span>
+                    </div>
+                    <div class="term-body">
+                        <p class="lead">
+                            <span class="cmt">//</span> Force Change Password
+                        </p>
+                        <div class="field">
+                            <label>email</label><input class="tin" type="email" id="fcp-email" placeholder="user@example.com" />
+                        </div>
+                        <div class="field">
+                            <label>temp_password</label><input class="tin" type="password" id="fcp-temp" placeholder="••••••••" />
+                        </div>
+                        <div class="field">
+                            <label>new_password</label><input class="tin" type="password" id="fcp-new" placeholder="••••••••" />
+                        </div>
+                        <button class="runbtn" onclick="
+                            handleRequest(
+                                'force-change-pwd',
+                                'POST',
+                                '/api/v1/auth/password/force-change',
+                                {
+                                    email: getVal('fcp-email'),
+                                    temp_password: getVal('fcp-temp'),
+                                    new_password: getVal('fcp-new'),
+                                }
+                            )
+                        ">
+                            <i data-lucide="play" class="w-3.5 h-3.5"></i>force change password
+                        </button>
+                        <div id="res-force-change-pwd" class="out"></div>
+                    </div>
+                </div>
+
                 <!-- Change Password -->
                 <div class="term">
                     <div class="term-bar">
@@ -1049,12 +1110,15 @@
                             style="background: #7fb88f"
                         ></span>
                         <span class="term-path"
-                            >/auth/change-password</span
+                            >/auth/password/change</span
                         >
                         <span class="auth-tag">auth</span>
                         <span class="term-method m-post">POST</span>
                     </div>
                     <div class="term-body">
+                        <p class="lead">
+                            <span class="cmt">//</span> Change Password
+                        </p>
                         <div class="field">
                             <label>access_token</label
                             ><input
@@ -1087,7 +1151,7 @@
                                 handleRequest(
                                     'change-pwd',
                                     'POST',
-                                    '/api/v1/auth/change-password',
+                                    '/api/v1/auth/password/change',
                                     {
                                         old_password: getVal('cp-old'),
                                         new_password: getVal('cp-new'),
@@ -1124,6 +1188,9 @@
                         <span class="term-method m-post">POST</span>
                     </div>
                     <div class="term-body">
+                        <p class="lead">
+                            <span class="cmt">//</span> Logout
+                        </p>
                         <div class="field">
                             <label>access_token</label
                             ><input
@@ -1171,6 +1238,9 @@
                         <span class="term-method m-post">POST</span>
                     </div>
                     <div class="term-body">
+                        <p class="lead">
+                            <span class="cmt">//</span> Logout All
+                        </p>
                         <div class="field">
                             <label>access_token</label
                             ><input
@@ -1228,6 +1298,9 @@
                         <span class="term-method m-get">GET</span>
                     </div>
                     <div class="term-body">
+                        <p class="lead">
+                            <span class="cmt">//</span> Get Profile
+                        </p>
                         <div class="field">
                             <label>access_token</label
                             ><input
@@ -1283,6 +1356,9 @@
                         >
                     </div>
                     <div class="term-body">
+                        <p class="lead">
+                            <span class="cmt">//</span> Update Profile
+                        </p>
                         <div class="field">
                             <label>access_token</label
                             ><input
@@ -1359,6 +1435,9 @@
                         <span class="term-method m-post">POST</span>
                     </div>
                     <div class="term-body">
+                        <p class="lead">
+                            <span class="cmt">//</span> Upload Avatar
+                        </p>
                         <div class="field">
                             <label>access_token</label
                             ><input
@@ -1411,6 +1490,9 @@
                         >
                     </div>
                     <div class="term-body">
+                        <p class="lead">
+                            <span class="cmt">//</span> Delete Avatar
+                        </p>
                         <div class="field">
                             <label>access_token</label
                             ><input
@@ -1455,12 +1537,15 @@
                             style="background: #7fb88f"
                         ></span>
                         <span class="term-path"
-                            >/users/me/email/request-change</span
+                            >/users/me/email/change-request</span
                         >
                         <span class="auth-tag">auth</span>
                         <span class="term-method m-post">POST</span>
                     </div>
                     <div class="term-body">
+                        <p class="lead">
+                            <span class="cmt">//</span> Change Email - Step 1: Request
+                        </p>
                         <div class="field">
                             <label>access_token</label
                             ><input
@@ -1493,7 +1578,7 @@
                                 handleRequest(
                                     'req-email',
                                     'POST',
-                                    '/api/v1/users/me/email/request-change',
+                                    '/api/v1/users/me/email/change-request',
                                     {
                                         current_password:
                                             getVal('req-email-pwd'),
@@ -1526,12 +1611,15 @@
                             style="background: #7fb88f"
                         ></span>
                         <span class="term-path"
-                            >/users/me/email/resend-otp</span
+                            >/users/me/email/resend</span
                         >
                         <span class="auth-tag">auth</span>
                         <span class="term-method m-post">POST</span>
                     </div>
                     <div class="term-body">
+                        <p class="lead">
+                            <span class="cmt">//</span> Change Email - Resend OTP
+                        </p>
                         <div class="field">
                             <label>access_token</label
                             ><input
@@ -1546,7 +1634,7 @@
                                 handleRequest(
                                     're-email-resend',
                                     'POST',
-                                    '/api/v1/users/me/email/resend-otp',
+                                    '/api/v1/users/me/email/resend',
                                     {},
                                     getVal('re-email-resend-token'),
                                 )
@@ -1579,6 +1667,9 @@
                         <span class="term-method m-post">POST</span>
                     </div>
                     <div class="term-body">
+                        <p class="lead">
+                            <span class="cmt">//</span> Change Email - Step 2: Verify
+                        </p>
                         <div class="field">
                             <label>access_token</label
                             ><input
@@ -1624,6 +1715,277 @@
                         <div id="res-v-email" class="out"></div>
                     </div>
                 </div>
+                </div>
+            </div>
+
+            <!-- ================= ADMIN MODULE ================= -->
+            <div class="mb-10">
+                <h2 class="text-xl font-bold mb-4 flex items-center gap-2" style="color: var(--text)"><i data-lucide="shield" class="w-5 h-5" style="color: var(--accent)"></i> Admin Management</h2>
+                <div class="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
+
+                <!-- List Users -->
+                <div class="term">
+                    <div class="term-bar">
+                        <span class="term-dot" style="background: #e2685a"></span>
+                        <span class="term-dot" style="background: #d9a057"></span>
+                        <span class="term-dot" style="background: #7fb88f"></span>
+                        <span class="term-path">/api/v1/admin/users</span>
+                        <span class="auth-tag">auth+admin</span>
+                        <span class="term-method m-get">GET</span>
+                    </div>
+                    <div class="term-body">
+                        <p class="lead">
+                            <span class="cmt">//</span> List Users
+                        </p>
+                        <div class="field">
+                            <label>access_token</label><input class="tin" id="ad-list-token" placeholder="admin access token…" />
+                        </div>
+                        <div class="field">
+                            <label>page</label><input class="tin" type="number" id="ad-list-page" placeholder="1" />
+                        </div>
+                        <div class="field">
+                            <label>role</label><input class="tin" id="ad-list-role" placeholder="admin, user..." />
+                        </div>
+                        <button class="runbtn neutral" onclick="
+                            (() => {
+                                let query = new URLSearchParams();
+                                let page = getVal('ad-list-page');
+                                let role = getVal('ad-list-role');
+                                if (page) query.append('page', page);
+                                if (role) query.append('role', role);
+                                let path = '/api/v1/admin/users';
+                                if (query.toString()) path += '?' + query.toString();
+                                handleRequest('ad-list', 'GET', path, null, getVal('ad-list-token'));
+                            })()
+                        ">
+                            <i data-lucide="users" class="w-3.5 h-3.5"></i>list users
+                        </button>
+                        <div id="res-ad-list" class="out"></div>
+                    </div>
+                </div>
+
+                <!-- Get User Detail -->
+                <div class="term">
+                    <div class="term-bar">
+                        <span class="term-dot" style="background: #e2685a"></span>
+                        <span class="term-dot" style="background: #d9a057"></span>
+                        <span class="term-dot" style="background: #7fb88f"></span>
+                        <span class="term-path">/api/v1/admin/users/:id</span>
+                        <span class="auth-tag">auth+admin</span>
+                        <span class="term-method m-get">GET</span>
+                    </div>
+                    <div class="term-body">
+                        <p class="lead">
+                            <span class="cmt">//</span> Get User Detail
+                        </p>
+                        <div class="field">
+                            <label>access_token</label><input class="tin" id="ad-get-token" placeholder="admin access token…" />
+                        </div>
+                        <div class="field">
+                            <label>user_id</label><input class="tin" id="ad-get-id" placeholder="1" />
+                        </div>
+                        <button class="runbtn neutral" onclick="
+                            handleRequest('ad-get', 'GET', '/api/v1/admin/users/' + getVal('ad-get-id'), null, getVal('ad-get-token'))
+                        ">
+                            <i data-lucide="user" class="w-3.5 h-3.5"></i>get user detail
+                        </button>
+                        <div id="res-ad-get" class="out"></div>
+                    </div>
+                </div>
+
+                <!-- Update User -->
+                <div class="term">
+                    <div class="term-bar">
+                        <span class="term-dot" style="background: #e2685a"></span>
+                        <span class="term-dot" style="background: #d9a057"></span>
+                        <span class="term-dot" style="background: #7fb88f"></span>
+                        <span class="term-path">/api/v1/admin/users/:id</span>
+                        <span class="auth-tag">auth+admin</span>
+                        <span class="term-method m-post" style="color: #9c77c0; border-color: rgba(156, 119, 192, 0.35); background: rgba(156, 119, 192, 0.08);">PUT</span>
+                    </div>
+                    <div class="term-body">
+                        <p class="lead">
+                            <span class="cmt">//</span> Update User
+                        </p>
+                        <div class="field">
+                            <label>access_token</label><input class="tin" id="ad-put-token" placeholder="admin access token…" />
+                        </div>
+                        <div class="field">
+                            <label>user_id</label><input class="tin" id="ad-put-id" placeholder="1" />
+                        </div>
+                        <div class="row2">
+                            <div class="field">
+                                <label>full_name</label><input class="tin" id="ad-put-name" placeholder="John Doe" />
+                            </div>
+                            <div class="field">
+                                <label>phone</label><input class="tin" id="ad-put-phone" placeholder="0123456789" />
+                            </div>
+                        </div>
+                        <div class="row2">
+                            <div class="field">
+                                <label>email</label><input class="tin" id="ad-put-email" type="email" placeholder="john@example.com" />
+                            </div>
+                            <div class="field">
+                                <label>email_verified</label>
+                                <select class="tin" id="ad-put-verified" style="height: 35px;">
+                                    <option value="">(Bỏ qua)</option>
+                                    <option value="true">True</option>
+                                    <option value="false">False</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row2">
+                            <div class="field">
+                                <label>date_of_birth</label><input class="tin" id="ad-put-dob" type="date" />
+                            </div>
+                            <div class="field">
+                                <label>avatar_url</label><input class="tin" id="ad-put-avatar" placeholder="https://..." />
+                            </div>
+                        </div>
+                        <button class="runbtn" onclick="
+                            (() => {
+                                let payload = {};
+                                if (getVal('ad-put-name')) payload.full_name = getVal('ad-put-name');
+                                if (getVal('ad-put-phone')) payload.phone = getVal('ad-put-phone');
+                                if (getVal('ad-put-email')) payload.email = getVal('ad-put-email');
+                                if (getVal('ad-put-verified')) payload.email_verified = getVal('ad-put-verified') === 'true';
+                                if (getVal('ad-put-dob')) payload.date_of_birth = getVal('ad-put-dob');
+                                if (getVal('ad-put-avatar')) payload.avatar_url = getVal('ad-put-avatar');
+
+                                handleRequest(
+                                    'ad-put',
+                                    'PUT',
+                                    '/api/v1/admin/users/' + getVal('ad-put-id'),
+                                    payload,
+                                    getVal('ad-put-token')
+                                );
+                            })()
+                        ">
+                            <i data-lucide="play" class="w-3.5 h-3.5"></i>update user
+                        </button>
+                        <div id="res-ad-put" class="out"></div>
+                    </div>
+                </div>
+
+                <!-- Change Status -->
+                <div class="term">
+                    <div class="term-bar">
+                        <span class="term-dot" style="background: #e2685a"></span>
+                        <span class="term-dot" style="background: #d9a057"></span>
+                        <span class="term-dot" style="background: #7fb88f"></span>
+                        <span class="term-path">/api/v1/admin/users/:id/status</span>
+                        <span class="auth-tag">auth+admin</span>
+                        <span class="term-method m-post" style="color: #9c77c0; border-color: rgba(156, 119, 192, 0.35); background: rgba(156, 119, 192, 0.08);">PATCH</span>
+                    </div>
+                    <div class="term-body">
+                        <p class="lead">
+                            <span class="cmt">//</span> Change Status
+                        </p>
+                        <div class="field">
+                            <label>access_token</label><input class="tin" id="ad-st-token" placeholder="admin access token…" />
+                        </div>
+                        <div class="field">
+                            <label>user_id</label><input class="tin" id="ad-st-id" placeholder="1" />
+                        </div>
+                        <div class="field">
+                            <label>status</label>
+                            <select class="tin" id="ad-st-status" style="height: 33px; padding-top: 4px;">
+                                <option value="active">active</option>
+                                <option value="inactive">inactive</option>
+                                <option value="locked">locked</option>
+                            </select>
+                        </div>
+                        <button class="runbtn danger" onclick="
+                            handleRequest(
+                                'ad-st',
+                                'PATCH',
+                                '/api/v1/admin/users/' + getVal('ad-st-id') + '/status',
+                                { status: getVal('ad-st-status') },
+                                getVal('ad-st-token')
+                            )
+                        ">
+                            <i data-lucide="shield-alert" class="w-3.5 h-3.5"></i>change status
+                        </button>
+                        <div id="res-ad-st" class="out"></div>
+                    </div>
+                </div>
+
+                <!-- Reset Password (Admin) -->
+                <div class="term">
+                    <div class="term-bar">
+                        <span class="term-dot" style="background: #e2685a"></span>
+                        <span class="term-dot" style="background: #d9a057"></span>
+                        <span class="term-dot" style="background: #7fb88f"></span>
+                        <span class="term-path">/api/v1/admin/users/:id/password/reset</span>
+                        <span class="auth-tag">auth+admin</span>
+                        <span class="term-method m-post">POST</span>
+                    </div>
+                    <div class="term-body">
+                        <p class="lead">
+                            <span class="cmt">//</span> Reset Password (Admin)
+                        </p>
+                        <div class="field">
+                            <label>access_token</label><input class="tin" id="ad-rp-token" placeholder="admin access token…" />
+                        </div>
+                        <div class="field">
+                            <label>user_id</label><input class="tin" id="ad-rp-id" placeholder="1" />
+                        </div>
+                        <button class="runbtn danger" onclick="
+                            handleRequest(
+                                'ad-rp',
+                                'POST',
+                                '/api/v1/admin/users/' + getVal('ad-rp-id') + '/password/reset',
+                                {},
+                                getVal('ad-rp-token')
+                            )
+                        ">
+                            <i data-lucide="key-round" class="w-3.5 h-3.5"></i>reset password
+                        </button>
+                        <div id="res-ad-rp" class="out"></div>
+                    </div>
+                </div>
+
+                <!-- Notify User -->
+                <div class="term">
+                    <div class="term-bar">
+                        <span class="term-dot" style="background: #e2685a"></span>
+                        <span class="term-dot" style="background: #d9a057"></span>
+                        <span class="term-dot" style="background: #7fb88f"></span>
+                        <span class="term-path">/api/v1/admin/users/:id/notify</span>
+                        <span class="auth-tag">auth+admin</span>
+                        <span class="term-method m-post">POST</span>
+                    </div>
+                    <div class="term-body">
+                        <p class="lead">
+                            <span class="cmt">//</span> Notify User
+                        </p>
+                        <div class="field">
+                            <label>access_token</label><input class="tin" id="ad-noti-token" placeholder="admin access token…" />
+                        </div>
+                        <div class="field">
+                            <label>user_id</label><input class="tin" id="ad-noti-id" placeholder="1" />
+                        </div>
+                        <div class="field">
+                            <label>subject</label><input class="tin" id="ad-noti-sub" placeholder="Cảnh báo tài khoản" />
+                        </div>
+                        <div class="field">
+                            <label>message</label><input class="tin" id="ad-noti-msg" placeholder="Nội dung cảnh báo..." />
+                        </div>
+                        <button class="runbtn" onclick="
+                            handleRequest(
+                                'ad-noti',
+                                'POST',
+                                '/api/v1/admin/users/' + getVal('ad-noti-id') + '/notify',
+                                { subject: getVal('ad-noti-sub'), message: getVal('ad-noti-msg') },
+                                getVal('ad-noti-token')
+                            )
+                        ">
+                            <i data-lucide="bell" class="w-3.5 h-3.5"></i>send notification
+                        </button>
+                        <div id="res-ad-noti" class="out"></div>
+                    </div>
+                </div>
+
                 </div>
             </div>
 
@@ -1786,6 +2148,12 @@
                             res.data.data.access_token;
                         document.getElementById("v-email-token").value =
                             res.data.data.access_token;
+                        if(document.getElementById("ad-list-token")) document.getElementById("ad-list-token").value = res.data.data.access_token;
+                        if(document.getElementById("ad-get-token")) document.getElementById("ad-get-token").value = res.data.data.access_token;
+                        if(document.getElementById("ad-put-token")) document.getElementById("ad-put-token").value = res.data.data.access_token;
+                        if(document.getElementById("ad-st-token")) document.getElementById("ad-st-token").value = res.data.data.access_token;
+                        if(document.getElementById("ad-rp-token")) document.getElementById("ad-rp-token").value = res.data.data.access_token;
+                        if(document.getElementById("ad-noti-token")) document.getElementById("ad-noti-token").value = res.data.data.access_token;
                     }
                     if (res.data.data.refresh_token) {
                         document.getElementById("log-refresh-token").value =
@@ -1800,7 +2168,7 @@
                 const res = await handleRequest(
                     "refresh",
                     "POST",
-                    "/api/v1/auth/refresh-token",
+                    "/api/v1/auth/token/refresh",
                     {
                         refresh_token: getVal("ref-token"),
                     },
@@ -1830,6 +2198,12 @@
                             res.data.data.access_token;
                         document.getElementById("v-email-token").value =
                             res.data.data.access_token;
+                        if(document.getElementById("ad-list-token")) document.getElementById("ad-list-token").value = res.data.data.access_token;
+                        if(document.getElementById("ad-get-token")) document.getElementById("ad-get-token").value = res.data.data.access_token;
+                        if(document.getElementById("ad-put-token")) document.getElementById("ad-put-token").value = res.data.data.access_token;
+                        if(document.getElementById("ad-st-token")) document.getElementById("ad-st-token").value = res.data.data.access_token;
+                        if(document.getElementById("ad-rp-token")) document.getElementById("ad-rp-token").value = res.data.data.access_token;
+                        if(document.getElementById("ad-noti-token")) document.getElementById("ad-noti-token").value = res.data.data.access_token;
                     }
                     if (res.data.data.refresh_token) {
                         document.getElementById("ref-new-refresh-token").value =

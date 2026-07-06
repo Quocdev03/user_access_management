@@ -8,8 +8,8 @@ import (
 func CORSMiddleware(cfg *config.Config) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		allowedOrigin := cfg.App.FrontendURL
-		if allowedOrigin == "" {
-			allowedOrigin = "*"
+		if allowedOrigin == "" || allowedOrigin == "*" {
+			allowedOrigin = "http://localhost:3000"
 		}
 		c.Writer.Header().Set("Access-Control-Allow-Origin", allowedOrigin)
 		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")

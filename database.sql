@@ -14,7 +14,7 @@
 -- 1. users — Người dùng (000001)
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `users` (
-    `id`                    BIGINT          NOT NULL AUTO_INCREMENT,
+    `id`                    BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     `username`              VARCHAR(50)     NOT NULL,
     `email`                 VARCHAR(255)    NOT NULL,
     `password_hash`         VARCHAR(255)    NOT NULL,
@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS `users` (
     `date_of_birth`         DATE            NOT NULL,
     `status`                ENUM('active', 'inactive', 'locked') NOT NULL DEFAULT 'inactive',
     `email_verified`        TINYINT(1)      NOT NULL DEFAULT 0,
+    `must_change_password`  TINYINT(1)      NOT NULL DEFAULT 0,
     `failed_login_attempts` INT             NOT NULL DEFAULT 0,
     `locked_until`          DATETIME        NULL DEFAULT NULL,
     `last_login_at`         DATETIME        NULL DEFAULT NULL,
@@ -41,7 +42,7 @@ CREATE TABLE IF NOT EXISTS `users` (
 -- 2. roles — Vai trò (000002)
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `roles` (
-    `id`          BIGINT       NOT NULL AUTO_INCREMENT,
+    `id`          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     `name`        VARCHAR(50)  NOT NULL,
     `description` VARCHAR(255) NULL DEFAULT NULL,
     `created_at`  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -55,7 +56,7 @@ CREATE TABLE IF NOT EXISTS `roles` (
 -- 3. permissions — Quyền hạn (000003)
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `permissions` (
-    `id`          BIGINT       NOT NULL AUTO_INCREMENT,
+    `id`          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     `name`        VARCHAR(100) NOT NULL,
     `description` VARCHAR(255) NULL DEFAULT NULL,
     `resource`    VARCHAR(50)  NOT NULL,
@@ -70,9 +71,9 @@ CREATE TABLE IF NOT EXISTS `permissions` (
 -- 4. user_roles — Liên kết Người dùng - Vai trò (000004)
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `user_roles` (
-    `id`          BIGINT   NOT NULL AUTO_INCREMENT,
-    `user_id`     BIGINT   NOT NULL,
-    `role_id`     BIGINT   NOT NULL,
+    `id`          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `user_id`     BIGINT UNSIGNED NOT NULL,
+    `role_id`     BIGINT UNSIGNED NOT NULL,
     `assigned_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     PRIMARY KEY (`id`),
@@ -84,16 +85,16 @@ CREATE TABLE IF NOT EXISTS `user_roles` (
         ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT `fk_user_roles_role_id`
         FOREIGN KEY (`role_id`) REFERENCES `roles` (`id`)
-        ON DELETE CASCADE ON UPDATE CASCADE
+        ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- -----------------------------------------------------------------------------
 -- 5. role_permissions — Liên kết Vai trò - Quyền hạn (000005)
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `role_permissions` (
-    `id`            BIGINT   NOT NULL AUTO_INCREMENT,
-    `role_id`       BIGINT   NOT NULL,
-    `permission_id` BIGINT   NOT NULL,
+    `id`            BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `role_id`       BIGINT UNSIGNED NOT NULL,
+    `permission_id` BIGINT UNSIGNED NOT NULL,
     `assigned_at`   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     PRIMARY KEY (`id`),
@@ -101,23 +102,23 @@ CREATE TABLE IF NOT EXISTS `role_permissions` (
 
     CONSTRAINT `fk_role_permissions_role_id`
         FOREIGN KEY (`role_id`) REFERENCES `roles` (`id`)
-        ON DELETE CASCADE ON UPDATE CASCADE,
+        ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT `fk_role_permissions_permission_id`
         FOREIGN KEY (`permission_id`) REFERENCES `permissions` (`id`)
-        ON DELETE CASCADE ON UPDATE CASCADE
+        ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- -----------------------------------------------------------------------------
 -- 6. sessions — Phiên đăng nhập (000006)
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `sessions` (
-    `id`                 BIGINT       NOT NULL AUTO_INCREMENT,
-    `user_id`            BIGINT       NOT NULL,
+    `id`                 BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `user_id`            BIGINT UNSIGNED NOT NULL,
     `token_hash`         VARCHAR(255) NOT NULL,
     `refresh_token_hash` VARCHAR(255) NOT NULL,
     `ip_address`         VARCHAR(45)  NULL DEFAULT NULL,
-    `user_agent`         VARCHAR(500) NULL DEFAULT NULL,
-    `device_id`          BIGINT       NULL DEFAULT NULL,
+    `user_agent`         TEXT         NULL DEFAULT NULL,
+    `device_id`          BIGINT UNSIGNED NULL DEFAULT NULL,
     `expires_at`         DATETIME     NOT NULL,
     `created_at`         DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -136,8 +137,8 @@ CREATE TABLE IF NOT EXISTS `sessions` (
 -- 7. devices — Thiết bị đăng nhập (000007)
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `devices` (
-    `id`             BIGINT       NOT NULL AUTO_INCREMENT,
-    `user_id`        BIGINT       NOT NULL,
+    `id`             BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `user_id`        BIGINT UNSIGNED NOT NULL,
     `device_name`    VARCHAR(100) NULL DEFAULT NULL,
     `device_type`    VARCHAR(50)  NULL DEFAULT NULL,
     `os`             VARCHAR(50)  NULL DEFAULT NULL,
@@ -164,8 +165,8 @@ ALTER TABLE `sessions`
 -- 8. otp_codes — Mã OTP xác thực (000008)
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `otp_codes` (
-    `id`         BIGINT                                                     NOT NULL AUTO_INCREMENT,
-    `user_id`    BIGINT                                                     NOT NULL,
+    `id`         BIGINT UNSIGNED                                            NOT NULL AUTO_INCREMENT,
+    `user_id`    BIGINT UNSIGNED                                            NOT NULL,
     `code`       VARCHAR(10)                                                NOT NULL,
     `type`       ENUM('email_verification', 'forgot_password', 'change_email') NOT NULL,
     `attempts`   INT                                                        NOT NULL DEFAULT 0,
@@ -186,8 +187,8 @@ CREATE TABLE IF NOT EXISTS `otp_codes` (
 -- 9. password_reset_tokens — Token đặt lại mật khẩu (000009)
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `password_reset_tokens` (
-    `id`         BIGINT       NOT NULL AUTO_INCREMENT,
-    `user_id`    BIGINT       NOT NULL,
+    `id`         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `user_id`    BIGINT UNSIGNED NOT NULL,
     `token_hash` VARCHAR(255) NOT NULL,
     `is_used`    TINYINT(1)   NOT NULL DEFAULT 0,
     `expires_at` DATETIME     NOT NULL,
@@ -207,16 +208,16 @@ CREATE TABLE IF NOT EXISTS `password_reset_tokens` (
 -- 10. audit_logs — Nhật ký kiểm toán (000010)
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `audit_logs` (
-    `id`          BIGINT                       NOT NULL AUTO_INCREMENT,
-    `user_id`     BIGINT                       NULL DEFAULT NULL,
+    `id`          BIGINT UNSIGNED              NOT NULL AUTO_INCREMENT,
+    `user_id`     BIGINT UNSIGNED              NULL DEFAULT NULL,
     `action`      VARCHAR(50)                  NOT NULL,
     `resource`    VARCHAR(50)                  NULL DEFAULT NULL,
     `resource_id` VARCHAR(50)                  NULL DEFAULT NULL,
     `ip_address`  VARCHAR(45)                  NULL DEFAULT NULL,
-    `user_agent`  VARCHAR(500)                 NULL DEFAULT NULL,
+    `user_agent`  TEXT                         NULL DEFAULT NULL,
     `old_values`  JSON                         NULL DEFAULT NULL,
     `new_values`  JSON                         NULL DEFAULT NULL,
-    `status`      ENUM('success', 'failure')   NOT NULL,
+    `status`      VARCHAR(50)                  NOT NULL,
     `created_at`  DATETIME                     NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     PRIMARY KEY (`id`),
@@ -227,7 +228,7 @@ CREATE TABLE IF NOT EXISTS `audit_logs` (
 
     CONSTRAINT `fk_audit_logs_user_id`
         FOREIGN KEY (`user_id`) REFERENCES `users` (`id`)
-        ON DELETE SET NULL ON UPDATE CASCADE
+        ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =============================================================================
@@ -248,6 +249,7 @@ INSERT INTO `permissions` (`name`, `description`, `resource`, `action`) VALUES
     ('users.delete',  'Xóa người dùng',                    'users', 'delete'),
     ('users.lock',    'Khóa / mở khóa tài khoản',          'users', 'lock'),
     ('users.reset_password', 'Reset mật khẩu người dùng',  'users', 'reset_password'),
+    ('users.notify',  'Gửi thông báo bắt buộc',            'users', 'notify'),
     ('roles.create',  'Tạo vai trò mới',                   'roles', 'create'),
     ('roles.read',    'Xem danh sách vai trò',              'roles', 'read'),
     ('roles.update',  'Cập nhật vai trò',                   'roles', 'update'),

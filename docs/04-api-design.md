@@ -106,15 +106,15 @@ Các endpoint trả danh sách hỗ trợ query params:
 | Phương thức | Endpoint | Mô tả | Auth |
 |-------------|----------|-------|------|
 | POST | `/auth/register` | Đăng ký tài khoản | Không |
-| POST | `/auth/verify-email` | Xác thực email bằng OTP | Không |
-| POST | `/auth/resend-verification-email` | Gửi lại mã OTP xác thực email | Không |
+| POST | `/auth/email/verify` | Xác thực email bằng OTP | Không |
+| POST | `/auth/email/resend` | Gửi lại mã OTP xác thực email | Không |
 | POST | `/auth/login` | Đăng nhập | Không |
-| POST | `/auth/refresh-token` | Làm mới access token | Không (dùng refresh token) |
+| POST | `/auth/token/refresh` | Làm mới access token | Không (dùng refresh token) |
 | POST | `/auth/logout` | Đăng xuất | Có |
 | POST | `/auth/logout-all` | Đăng xuất tất cả thiết bị | Có |
-| POST | `/auth/forgot-password` | Yêu cầu đặt lại mật khẩu | Không |
-| POST | `/auth/reset-password` | Đặt lại mật khẩu bằng token | Không |
-| POST | `/auth/change-password` | Đổi mật khẩu (khi đã đăng nhập) | Có |
+| POST | `/auth/password/forgot` | Yêu cầu đặt lại mật khẩu | Không |
+| POST | `/auth/password/reset` | Đặt lại mật khẩu bằng token | Không |
+| POST | `/auth/password/change` | Đổi mật khẩu (khi đã đăng nhập) | Có |
 
 ### 3.2 Hồ sơ người dùng (User Profile)
 
@@ -122,9 +122,9 @@ Các endpoint trả danh sách hỗ trợ query params:
 |-------------|----------|-------|------|
 | GET | `/users/me` | Xem thông tin cá nhân | Có |
 | PUT | `/users/me` | Cập nhật thông tin cá nhân | Có |
-| POST | `/users/me/email/request-change` | Yêu cầu đổi email (gửi OTP email cũ) | Có |
-| POST | `/users/me/email/verify-old` | Xác thực OTP email cũ (sinh session token) | Có |
-| POST | `/users/me/email/verify-new` | Xác thực OTP email mới & cập nhật email | Có |
+| POST | `/users/me/email/change-request` | Yêu cầu đổi email (gửi OTP đến cả 2 email) | Có |
+| POST | `/users/me/email/verify` | Xác thực OTP từ cả 2 email & cập nhật | Có |
+| POST | `/users/me/email/resend` | Gửi lại mã OTP đổi email | Có |
 | POST | `/users/me/avatar` | Upload ảnh đại diện | Có |
 | DELETE | `/users/me/avatar` | Xóa ảnh đại diện | Có |
 
@@ -143,8 +143,8 @@ Các endpoint trả danh sách hỗ trợ query params:
 | GET | `/admin/users` | Tìm kiếm danh sách người dùng | Có | `users.read` |
 | GET | `/admin/users/{id}` | Xem chi tiết một người dùng | Có | `users.read` |
 | PUT | `/admin/users/{id}` | Cập nhật thông tin người dùng | Có | `users.update` |
-| PATCH | `/admin/users/{id}/status` | Thay đổi trạng thái (active/inactive/locked) | Có | `users.update` |
-| POST | `/admin/users/{id}/reset-password` | Đặt lại mật khẩu cho người dùng | Có | `users.update` |
+| PATCH | `/admin/users/{id}/status` | Thay đổi trạng thái (active/inactive/locked) | Có | `users.lock` |
+| POST | `/admin/users/{id}/password/reset` | Đặt lại mật khẩu cho người dùng | Có | `users.reset_password` |
 | POST | `/admin/users/{id}/notify` | Gửi thông báo bắt buộc | Có | `users.notify` |
 
 ### 3.5 Vai trò & Quyền hạn (Roles & Permissions)
@@ -203,6 +203,8 @@ Các endpoint trả danh sách hỗ trợ query params:
 }
 ```
 
+> **Lưu ý Password Policy**: Mật khẩu phải dài từ 8 đến 72 byte (do giới hạn thuật toán bcrypt), bắt buộc chứa ít nhất 1 chữ hoa, 1 chữ thường, 1 số và 1 ký tự đặc biệt.
+
 **Response (201):**
 ```json
 {
@@ -216,7 +218,7 @@ Các endpoint trả danh sách hỗ trợ query params:
 }
 ```
 
-### POST `/auth/verify-email`
+### POST `/auth/email/verify`
 
 Xác thực email bằng mã OTP.
 
@@ -262,7 +264,7 @@ Xác thực email bằng mã OTP.
 }
 ```
 
-### POST `/auth/refresh-token`
+### POST `/auth/token/refresh`
 
 Làm mới access token bằng refresh token.
 
@@ -287,7 +289,7 @@ Làm mới access token bằng refresh token.
 }
 ```
 
-### POST `/auth/forgot-password`
+### POST `/auth/password/forgot`
 
 Gửi email chứa link/token đặt lại mật khẩu.
 
@@ -308,7 +310,7 @@ Gửi email chứa link/token đặt lại mật khẩu.
 
 > **Lưu ý**: Luôn trả thành công dù email có tồn tại hay không (chống enumeration).
 
-### POST `/auth/reset-password`
+### POST `/auth/password/reset`
 
 Đặt lại mật khẩu bằng token từ email.
 
@@ -328,7 +330,7 @@ Gửi email chứa link/token đặt lại mật khẩu.
 }
 ```
 
-### POST `/auth/resend-verification-email`
+### POST `/auth/email/resend`
 
 Gửi lại mã OTP xác thực tài khoản qua email.
 

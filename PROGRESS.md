@@ -16,7 +16,7 @@
 | `pkg/logger/logger.go` | Zap structured logger (dev/prod mode) |
 | `pkg/hash/password.go` | bcrypt hash + verify password |
 | `pkg/jwt/jwt.go` | JWT sinh, parse và xác thực token (HS256) |
-| `migrations/` | 11 file migration đầy đủ (users, roles, permissions, sessions, devices, otp_codes, audit_logs, seed data) |
+| `migrations/` | 15 file migration đầy đủ (users, roles, permissions, sessions, devices, otp_codes, audit_logs, seed data, password_reset, must_change_password, alter_otp) |
 
 ---
 
@@ -39,7 +39,7 @@
 | File | Methods |
 |------|---------|
 | `internal/repository/user_repository.go` | `Create`, `FindByEmail`, `FindByUsername`, `UpdateStatus`, `UpdateLastLogin`, `IncrementFailedLogins`, `LockAccount`, `FindByID`, `UpdatePassword` |
-| `internal/repository/otp_repository.go` | `Create`, `GetLatestValidCode`, `IncrementAttempts`, `MarkAsUsed` |
+| `internal/repository/otp_repository.go` | `Create`, `GetLatestValidCodeForUpdate`, `IncrementAttempts`, `MarkAsUsed` |
 | `internal/repository/password_reset_repo.go` | `Create`, `FindByTokenHash`, `MarkAsUsed`, `InvalidateAllUserTokens` |
 | `internal/repository/role_repository.go` | `FindByName`, `AssignRoleToUser` |
 | `internal/repository/session_repository.go` | `Create`, `Update`, `FindByRefreshTokenHash`, `DeleteByRefreshTokenHash`, `DeleteByTokenHash`, `DeleteByUserID`, `AddToBlacklist` (Redis), `IsBlacklisted` (Redis) |
@@ -63,7 +63,7 @@
 | `internal/middleware/auth_middleware.go` | Middleware xác thực JWT access token, kiểm tra Redis blacklist, inject user context |
 | `internal/middleware/rbac_middleware.go` | Middleware kiểm tra phân quyền (RBAC) bằng JWT roles |
 | `internal/handler/auth_handler.go` | `Register`, `VerifyEmail`, `Login`, `RefreshToken`, `Logout`, `LogoutAll`, `ForgotPassword`, `ResetPassword`, `ChangePassword` |
-	| `internal/router/router.go` | `POST /api/v1/auth/register`, `POST /api/v1/auth/verify-email`, `POST /api/v1/auth/login`, `POST /api/v1/auth/refresh-token`, `POST /api/v1/auth/logout`, `POST /api/v1/auth/logout-all`, `POST /api/v1/auth/forgot-password`, `POST /api/v1/auth/reset-password`, `POST /api/v1/auth/change-password` |
+	| `internal/router/router.go` | `POST /api/v1/auth/register`, `POST /api/v1/auth/email/verify`, `POST /api/v1/auth/login`, `POST /api/v1/auth/token/refresh`, `POST /api/v1/auth/logout`, `POST /api/v1/auth/logout-all`, `POST /api/v1/auth/password/forgot`, `POST /api/v1/auth/password/reset`, `POST /api/v1/auth/password/change` |
 
 ---
 
@@ -89,7 +89,7 @@
 | File | Routes |
 |------|-------|
 | `internal/handler/user_handler.go` | Các handler tương ứng cho Profile, Email, Avatar |
-| `internal/router/router.go` | `GET /api/v1/users/me`, `PUT /api/v1/users/me`, `POST /api/v1/users/me/email/request-change`, `POST /api/v1/users/me/email/verify`, `POST /api/v1/users/me/email/resend-otp`, `POST /api/v1/users/me/avatar`, `DELETE /api/v1/users/me/avatar` |
+| `internal/router/router.go` | `GET /api/v1/users/me`, `PUT /api/v1/users/me`, `POST /api/v1/users/me/email/change-request`, `POST /api/v1/users/me/email/verify`, `POST /api/v1/users/me/email/resend`, `POST /api/v1/users/me/avatar`, `DELETE /api/v1/users/me/avatar` |
 
 ---
 
@@ -153,6 +153,33 @@
 | R9 | Tái cấu trúc RateLimitMiddleware & Cải thiện UX Anti-Spam | Phân tách Soft Limit (429 Too Many Requests) và Hard Ban (403 IP Banned) trong RateLimitMiddleware. Tăng số lần thử đăng nhập tối đa lên 10 lần sai sẽ khóa 15 phút. Nới lỏng cấu hình Rate Limit cho toàn bộ API để tránh chặn oan người dùng. |
 | R10 | Quét toàn diện codebase & Fix triệt để 51 lỗi Logic/Security/Dead Code | Loại bỏ mã chết (unused error/const, struct `UserServiceParams`), sửa deadlock & tối ưu transaction (RunInTx) trong User, Auth & Password Service. Gắn Fail-Closed cho Middleware (trả 503 khi Redis lỗi). Bổ sung API Resend & Cancel Email Change OTP. Đổi BindJSON sang Validator chuẩn. |
 | R11 | Đơn giản hóa kiến trúc luồng Đổi Email (UC-14) | Rút gọn từ 5 API xuống 2 API, loại bỏ EmailChangeToken rườm rà. Gửi đồng thời 2 OTP và verify atomic bằng FOR UPDATE để chống spam, lỗi state và Race Condition. |
+| R12 | Hoàn thiện fix triệt để 25 lỗi theo Code Review mới nhất | Chuẩn hóa tag, khắc phục TOCTOU trong RateLimit và OTP, chặn bypass auth bằng magic bytes, Hash OTP, fix lọt Redis I/O trong SQL Tx, tối ưu code logic toàn diện. |
+| R13 | Cập nhật fix 5 lỗi sót lại từ đợt Review V2 | Bổ sung dummy bcrypt chống Timing Attack (VerifyEmail, Login), sửa lỗi parse viper.GetDuration thành nanoseconds, chống lãng phí CPU khi đổi cùng mật khẩu, dùng hằng số thay hardcode RBAC, và ghi log khi lỗi lấy Roles. |
+| R14 | Chuẩn hóa Endpoint Naming REST | Đổi toàn bộ các URL verb thành dạng `resource/action` (vd: `/auth/verify-email` -> `/auth/email/verify`) và đồng bộ tài liệu, UI test theo chuẩn REST. |
+| B27 | Sửa lỗi Panic và Phân quyền RBAC trong Admin Module | Sửa lỗi `MustGet("user")` thành `"tokenClaims"`. Thay thế `GetRolesByUserID` bằng `GetPermissionsByUserId` trong `PermissionMiddleware` để sửa lỗi 403. |
+| B28 | Giải quyết Deadlock Đổi mật khẩu bắt buộc (`MustChangePassword`) | Bổ sung API `POST /api/v1/auth/force-change-password` để người dùng đổi mật khẩu tạm do Admin cung cấp mà không cần JWT Access Token. |
+| B29 | Lỗi công thức phân trang Admin | Cập nhật lại công thức `totalPages` trong `AdminUserService` để chia đúng số trang dựa trên `req.PerPage`. |
+| B30 | Lỗ hổng Broken Access Control và sai permission | Bổ sung `RequireRole(admin, moderator)` cho group `/admin`. Sửa 2 quyền `users.lock` và `users.reset_password`. Thêm admin bypass trong Middleware. Cập nhật CROSS JOIN tại migration `000014` để chống rớt quyền admin khi re-seed. |
+
+---
+
+### 🛡️ Admin Module — UC-15~18, UC-17, UC-27 (Phase 4)
+
+#### DTOs
+| File | Nội dung |
+|------|---------|
+| `internal/dto/admin_user_dto.go` | `AdminListUsersRequest`, `AdminUserListItem`, `AdminUpdateUserRequest`, `AdminChangeStatusRequest`, `AdminNotifyRequest` |
+
+#### Service Layer (Business Logic)
+| File | Logic đã implement |
+|------|------------------|
+| `internal/service/admin_user_service.go` | `ListUsers` (tìm kiếm, lọc theo Role), `GetUserDetail`, `UpdateUser`, `ChangeUserStatus` (bao gồm revoke session), `ResetUserPassword` (MustChangePassword), `NotifyUser` |
+
+#### Handler & Routes
+| File | Routes |
+|------|-------|
+| `internal/router/admin_routes.go` | `GET /admin/users`, `GET /admin/users/:id`, `PUT /admin/users/:id`, `PATCH /admin/users/:id/status`, `POST /admin/users/:id/password/reset`, `POST /admin/users/:id/notify` |
+| `internal/middleware/rbac_middleware.go` | `PermissionMiddleware` kiểm tra quyền theo resource (VD: `users.read`, `users.update`) |
 
 ---
 
@@ -160,14 +187,12 @@
 
 | UC | Tính năng | Ghi chú |
 |----|----------|---------|
-| UC-15~18 | Admin quản lý user | Chưa có |
-| UC-19 | Chặn/Mở khóa User | Chưa có |
 | UC-38 | Unit & Integration Test | Đã viết unit test cho `pkg/jwt`, các module khác chưa có |
+| UC-32 | Quản lý Roles & Permissions | Admin tạo role và gán permission (Chưa có) |
 
 ---
 
 ## 🔑 Bước tiếp theo đề xuất
 
-1. **UC-15~18 Admin Management** → API để Admin quản lý thông tin User (Xem danh sách, thêm sửa xóa).
-2. **UC-19 Block/Unblock** → Admin khóa hoặc mở khóa tài khoản người dùng vi phạm.
-3. **Viết Unit/Integration Test** → Đảm bảo độ che phủ code (coverage) cho các module Auth & User.
+1. **UC-32 Roles & Permissions Management** → Chức năng để Admin tạo role mới, gán quyền và gán role cho user.
+2. **Viết Unit/Integration Test** → Đảm bảo độ che phủ code (coverage) cho các module Auth & User.

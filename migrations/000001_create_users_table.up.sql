@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS `users` (
-    `id`                    BIGINT          NOT NULL AUTO_INCREMENT,
+    `id`                    BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     `username`              VARCHAR(50)     NOT NULL,
     `email`                 VARCHAR(255)    NOT NULL,
     `password_hash`         VARCHAR(255)    NOT NULL,

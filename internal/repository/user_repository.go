@@ -6,9 +6,11 @@ import (
 	"errors"
 	"time"
 
+	"github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 	"github.com/quocdev03/user-access-management/internal/constant"
 	"github.com/quocdev03/user-access-management/internal/model"
+	"github.com/quocdev03/user-access-management/pkg/apperror"
 	"github.com/quocdev03/user-access-management/pkg/database"
 )
 
@@ -28,6 +30,10 @@ func (r *UserRepository) Create(ctx context.Context, user *model.User) error {
 		VALUES (:username, :email, :password_hash, :full_name, :phone, :date_of_birth, :status, :email_verified, :created_at, :updated_at)`
 	result, err := database.GetDB(ctx, r.db).NamedExecContext(ctx, query, user)
 	if err != nil {
+		var mysqlErr *mysql.MySQLError
+		if errors.As(err, &mysqlErr) && mysqlErr.Number == 1062 {
+			return apperror.ErrConflict
+		}
 		return err
 	}
 
@@ -51,25 +57,10 @@ func (r *UserRepository) FindByEmail(ctx context.Context, email string) (*model.
 	return &user, nil
 }
 
-
-
 func (r *UserRepository) FindByID(ctx context.Context, userID uint64) (*model.User, error) {
 	var user model.User
 	query := `SELECT * FROM users WHERE id = ? LIMIT 1`
 	err := database.GetDB(ctx, r.db).GetContext(ctx, &user, query, userID)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, nil
-		}
-		return nil, err
-	}
-	return &user, nil
-}
-
-func (r *UserRepository) FindByEmailForUpdate(ctx context.Context, email string) (*model.User, error) {
-	var user model.User
-	query := `SELECT * FROM users WHERE email = ? LIMIT 1 FOR UPDATE`
-	err := database.GetDB(ctx, r.db).GetContext(ctx, &user, query, email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -107,6 +98,7 @@ func (r *UserRepository) UpdateUser(ctx context.Context, user *model.User) error
 		avatar_url = :avatar_url,
 		date_of_birth = :date_of_birth,
 		status = :status,
+		must_change_password = :must_change_password,
 		email_verified = :email_verified,
 		failed_login_attempts = :failed_login_attempts,
 		locked_until = :locked_until,
@@ -114,7 +106,76 @@ func (r *UserRepository) UpdateUser(ctx context.Context, user *model.User) error
 		updated_at = :updated_at
 		WHERE id = :id`
 	_, err := database.GetDB(ctx, r.db).NamedExecContext(ctx, query, user)
+	if err != nil {
+		var mysqlErr *mysql.MySQLError
+		if errors.As(err, &mysqlErr) && mysqlErr.Number == 1062 {
+			return apperror.ErrConflict
+		}
+	}
 	return err
+}
+
+// Hàm ListUsers là một hàm "chuyên trị" cho bài toán Tìm kiếm, Lọc và Phân trang (Pagination) dữ liệu lớn
+func (r *UserRepository) ListUsers(ctx context.Context, username, email, status, role string, limit, offset int, sortBy, sortOrder string) ([]model.User, int64, error) {
+	var users []model.User
+	var total int64
+	db := database.GetDB(ctx, r.db)
+
+	baseQuery := "FROM users WHERE 1=1"
+	var args []any
+
+	if username != "" {
+		baseQuery += " AND username LIKE ?"
+		args = append(args, "%"+username+"%")
+	}
+	if email != "" {
+		baseQuery += " AND email LIKE ?"
+		args = append(args, "%"+email+"%")
+	}
+	if status != "" {
+		baseQuery += " AND status = ?"
+		args = append(args, status)
+	}
+	if role != "" {
+		baseQuery += ` AND EXISTS (
+			SELECT 1 FROM user_roles ur 
+			JOIN roles r ON ur.role_id = r.id 
+			WHERE ur.user_id = users.id AND r.name = ?
+		)`
+		args = append(args, role)
+	}
+
+	countQuery := "SELECT COUNT(id) " + baseQuery
+	if err := db.GetContext(ctx, &total, countQuery, args...); err != nil {
+		return nil, 0, err
+	}
+
+	// Chống SQL Injection khi Order By
+	allowedSorts := map[string]string{
+		"created_at": "created_at",
+		"username":   "username",
+		"email":      "email",
+	}
+	col, ok := allowedSorts[sortBy]
+	if !ok {
+		col = "created_at"
+	}
+
+	allowedOrders := map[string]string{"asc": "ASC", "desc": "DESC"}
+	ord, ok := allowedOrders[sortOrder]
+	if !ok {
+		ord = "DESC"
+	}
+
+	orderClause := " ORDER BY " + col + " " + ord
+	selectQuery := "SELECT * " + baseQuery + orderClause + " LIMIT ? OFFSET ?"
+	args = append(args, limit, offset)
+
+	if err := db.SelectContext(ctx, &users, selectQuery, args...); err != nil {
+		return nil, 0, err
+	}
+
+	return users, total, nil
 }
 
 // IncrementFailedLogins tăng số lần đăng nhập sai một cách nguyên tử (dùng optimistic locking)
@@ -154,4 +215,3 @@ func (r *UserRepository) UnlockIfExpired(ctx context.Context, userID uint64) err
 	_, err := database.GetDB(ctx, r.db).ExecContext(ctx, query, constant.StatusActive, time.Now().UTC(), userID, constant.StatusLocked, time.Now().UTC())
 	return err
 }
-

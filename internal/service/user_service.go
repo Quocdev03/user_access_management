@@ -4,13 +4,12 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"mime/multipart"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
-	"github.com/go-sql-driver/mysql"
 	"go.uber.org/zap"
 
 	"github.com/quocdev03/user-access-management/internal/config"
@@ -66,6 +65,7 @@ func (s *UserService) GetProfile(ctx context.Context, userID uint64) (*dto.UserP
 
 	roles, err := s.roleRepo.GetRolesByUserID(ctx, userID)
 	if err != nil {
+		s.logger.Warn("Không lấy được roles của user trong GetProfile", zap.Uint64("user_id", userID), zap.Error(err))
 		roles = []string{constant.RoleUser}
 	}
 
@@ -123,13 +123,13 @@ func (s *UserService) RequestEmailChange(ctx context.Context, userID uint64, req
 		return apperror.ErrNotFound
 	}
 
-	if !hash.CheckPassword(req.CurrentPassword, user.PasswordHash) {
-		return apperror.ErrInvalidCredentials
-	}
-
 	isLimited, _ := s.sessionRepo.IncrementRateLimit(ctx, "email_change", user.Email, 3, 1*time.Minute)
 	if isLimited {
 		return apperror.ErrRateLimited
+	}
+
+	if !hash.CheckPassword(req.CurrentPassword, user.PasswordHash) {
+		return apperror.ErrInvalidCredentials
 	}
 
 	existing, err := s.userRepo.FindByEmail(ctx, req.NewEmail)
@@ -155,7 +155,7 @@ func (s *UserService) RequestEmailChange(ctx context.Context, userID uint64, req
 		if err := s.sessionRepo.SetEmailChangePending(txCtx, userID, req.NewEmail, 15*time.Minute); err != nil {
 			return fmt.Errorf("sessionRepo.SetEmailChangePending: %w", err)
 		}
-		
+
 		sendEmailOld = fnOld
 		sendEmailNew = fnNew
 		return nil
@@ -201,16 +201,12 @@ func (s *UserService) VerifyEmailChange(ctx context.Context, userID uint64, req 
 		userForUpdate.Email = newEmail
 		userForUpdate.EmailVerified = true
 		if err := s.userRepo.UpdateUser(txCtx, userForUpdate); err != nil {
-			if mysqlErr, ok := err.(*mysql.MySQLError); ok && mysqlErr.Number == 1062 {
-				return apperror.ErrConflict
-			}
 			return fmt.Errorf("userRepo.UpdateUser: %w", err)
 		}
 
 		if err := s.sessionRepo.DeleteByUserID(txCtx, userID); err != nil {
 			return fmt.Errorf("sessionRepo.DeleteByUserID: %w", err)
 		}
-		_ = s.sessionRepo.RevokeAllUserTokens(txCtx, userID, s.cfg.JWT.RefreshExpiry)
 
 		return nil
 	})
@@ -218,6 +214,8 @@ func (s *UserService) VerifyEmailChange(ctx context.Context, userID uint64, req 
 	if err != nil {
 		return err
 	}
+
+	_ = s.sessionRepo.RevokeAllUserTokens(ctx, userID, s.cfg.JWT.RefreshExpiry)
 
 	_ = s.sessionRepo.DeleteEmailChangePending(ctx, userID)
 
@@ -228,7 +226,11 @@ func (s *UserService) VerifyEmailChange(ctx context.Context, userID uint64, req 
 	return nil
 }
 
-func (s *UserService) UploadAvatar(ctx context.Context, userID uint64, file *multipart.FileHeader) (*dto.UploadAvatarResponse, error) {
+func (s *UserService) UploadAvatar(ctx context.Context, userID uint64, src io.ReadSeeker, originalFileName string, fileSize int64) (*dto.UploadAvatarResponse, error) {
+	if fileSize > 2<<20 { // Giới hạn 2MB
+		return nil, apperror.ErrBadRequest.WithMessage("Kích thước ảnh đại diện không được vượt quá 2MB")
+	}
+
 	user, err := s.userRepo.FindByID(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("userRepo.FindByID: %w", err)
@@ -237,9 +239,24 @@ func (s *UserService) UploadAvatar(ctx context.Context, userID uint64, file *mul
 		return nil, apperror.ErrNotFound
 	}
 
-	ext := strings.ToLower(filepath.Ext(file.Filename))
+	ext := strings.ToLower(filepath.Ext(originalFileName))
 	if ext != ".jpg" && ext != ".jpeg" && ext != ".png" && ext != ".webp" {
 		return nil, apperror.ErrBadRequest.WithMessage("Định dạng tệp không được hỗ trợ. Chỉ cho phép JPEG, PNG, WebP")
+	}
+
+	headerBytes := make([]byte, 512)
+	if _, err := src.Read(headerBytes); err != nil && err != io.EOF {
+		return nil, fmt.Errorf("failed to read file header: %w", err)
+	}
+
+	if ct := http.DetectContentType(headerBytes); ct != "image/jpeg" &&
+		ct != "image/png" &&
+		ct != "image/webp" {
+		return nil, apperror.ErrBadRequest.WithMessage("Tệp tải lên không phải là định dạng hình ảnh hợp lệ")
+	}
+
+	if _, err := src.Seek(0, 0); err != nil {
+		return nil, fmt.Errorf("failed to reset file pointer: %w", err)
 	}
 
 	uploadDir := "./uploads/avatars"
@@ -250,25 +267,17 @@ func (s *UserService) UploadAvatar(ctx context.Context, userID uint64, file *mul
 	fileName := fmt.Sprintf("%d_%d%s", userID, time.Now().UnixNano(), ext)
 	filePath := filepath.Join(uploadDir, fileName)
 
-	src, err := file.Open()
-	if err != nil {
-		return nil, fmt.Errorf("failed to open upload file: %w", err)
-	}
-	defer src.Close()
-
 	dst, err := os.Create(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create destination file: %w", err)
 	}
-	defer func() {
-		if closeErr := dst.Close(); closeErr != nil {
-			s.logger.Error("Lỗi khi đóng file avatar sau ghi", zap.Error(closeErr))
-		}
-	}()
 
 	if _, err = io.Copy(dst, src); err != nil {
+		dst.Close()
+		os.Remove(filePath)
 		return nil, fmt.Errorf("failed to save file: %w", err)
 	}
+	dst.Close()
 
 	avatarURL := fmt.Sprintf("/uploads/avatars/%s", fileName)
 	var oldAvatarURL string
@@ -293,6 +302,7 @@ func (s *UserService) UploadAvatar(ctx context.Context, userID uint64, file *mul
 		return nil
 	})
 	if err != nil {
+		os.Remove(filePath)
 		return nil, err
 	}
 

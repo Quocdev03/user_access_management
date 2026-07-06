@@ -35,8 +35,8 @@ Hệ thống UAM bao gồm **39 Use Cases** chia thành **6 nhóm** chức năng
 - **Đối tượng**: Người dùng đã đăng ký
 - **Mô tả**: Xác thực email bằng mã OTP gửi qua email.
 - **Endpoints**: 
-  - `POST /api/v1/auth/verify-email` (Xác thực mã OTP)
-  - `POST /api/v1/auth/resend-verification-email` (Gửi lại mã OTP xác thực)
+  - `POST /api/v1/auth/email/verify` (Xác thực mã OTP)
+  - `POST /api/v1/auth/email/resend` (Gửi lại mã OTP xác thực)
 - **Luồng chính**:
   1. Người dùng nhập email và mã OTP.
   2. Hệ thống kiểm tra OTP: đúng, chưa hết hạn, chưa sử dụng.
@@ -68,7 +68,7 @@ Hệ thống UAM bao gồm **39 Use Cases** chia thành **6 nhóm** chức năng
 
 - **Đối tượng**: Người dùng đã đăng nhập
 - **Mô tả**: Dùng refresh token để lấy access token mới khi access token hết hạn.
-- **Endpoint**: `POST /api/v1/auth/refresh-token`
+- **Endpoint**: `POST /api/v1/auth/token/refresh`
 - **Luồng chính**:
   1. Client gửi refresh token.
   2. Hệ thống validate refresh token (đúng, chưa hết hạn, chưa bị revoke).
@@ -96,18 +96,18 @@ Hệ thống UAM bao gồm **39 Use Cases** chia thành **6 nhóm** chức năng
 - **Mô tả**: Tự động khóa tài khoản khi đăng nhập sai quá số lần cho phép.
 - **Luồng chính**:
   1. Mỗi lần đăng nhập sai → tăng `failed_login_attempts`.
-  2. Khi đạt ngưỡng (mặc định 5 lần) → chuyển trạng thái sang `locked`, set `locked_until`.
+  2. Khi đạt ngưỡng (mặc định 10 lần) → chuyển trạng thái sang `locked`, set `locked_until`.
   3. Ghi audit log.
 - **Quy tắc nghiệp vụ**:
-  - Ngưỡng mặc định: 5 lần.
-  - Thời gian khóa: 30 phút (tự mở khóa sau khi hết thời gian).
+  - Ngưỡng mặc định: 10 lần.
+  - Thời gian khóa: 15 phút (tự mở khóa sau khi hết thời gian).
   - Đăng nhập thành công → reset bộ đếm về 0.
 
 ### UC-07: Quên mật khẩu (Forgot Password)
 
 - **Đối tượng**: Người dùng
 - **Mô tả**: Yêu cầu đặt lại mật khẩu qua email.
-- **Endpoint**: `POST /api/v1/auth/forgot-password`
+- **Endpoint**: `POST /api/v1/auth/password/forgot`
 - **Luồng chính**:
   1. Người dùng nhập email.
   2. Hệ thống tạo token đặt lại mật khẩu, lưu hash vào database.
@@ -121,7 +121,7 @@ Hệ thống UAM bao gồm **39 Use Cases** chia thành **6 nhóm** chức năng
 
 - **Đối tượng**: Người dùng đã đăng nhập
 - **Mô tả**: Đổi mật khẩu khi đã biết mật khẩu cũ.
-- **Endpoint**: `POST /api/v1/auth/change-password`
+- **Endpoint**: `POST /api/v1/auth/password/change`
 - **Luồng chính**:
   1. Người dùng nhập mật khẩu cũ và mật khẩu mới.
   2. Hệ thống xác minh mật khẩu cũ đúng.
@@ -192,17 +192,16 @@ Hệ thống UAM bao gồm **39 Use Cases** chia thành **6 nhóm** chức năng
 ### UC-13: Đổi Email (Change Email)
 
 - **Đối tượng**: Người dùng đã đăng nhập.
-- **Mô tả**: Đổi địa chỉ email của tài khoản. Để bảo mật cao chống cướp tài khoản (Account Takeover), quy trình yêu cầu nhập mật khẩu hiện tại, sau đó xác thực mã OTP gửi đến email cũ và email mới.
+- **Mô tả**: Đổi địa chỉ email của tài khoản. Đơn giản hóa quy trình thành 2 bước: yêu cầu đổi email (gửi OTP đồng thời) và xác thực (nhập 2 OTP cùng lúc).
 - **Endpoints**: 
-  - `POST /api/v1/users/me/email/request-change` (Xác thực mật khẩu -> Gửi OTP đến email cũ)
-  - `POST /api/v1/users/me/email/verify-old` (Xác thực OTP email cũ -> Sinh session token đổi email -> Gửi OTP đến email mới)
-  - `POST /api/v1/users/me/email/verify-new` (Xác thực session token & OTP email mới -> Cập nhật email trong DB -> Gửi mail thông báo bảo mật đến cả 2 email)
+  - `POST /api/v1/users/me/email/change-request` (Xác thực mật khẩu -> Gửi OTP đến cả email cũ và mới)
+  - `POST /api/v1/users/me/email/verify` (Xác thực OTP)
+  - `POST /api/v1/users/me/email/resend` (Gửi lại mã OTP đổi email)
 - **Luồng chính**:
   1. Người dùng gửi yêu cầu đổi email kèm mật khẩu hiện tại và email mới.
-  2. Hệ thống xác thực mật khẩu. Nếu đúng, gửi mã OTP đến **email cũ**.
-  3. Người dùng nhập OTP gửi tới email cũ. Nếu đúng, hệ thống sinh một `session_token` tạm thời (lưu Redis TTL 15 phút cùng email mới) trả về cho client, đồng thời gửi mã OTP thứ hai đến **email mới**.
-  4. Người dùng gửi `session_token` và nhập OTP gửi tới email mới.
-  5. Hệ thống kiểm tra trùng email mới trong DB, xác thực OTP và session token. Nếu hợp lệ, cập nhật email trong database và gửi thư thông báo bảo mật đến cả email cũ và email mới.
+  2. Hệ thống xác thực mật khẩu và sinh mã OTP gửi đồng thời đến **email cũ** và **email mới**.
+  3. Người dùng nhập cả 2 mã OTP cùng lúc để xác nhận.
+  4. Hệ thống kiểm tra trùng email mới, xác thực 2 mã OTP (Atomic). Nếu hợp lệ, cập nhật email và gửi thư thông báo bảo mật đến cả 2 email.
 - **Quy tắc & Luồng ngoại lệ**:
   - **Re-authentication**: Bắt buộc nhập đúng mật khẩu hiện tại ở bước 1 để chặn truy cập trái phép.
   - **Race Condition Check**: Kiểm tra tính duy nhất của email mới ở cả bước yêu cầu (bước 1) và bước cập nhật cuối cùng (bước 5).
@@ -231,7 +230,7 @@ Hệ thống UAM bao gồm **39 Use Cases** chia thành **6 nhóm** chức năng
 ### UC-16: Admin cập nhật thông tin người dùng
 
 - **Đối tượng**: Admin
-- **Mô tả**: Admin cập nhật thông tin (họ tên, số điện thoại) của người dùng.
+- **Mô tả**: Admin cập nhật thông tin (họ tên, số điện thoại, email, trạng thái xác thực email, ngày sinh, avatar) của người dùng.
 - **Endpoint**: `PUT /api/v1/admin/users/{id}`
 - **Quy tắc**: Ghi audit log (→ UC-29).
 
@@ -248,7 +247,7 @@ Hệ thống UAM bao gồm **39 Use Cases** chia thành **6 nhóm** chức năng
 
 - **Đối tượng**: Admin
 - **Mô tả**: Admin đặt lại mật khẩu cho người dùng, hệ thống gửi mật khẩu tạm qua email.
-- **Endpoint**: `POST /api/v1/admin/users/{id}/reset-password`
+- **Endpoint**: `POST /api/v1/admin/users/{id}/password/reset`
 - **Quy tắc**:
   - Mật khẩu tạm được sinh tự động.
   - Revoke tất cả session của user.

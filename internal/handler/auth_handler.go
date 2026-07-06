@@ -180,3 +180,18 @@ func (h *AuthHandler) ChangePassword(c *gin.Context) {
 
 	response.Success(c, http.StatusOK, "Đổi mật khẩu thành công. Vui lòng đăng nhập lại trên các thiết bị.", nil)
 }
+
+func (h *AuthHandler) ForceChangePassword(c *gin.Context) {
+	req, ok := validator.BindAndValidate[dto.ForceChangePasswordRequest](c)
+	if !ok {
+		return
+	}
+
+	err := h.passwordService.ForceChangePassword(c.Request.Context(), *req)
+	if err != nil {
+		response.Error(c, err)
+		return
+	}
+
+	response.Success(c, http.StatusOK, "Đổi mật khẩu bắt buộc thành công. Vui lòng đăng nhập lại với mật khẩu mới.", nil)
+}

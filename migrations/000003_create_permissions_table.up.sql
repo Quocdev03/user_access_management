@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS `permissions` (
-    `id`          BIGINT       NOT NULL AUTO_INCREMENT,
+    `id`          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     `name`        VARCHAR(100) NOT NULL,
     `description` VARCHAR(255) NULL DEFAULT NULL,
     `resource`    VARCHAR(50)  NOT NULL,

@@ -27,7 +27,7 @@ erDiagram
     users ||--o{ password_reset_tokens : "yêu cầu"
 
     users {
-        bigint id PK
+        bigint unsigned id PK
         varchar username UK
         varchar email UK
         varchar password_hash
@@ -37,6 +37,7 @@ erDiagram
         date date_of_birth
         enum status "active/inactive/locked"
         boolean email_verified
+        boolean must_change_password
         int failed_login_attempts
         datetime locked_until
         datetime last_login_at
@@ -45,7 +46,7 @@ erDiagram
     }
 
     roles {
-        bigint id PK
+        bigint unsigned id PK
         varchar name UK
         varchar description
         datetime created_at
@@ -53,7 +54,7 @@ erDiagram
     }
 
     permissions {
-        bigint id PK
+        bigint unsigned id PK
         varchar name UK
         varchar description
         varchar resource
@@ -62,8 +63,8 @@ erDiagram
     }
 
     user_roles {
-        bigint id PK
-        bigint user_id FK
+        bigint unsigned id PK
+        bigint unsigned user_id FK
         bigint unsigned role_id FK
         timestamp assigned_at
     }
@@ -126,10 +127,10 @@ erDiagram
         varchar resource
         varchar resource_id
         varchar ip_address
-        varchar user_agent
+        text user_agent
         json old_values
         json new_values
-        enum status "success/failure"
+        varchar status
         timestamp created_at
     }
 ```
@@ -146,12 +147,13 @@ erDiagram
 | `username` | VARCHAR(50) | UNIQUE, NOT NULL | Tên đăng nhập |
 | `email` | VARCHAR(255) | UNIQUE, NOT NULL | Email |
 | `password_hash` | VARCHAR(255) | NOT NULL | Mật khẩu đã mã hóa (bcrypt) |
-| `full_name` | VARCHAR(100) | | Họ tên đầy đủ |
+| `full_name` | VARCHAR(100) | NOT NULL | Họ tên đầy đủ |
 | `phone` | VARCHAR(20) | NOT NULL | Số điện thoại |
 | `avatar_url` | VARCHAR(500) | | Đường dẫn ảnh đại diện |
 | `date_of_birth` | DATE | NOT NULL | Ngày tháng năm sinh |
 | `status` | ENUM('active','inactive','locked') | DEFAULT 'inactive' | Trạng thái tài khoản |
 | `email_verified` | BOOLEAN | DEFAULT FALSE | Đã xác thực email chưa |
+| `must_change_password` | BOOLEAN | DEFAULT FALSE | Bắt buộc đổi mật khẩu |
 | `failed_login_attempts` | TINYINT UNSIGNED | DEFAULT 0 | Số lần đăng nhập thất bại liên tiếp |
 | `locked_until` | TIMESTAMP | NULL | Thời điểm mở khóa (nếu bị lock) |
 | `last_login_at` | TIMESTAMP | NULL | Lần đăng nhập gần nhất |
@@ -210,7 +212,7 @@ erDiagram
 | `token_hash` | VARCHAR(255) | UNIQUE, NOT NULL | Hash của access token |
 | `refresh_token_hash` | VARCHAR(255) | UNIQUE, NOT NULL | Hash của refresh token |
 | `ip_address` | VARCHAR(45) | | Địa chỉ IP |
-| `user_agent` | VARCHAR(500) | | Thông tin trình duyệt |
+| `user_agent` | TEXT | | Thông tin trình duyệt |
 | `device_id` | BIGINT UNSIGNED | FK → devices.id, NULL | Thiết bị liên kết |
 | `expires_at` | TIMESTAMP | NOT NULL | Thời điểm hết hạn |
 | `created_at` | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Ngày tạo |
@@ -258,15 +260,15 @@ erDiagram
 | Cột | Kiểu | Ràng buộc | Mô tả |
 |-----|------|-----------|-------|
 | `id` | BIGINT UNSIGNED | PK, AUTO_INCREMENT | Khóa chính |
-| `user_id` | BIGINT UNSIGNED | FK → users.id, NULL | Người thực hiện (NULL nếu system) |
+| `user_id` | BIGINT UNSIGNED | FK → users.id (ON DELETE RESTRICT), NULL | Người thực hiện (NULL nếu system) |
 | `action` | VARCHAR(50) | NOT NULL | Hành động (VD: `login`, `update_profile`, `lock_user`) |
 | `resource` | VARCHAR(50) | | Tài nguyên bị tác động |
 | `resource_id` | VARCHAR(50) | | ID tài nguyên bị tác động |
 | `ip_address` | VARCHAR(45) | | Địa chỉ IP |
-| `user_agent` | VARCHAR(500) | | Thông tin trình duyệt |
+| `user_agent` | TEXT | | Thông tin trình duyệt |
 | `old_values` | JSON | NULL | Giá trị cũ (trước khi thay đổi) |
 | `new_values` | JSON | NULL | Giá trị mới (sau khi thay đổi) |
-| `status` | ENUM('success', 'failure') | NOT NULL | Kết quả |
+| `status` | VARCHAR(50) | NOT NULL | Kết quả (success, failure, v.v.) |
 | `created_at` | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Thời điểm |
 
 ---
@@ -316,28 +318,40 @@ Redis không lưu dữ liệu lâu dài. Chỉ dùng cho việc lưu trữ tạm
 | Key Pattern | Kiểu | TTL | Mô tả |
 |-------------|------|-----|-------|
 | `blacklist:{jti}` | String | Bằng TTL còn lại của access token gốc | Access token ID (JTI) đã bị revoke khi người dùng logout |
+| `user_epoch:{user_id}` | String (Unix Timestamp) | 30 ngày (hoặc bằng Refresh Token TTL lớn nhất) | Global revocation epoch, mọi token tạo trước timestamp này đều vô hiệu hóa (dùng khi Change Password, Logout All) |
+| `rate_limit:{ip_or_email}:{action}` | Integer | Tùy window (vd 15p) | Đếm số lượng request hoặc số lần đăng nhập sai của IP/Email theo Action để chống Spam & Brute-force |
 
 ---
 
 ## 6. Chiến lược Migration
 
-Sử dụng **golang-migrate** với file SQL:
-
-```
+Sử dụng **golang-migrate** với file SQL.
 
 ### Quy tắc migration
 
 - Mỗi migration có file `.up.sql` (tạo) và `.down.sql` (rollback).
 - Đánh số tuần tự: `000001`, `000002`, ...
-- Tên file mô tả rõ hành động: `init_schema`, `add_xxx_column`, `seed_xxx`.
+- Tên file mô tả rõ hành động: `create_users_table`, `seed_superadmin`, v.v.
 - **Không** sửa migration đã chạy trên môi trường khác. Tạo migration mới để thay đổi.
 
-Hiện tại chúng ta gom toàn bộ thiết kế cơ sở vào 1 file duy nhất cho giai đoạn init:
-```
+Hệ thống hiện tại chia nhỏ các table thành từng migration riêng biệt để dễ quản lý:
+```text
 migrations/
-├── 000001_init_schema.up.sql
-└── 000001_init_schema.down.sql
+├── 000001_create_users_table
+├── 000002_create_roles_table
+├── 000003_create_permissions_table
+├── 000004_create_user_roles_table
+├── 000005_create_role_permissions_table
+├── 000006_create_sessions_table
+├── 000007_create_devices_table
+├── 000008_create_otp_codes_table
+├── 000009_create_password_reset_tokens_table
+├── 000010_create_audit_logs_table
+├── 000011_seed_roles_and_permissions
+└── 000012_seed_superadmin
+(Mỗi version gồm 2 file .up.sql và .down.sql)
 ```
+
 ### Lưu ý thứ tự FK dependency
 
 - `sessions` (000006) tạo trước `devices` (000007), nhưng `sessions.device_id` reference `devices.id`.

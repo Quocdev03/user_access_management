@@ -20,7 +20,6 @@ import (
 func Setup(db *sqlx.DB, redisClient *redis.Client, logger *zap.Logger, cfg *config.Config) *gin.Engine {
 	r := gin.New()
 	r.Use(gin.Recovery())
-	// Custom zap logger middleware if needed, but for now simple setup
 	r.Use(gin.Logger())
 
 	r.Use(middleware.CORSMiddleware(cfg))
@@ -50,9 +49,11 @@ func Setup(db *sqlx.DB, redisClient *redis.Client, logger *zap.Logger, cfg *conf
 		cfg,
 		logger,
 	)
+	adminUserService := service.NewAdminUserService(userRepo, roleRepo, sessionRepo, auditLogRepo, mailService, txManager, logger)
 
 	authHandler := handler.NewAuthHandler(authService, passwordService)
 	userHandler := handler.NewUserHandler(userService)
+	adminUserHandler := handler.NewAdminUserHandler(adminUserService)
 
 	authMiddleware := middleware.AuthMiddleware(cfg, sessionRepo, logger)
 
@@ -83,6 +84,7 @@ func Setup(db *sqlx.DB, redisClient *redis.Client, logger *zap.Logger, cfg *conf
 	{
 		setupAuthRoutes(v1, authHandler, authMiddleware, redisClient)
 		setupUserRoutes(v1, userHandler, authMiddleware, redisClient)
+		setupAdminRoutes(v1, adminUserHandler, authMiddleware, roleRepo)
 	}
 
 	return r

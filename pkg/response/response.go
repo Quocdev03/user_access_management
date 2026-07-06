@@ -10,6 +10,7 @@ import (
 
 type Response struct {
 	Data    interface{} `json:"data,omitempty"`
+	Meta    interface{} `json:"meta,omitempty"`
 	Error   interface{} `json:"error,omitempty"`
 	Message string      `json:"message,omitempty"`
 	Success bool        `json:"success"`
@@ -20,6 +21,15 @@ func Success(c *gin.Context, statusCode int, message string, data interface{}) {
 		Success: true,
 		Message: message,
 		Data:    data,
+	})
+}
+
+func SuccessWithMeta(c *gin.Context, statusCode int, message string, data interface{}, meta interface{}) {
+	c.JSON(statusCode, Response{
+		Success: true,
+		Message: message,
+		Data:    data,
+		Meta:    meta,
 	})
 }
 

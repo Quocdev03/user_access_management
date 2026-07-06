@@ -38,21 +38,12 @@ func (r *OTPRepository) getLatestValidCode(ctx context.Context, userID uint64, o
 	now := time.Now().UTC()
 
 	if forUpdate {
-		var id uint64
-		idQuery := `
-			SELECT id FROM otp_codes 
+		query := `
+			SELECT * FROM otp_codes 
 			WHERE user_id = ? AND type = ? AND is_used = false AND expires_at > ? 
-			ORDER BY created_at DESC LIMIT 1
+			ORDER BY created_at DESC LIMIT 1 FOR UPDATE
 		`
-		err := database.GetDB(ctx, r.db).GetContext(ctx, &id, idQuery, userID, otpType, now)
-		if err != nil {
-			if errors.Is(err, sql.ErrNoRows) {
-				return nil, nil
-			}
-			return nil, err
-		}
-
-		err = database.GetDB(ctx, r.db).GetContext(ctx, &otp, "SELECT * FROM otp_codes WHERE id = ? AND is_used = false FOR UPDATE", id)
+		err := database.GetDB(ctx, r.db).GetContext(ctx, &otp, query, userID, otpType, now)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				return nil, nil
@@ -75,10 +66,6 @@ func (r *OTPRepository) getLatestValidCode(ctx context.Context, userID uint64, o
 		return nil, err
 	}
 	return &otp, nil
-}
-
-func (r *OTPRepository) GetLatestValidCode(ctx context.Context, userID uint64, otpType string) (*model.OTPCode, error) {
-	return r.getLatestValidCode(ctx, userID, otpType, false)
 }
 
 func (r *OTPRepository) GetLatestValidCodeForUpdate(ctx context.Context, userID uint64, otpType string) (*model.OTPCode, error) {

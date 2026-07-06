@@ -71,7 +71,7 @@ func AuthMiddleware(cfg *config.Config, sessionRepo *repository.SessionRepositor
 			return
 		}
 		if revokedEpoch > 0 {
-			if claims.IssuedAt.Unix() <= revokedEpoch {
+			if claims.IssuedAt.Unix() < revokedEpoch {
 				response.Error(c, apperror.ErrSessionRevokedGlobal)
 				c.Abort()
 				return

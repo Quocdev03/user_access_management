@@ -111,13 +111,20 @@ func (h *UserHandler) UploadAvatar(c *gin.Context) {
 	}
 	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 2<<20)
 
-	file, err := c.FormFile("avatar")
+	fileHeader, err := c.FormFile("avatar")
 	if err != nil {
 		response.ValidationError(c, err)
 		return
 	}
 
-	res, err := h.userService.UploadAvatar(c.Request.Context(), userID, file)
+	src, err := fileHeader.Open()
+	if err != nil {
+		response.Error(c, apperror.ErrBadRequest.WithMessage("Không thể mở tệp tải lên"))
+		return
+	}
+	defer src.Close()
+
+	res, err := h.userService.UploadAvatar(c.Request.Context(), userID, src, fileHeader.Filename, fileHeader.Size)
 	if err != nil {
 		response.Error(c, err)
 		return

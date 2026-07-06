@@ -15,7 +15,7 @@ var (
 )
 
 type Claims struct {
-	UserID uint64   `json:"sub"`
+	UserID uint64   `json:"user_id"`
 	Type   string   `json:"type"`
 	Roles  []string `json:"roles"`
 	golangjwt.RegisteredClaims

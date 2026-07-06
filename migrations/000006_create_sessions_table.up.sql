@@ -1,11 +1,11 @@
 CREATE TABLE IF NOT EXISTS `sessions` (
-    `id`                 BIGINT       NOT NULL AUTO_INCREMENT,
-    `user_id`            BIGINT       NOT NULL,
+    `id`                 BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `user_id`            BIGINT UNSIGNED NOT NULL,
     `token_hash`         VARCHAR(255) NOT NULL,
     `refresh_token_hash` VARCHAR(255) NOT NULL,
     `ip_address`         VARCHAR(45)  NULL DEFAULT NULL,
-    `user_agent`         VARCHAR(500) NULL DEFAULT NULL,
-    `device_id`          BIGINT       NULL DEFAULT NULL,
+    `user_agent`         TEXT         NULL DEFAULT NULL,
+    `device_id`          BIGINT UNSIGNED NULL DEFAULT NULL,
     `expires_at`         DATETIME     NOT NULL,
     `created_at`         DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
 

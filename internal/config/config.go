@@ -8,17 +8,18 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/spf13/viper"
 )
 
 // Config chứa toàn bộ cấu hình tổng thể của ứng dụng, bao gồm các cấu hình thành phần.
 type Config struct {
-	App      AppConfig
-	Database DatabaseConfig
-	Redis    RedisConfig
-	JWT      JWTConfig
-	Mail     MailConfig
-	Security SecurityConfig
+	App      AppConfig      `validate:"required"`
+	Database DatabaseConfig `validate:"required"`
+	Redis    RedisConfig    `validate:"required"`
+	JWT      JWTConfig      `validate:"required"`
+	Mail     MailConfig     `validate:"required"`
+	Security SecurityConfig `validate:"required"`
 }
 
 // AppConfig định nghĩa các thông số cơ bản để chạy ứng dụng (Môi trường, Cổng, URL frontend).
@@ -30,11 +31,11 @@ type AppConfig struct {
 
 // DatabaseConfig định nghĩa thông số kết nối tới cơ sở dữ liệu (MySQL).
 type DatabaseConfig struct {
-	Host     string
-	Port     string
-	Name     string
-	User     string
-	Password string
+	Host     string `validate:"required"`
+	Port     string `validate:"required"`
+	Name     string `validate:"required"`
+	User     string `validate:"required"`
+	Password string `validate:"required"`
 }
 
 // RedisConfig định nghĩa thông số kết nối tới Redis (dùng cho Session, Rate Limit).
@@ -46,9 +47,9 @@ type RedisConfig struct {
 
 // JWTConfig lưu trữ khóa bí mật và thời gian sống (TTL) của các token xác thực.
 type JWTConfig struct {
-	Secret        string
-	AccessExpiry  time.Duration
-	RefreshExpiry time.Duration
+	Secret        string        `validate:"required,min=16"`
+	AccessExpiry  time.Duration `validate:"required"`
+	RefreshExpiry time.Duration `validate:"required"`
 }
 
 // MailConfig định nghĩa thông số kết nối tới máy chủ SMTP để gửi email (OTP, Verify).
@@ -125,6 +126,20 @@ func Load(path string) (*Config, error) {
 			OTPExpiry:         viper.GetDuration("OTP_EXPIRY"),
 			OTPMaxAttempts:    viper.GetInt("OTP_MAX_ATTEMPTS"),
 		},
+	}
+
+	validate := validator.New()
+	if err := validate.Struct(cfg); err != nil {
+		return nil, fmt.Errorf("config validation failed: %w", err)
+	}
+
+	// Kiểm tra các giá trị thời gian để tránh lỗi do viper parse plain number thành nanoseconds
+	if cfg.JWT.AccessExpiry < time.Second ||
+		cfg.JWT.RefreshExpiry < time.Second ||
+		cfg.Security.RateLimitWindow < time.Second ||
+		cfg.Security.LockDuration < time.Second ||
+		cfg.Security.OTPExpiry < time.Second {
+		return nil, fmt.Errorf("cấu hình thời gian (JWT_ACCESS_EXPIRY, RATE_LIMIT_WINDOW, v.v.) quá nhỏ (dưới 1s). Vui lòng đảm bảo file .env sử dụng suffix (ví dụ: '900s', '15m') thay vì số nguyên đơn thuần")
 	}
 
 	return cfg, nil

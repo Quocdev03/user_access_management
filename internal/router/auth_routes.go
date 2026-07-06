@@ -13,16 +13,27 @@ func setupAuthRoutes(rg *gin.RouterGroup, authHandler *handler.AuthHandler, auth
 	auth := rg.Group("/auth")
 	{
 		auth.POST("/register", middleware.RateLimitMiddleware(redisClient, "register", 10, 30, time.Minute, 15*time.Minute), authHandler.Register)
-		auth.POST("/verify-email", middleware.RateLimitMiddleware(redisClient, "verify-email", 10, 30, time.Minute, 15*time.Minute), authHandler.VerifyEmail)
-		auth.POST("/resend-verification-email", middleware.RateLimitMiddleware(redisClient, "resend-verification-email", 5, 20, time.Minute, 15*time.Minute), authHandler.ResendVerificationEmail)
-
 		auth.POST("/login", middleware.RateLimitMiddleware(redisClient, "login", 15, 50, time.Minute, 15*time.Minute), authHandler.Login)
-		auth.POST("/refresh-token", middleware.RateLimitMiddleware(redisClient, "refresh-token", 30, 60, time.Minute, 15*time.Minute), authHandler.RefreshToken)
 		auth.POST("/logout", authMiddleware, authHandler.Logout)
 		auth.POST("/logout-all", authMiddleware, authHandler.LogoutAll)
 
-		auth.POST("/forgot-password", middleware.RateLimitMiddleware(redisClient, "forgot-password", 5, 20, time.Minute, 15*time.Minute), authHandler.ForgotPassword)
-		auth.POST("/reset-password", middleware.RateLimitMiddleware(redisClient, "reset-password", 10, 30, time.Minute, 15*time.Minute), authHandler.ResetPassword)
-		auth.POST("/change-password", authMiddleware, middleware.RateLimitMiddleware(redisClient, "change-password", 10, 30, time.Minute, 15*time.Minute), authHandler.ChangePassword)
+		email := auth.Group("/email")
+		{
+			email.POST("/verify", middleware.RateLimitMiddleware(redisClient, "verify-email", 10, 30, time.Minute, 15*time.Minute), authHandler.VerifyEmail)
+			email.POST("/resend", middleware.RateLimitMiddleware(redisClient, "resend-verification-email", 5, 20, time.Minute, 15*time.Minute), authHandler.ResendVerificationEmail)
+		}
+
+		token := auth.Group("/token")
+		{
+			token.POST("/refresh", middleware.RateLimitMiddleware(redisClient, "refresh-token", 30, 60, time.Minute, 15*time.Minute), authHandler.RefreshToken)
+		}
+
+		password := auth.Group("/password")
+		{
+			password.POST("/forgot", middleware.RateLimitMiddleware(redisClient, "forgot-password", 5, 20, time.Minute, 15*time.Minute), authHandler.ForgotPassword)
+			password.POST("/reset", middleware.RateLimitMiddleware(redisClient, "reset-password", 10, 30, time.Minute, 15*time.Minute), authHandler.ResetPassword)
+			password.POST("/change", authMiddleware, middleware.RateLimitMiddleware(redisClient, "change-password", 10, 30, time.Minute, 15*time.Minute), authHandler.ChangePassword)
+			password.POST("/force-change", middleware.RateLimitMiddleware(redisClient, "force-change-password", 10, 30, time.Minute, 15*time.Minute), authHandler.ForceChangePassword)
+		}
 	}
 }

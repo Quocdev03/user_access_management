@@ -80,7 +80,7 @@ func main() {
 	}
 
 	go func() {
-		logr.Info("Server listening on port", zap.String("port", cfg.App.Port))
+		logr.Info("Server listening", zap.String("port", cfg.App.Port), zap.String("url", fmt.Sprintf("http://localhost:%s", cfg.App.Port)))
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			logr.Fatal("Failed to start server", zap.Error(err))
 		}

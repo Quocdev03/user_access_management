@@ -2,10 +2,10 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
-	"github.com/go-sql-driver/mysql"
 	"go.uber.org/zap"
 
 	"github.com/quocdev03/user-access-management/internal/config"
@@ -23,7 +23,6 @@ const (
 	maxFailedAttempts = 5
 	lockDuration      = 30 * time.Minute
 	otpExpiry         = 5 * time.Minute
-	dummyBcryptHash   = "$2a$10$8K1p/a0fsBigaZE0N6cOG.e4s/8sYy1QyYtH4Yk9Y5UvI.G/k8M42"
 )
 
 type AuthService struct {
@@ -111,7 +110,7 @@ func (s *AuthService) Register(ctx context.Context, req dto.RegisterRequest) (*d
 	var sendEmail func()
 	err = s.txManager.RunInTx(ctx, func(txCtx context.Context) error {
 		if err := s.userRepo.Create(txCtx, user); err != nil {
-			if mysqlErr, ok := err.(*mysql.MySQLError); ok && mysqlErr.Number == 1062 {
+			if errors.Is(err, apperror.ErrConflict) {
 				return apperror.ErrConflict
 			}
 			return fmt.Errorf("userRepo.Create: %w", err)
@@ -146,7 +145,7 @@ func (s *AuthService) Register(ctx context.Context, req dto.RegisterRequest) (*d
 		ID:       user.ID,
 		Username: user.Username,
 		Email:    user.Email,
-		Status:   user.Status,
+		Status:   string(user.Status),
 	}, nil
 }
 
@@ -161,7 +160,8 @@ func (s *AuthService) VerifyEmail(ctx context.Context, req dto.VerifyEmailReques
 		return fmt.Errorf("userRepo.FindByEmail: %w", err)
 	}
 	if user == nil {
-		return nil
+		_ = hash.CheckPassword("dummy", "$2a$10$wK1WwzT8rVd3/xJ.8fU8K.R1.D.Fw1N98XzL3U.FwzT8rVd3/xJ.O")
+		return apperror.ErrEmailNotFound
 	}
 
 	if user.EmailVerified {
@@ -247,7 +247,7 @@ func (s *AuthService) Login(ctx context.Context, req dto.LoginRequest, ipAddress
 		return nil, fmt.Errorf("userRepo.FindByEmail: %w", err)
 	}
 	if user == nil {
-		_ = hash.CheckPassword(req.Password, dummyBcryptHash)
+		_ = hash.CheckPassword("dummy", "$2a$10$wK1WwzT8rVd3/xJ.8fU8K.R1.D.Fw1N98XzL3U.FwzT8rVd3/xJ.O")
 		return nil, apperror.ErrInvalidCredentials
 	}
 
@@ -258,6 +258,11 @@ func (s *AuthService) Login(ctx context.Context, req dto.LoginRequest, ipAddress
 	if !hash.CheckPassword(req.Password, user.PasswordHash) {
 		s.logAudit(ctx, user.ID, "LOGIN", ipAddress, userAgent, "failure")
 		return nil, handleFailedLogin(ctx, s.userRepo, s.logger, user)
+	}
+
+	if user.MustChangePassword {
+		s.logAudit(ctx, user.ID, "LOGIN", ipAddress, userAgent, "failure_must_change_password")
+		return nil, apperror.ErrMustChangePassword
 	}
 
 	return s.grantTokensAndSession(ctx, user, ipAddress, userAgent)
@@ -294,6 +299,7 @@ func (s *AuthService) logAudit(ctx context.Context, userID uint64, action, ip, u
 }
 
 func (s *AuthService) grantTokensAndSession(ctx context.Context, user *model.User, ipAddress, userAgent string) (*dto.LoginResponse, error) {
+	var accessToken, refreshToken string
 	err := s.txManager.RunInTx(ctx, func(txCtx context.Context) error {
 		userForUpdate, err := s.userRepo.FindByIDForUpdate(txCtx, user.ID)
 		if err != nil {
@@ -311,36 +317,38 @@ func (s *AuthService) grantTokensAndSession(ctx context.Context, user *model.Use
 		if err := s.userRepo.UpdateUser(txCtx, userForUpdate); err != nil {
 			return fmt.Errorf("userRepo.UpdateUser: %w", err)
 		}
+
+		var roles []string
+		roles, err = s.roleRepo.GetRolesByUserID(txCtx, user.ID)
+		if err != nil {
+			s.logger.Warn("Không lấy được roles của user", zap.Uint64("user_id", user.ID), zap.Error(err))
+			roles = []string{constant.RoleUser}
+		}
+
+		accessToken, refreshToken, err = s.generateTokenPair(user.ID, roles)
+		if err != nil {
+			return err
+		}
+
+		sessionExpiresAt := time.Now().Add(s.cfg.JWT.RefreshExpiry)
+		session := &model.Session{
+			UserID:           user.ID,
+			TokenHash:        hash.SHA256(accessToken),
+			RefreshTokenHash: hash.SHA256(refreshToken),
+			IPAddress:        &ipAddress,
+			UserAgent:        &userAgent,
+			ExpiresAt:        sessionExpiresAt,
+		}
+
+		if err := s.sessionRepo.Create(txCtx, session); err != nil {
+			s.logger.Error("Không thể tạo session trong MySQL", zap.Error(err))
+			return fmt.Errorf("failed to create session: %w", err)
+		}
+
 		return nil
 	})
 	if err != nil {
 		return nil, err
-	}
-
-	roles, err := s.roleRepo.GetRolesByUserID(ctx, user.ID)
-	if err != nil {
-		s.logger.Warn("Không lấy được roles của user", zap.Uint64("user_id", user.ID), zap.Error(err))
-		roles = []string{constant.RoleUser}
-	}
-
-	accessToken, refreshToken, err := s.generateTokenPair(user.ID, roles)
-	if err != nil {
-		return nil, err
-	}
-
-	sessionExpiresAt := time.Now().Add(s.cfg.JWT.RefreshExpiry)
-	session := &model.Session{
-		UserID:           user.ID,
-		TokenHash:        hash.SHA256(accessToken),
-		RefreshTokenHash: hash.SHA256(refreshToken),
-		IPAddress:        &ipAddress,
-		UserAgent:        &userAgent,
-		ExpiresAt:        sessionExpiresAt,
-	}
-
-	if err := s.sessionRepo.Create(ctx, session); err != nil {
-		s.logger.Error("Không thể tạo session trong MySQL", zap.Error(err))
-		return nil, fmt.Errorf("failed to create session: %w", err)
 	}
 
 	s.logAudit(ctx, user.ID, "LOGIN", ipAddress, userAgent, "success")
@@ -356,7 +364,6 @@ func (s *AuthService) grantTokensAndSession(ctx context.Context, user *model.Use
 		},
 	}, nil
 }
-
 
 func (s *AuthService) Refresh(ctx context.Context, req dto.RefreshTokenRequest, ipAddress, userAgent string) (*dto.RefreshTokenResponse, error) {
 	if len(ipAddress) > 45 {
@@ -378,11 +385,18 @@ func (s *AuthService) Refresh(ctx context.Context, req dto.RefreshTokenRequest, 
 	refreshHash := hash.SHA256(req.RefreshToken)
 	var res *dto.RefreshTokenResponse
 
-	err = s.txManager.RunInTx(ctx, func(txCtx context.Context) error {
-		if err := s.checkTokenReuse(txCtx, claims.UserID, refreshHash); err != nil {
-			return err
-		}
+	isRevoked, err := s.sessionRepo.IsRefreshTokenRevoked(ctx, refreshHash)
+	if err != nil {
+		return nil, fmt.Errorf("sessionRepo.IsRefreshTokenRevoked: %w", err)
+	}
+	if isRevoked {
+		s.logger.Warn("Phát hiện Token Reuse (Refresh Token bị đánh cắp)", zap.Uint64("user_id", claims.UserID))
+		_ = s.sessionRepo.DeleteByUserID(ctx, claims.UserID)
+		_ = s.sessionRepo.RevokeAllUserTokens(ctx, claims.UserID, s.cfg.JWT.RefreshExpiry)
+		return nil, apperror.ErrTokenReuse
+	}
 
+	err = s.txManager.RunInTx(ctx, func(txCtx context.Context) error {
 		session, err := s.sessionRepo.FindByRefreshTokenHashForUpdate(txCtx, refreshHash)
 		if err != nil {
 			return fmt.Errorf("sessionRepo.FindByRefreshTokenHashForUpdate: %w", err)
@@ -430,11 +444,6 @@ func (s *AuthService) Refresh(ctx context.Context, req dto.RefreshTokenRequest, 
 			return fmt.Errorf("failed to update session: %w", err)
 		}
 
-		ttl := time.Until(claims.ExpiresAt.Time)
-		if ttl > 0 {
-			_ = s.sessionRepo.AddRevokedRefreshToken(txCtx, refreshHash, ttl)
-		}
-
 		res = &dto.RefreshTokenResponse{
 			AccessToken:  newAccessToken,
 			RefreshToken: newRefreshToken,
@@ -442,21 +451,18 @@ func (s *AuthService) Refresh(ctx context.Context, req dto.RefreshTokenRequest, 
 		return nil
 	})
 
-	return res, err
-}
-
-func (s *AuthService) checkTokenReuse(ctx context.Context, userID uint64, refreshHash string) error {
-	isRevoked, err := s.sessionRepo.IsRefreshTokenRevoked(ctx, refreshHash)
 	if err != nil {
-		return fmt.Errorf("sessionRepo.IsRefreshTokenRevoked: %w", err)
+		return nil, err
 	}
-	if isRevoked {
-		s.logger.Warn("Phát hiện Token Reuse (Refresh Token bị đánh cắp)", zap.Uint64("user_id", userID))
-		_ = s.sessionRepo.DeleteByUserID(ctx, userID)
-		_ = s.sessionRepo.RevokeAllUserTokens(ctx, userID, s.cfg.JWT.RefreshExpiry)
-		return apperror.ErrTokenReuse
+
+	ttl := time.Until(claims.ExpiresAt.Time)
+	if ttl > 0 {
+		if err := s.sessionRepo.AddRevokedRefreshToken(ctx, refreshHash, ttl); err != nil {
+			s.logger.Warn("Không thể đưa refresh token cũ vào blacklist", zap.Error(err))
+		}
 	}
-	return nil
+
+	return res, nil
 }
 
 func (s *AuthService) Logout(ctx context.Context, rawToken string, claims *jwt.Claims) error {
@@ -497,7 +503,7 @@ func handleFailedLogin(ctx context.Context, userRepo *repository.UserRepository,
 		lockedUntil := time.Now().UTC().Add(lockDuration)
 		if err := userRepo.LockAccount(ctx, user.ID, lockedUntil, attempts); err != nil {
 			logger.Error("Không thể khóa tài khoản", zap.Error(err))
-			return apperror.ErrInvalidCredentials 
+			return apperror.ErrInvalidCredentials
 		}
 
 		logger.Warn("Tài khoản bị khóa do sai mật khẩu nhiều lần",

@@ -78,8 +78,8 @@ RATE_LIMIT_REQUESTS=100
 RATE_LIMIT_WINDOW=1m
 
 # Account Lock
-MAX_FAILED_ATTEMPTS=5
-LOCK_DURATION=30m
+MAX_FAILED_ATTEMPTS=10
+LOCK_DURATION=15m
 
 # OTP
 OTP_EXPIRY=5m
@@ -317,7 +317,7 @@ make docker-down
 | MySQL kết nối | `curl http://localhost:8080/health/ready` | MySQL: UP |
 | Redis kết nối | `curl http://localhost:8080/health/ready` | Redis: UP |
 | Swagger UI | Mở `http://localhost:8080/swagger/index.html` | Trang Swagger hiển thị |
-| Metrics | `curl http://localhost:8080/metrics` | Prometheus metrics |
+| UI Tester | Mở `http://localhost:8080/` | Giao diện API Tester |
 
 ---
 

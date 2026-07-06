@@ -134,15 +134,20 @@ func (r *SessionRepository) IsRefreshTokenRevoked(ctx context.Context, hash stri
 func (r *SessionRepository) IncrementRateLimit(ctx context.Context, action string, identifier string, limit int, window time.Duration) (bool, error) {
 	key := "ratelimit:" + action + ":" + identifier
 	
-	pipe := r.redis.TxPipeline()
-	incr := pipe.Incr(ctx, key)
-	pipe.Expire(ctx, key, window)
-	_, err := pipe.Exec(ctx)
+	script := redis.NewScript(`
+		local current = redis.call("INCR", KEYS[1])
+		if current == 1 then
+			redis.call("PEXPIRE", KEYS[1], ARGV[1])
+		end
+		return current
+	`)
+	
+	val, err := script.Run(ctx, r.redis, []string{key}, window.Milliseconds()).Int64()
 	if err != nil {
 		return false, err
 	}
 	
-	return incr.Val() > int64(limit), nil
+	return val > int64(limit), nil
 }
 
 func (r *SessionRepository) RevokeAllUserTokens(ctx context.Context, userID uint64, ttl time.Duration) error {

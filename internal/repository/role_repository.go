@@ -51,3 +51,50 @@ func (r *RoleRepository) GetRolesByUserID(ctx context.Context, userID uint64) ([
 	}
 	return roles, nil
 }
+
+func (r *RoleRepository) GetPermissionsByUserId(ctx context.Context, userID uint64) ([]string, error) {
+	var permission []string
+	query := `
+		SELECT DISTINCT p.name 
+		FROM permissions p
+		JOIN role_permissions rp ON p.id = rp.permission_id
+		JOIN user_roles ur ON rp.role_id = ur.role_id
+		WHERE ur.user_id = ?
+	`
+	err := database.GetDB(ctx, r.db).SelectContext(ctx, &permission, query, userID)
+	return permission, err
+}
+
+func (r *RoleRepository) GetRolesByUserIDs(ctx context.Context, userIDs []uint64) (map[uint64][]string, error) {
+	result := make(map[uint64][]string)
+	if len(userIDs) == 0 {
+		return result, nil
+	}
+
+	query, args, err := sqlx.In(`
+		SELECT ur.user_id, r.name 
+		FROM roles r
+		JOIN user_roles ur ON r.id = ur.role_id
+		WHERE ur.user_id IN (?)
+	`, userIDs)
+	if err != nil {
+		return nil, err
+	}
+	query = r.db.Rebind(query)
+
+	type userRole struct {
+		UserID uint64 `db:"user_id"`
+		Name   string `db:"name"`
+	}
+	var rows []userRole
+
+	if err := database.GetDB(ctx, r.db).SelectContext(ctx, &rows, query, args...); err != nil {
+		return nil, err
+	}
+
+	for _, row := range rows {
+		result[row.UserID] = append(result[row.UserID], row.Name)
+	}
+
+	return result, nil
+}

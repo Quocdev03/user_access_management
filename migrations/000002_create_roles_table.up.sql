@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS `roles` (
-    `id`          BIGINT       NOT NULL AUTO_INCREMENT,
+    `id`          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     `name`        VARCHAR(50)  NOT NULL,
     `description` VARCHAR(255) NULL DEFAULT NULL,
     `created_at`  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,

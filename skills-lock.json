@@ -13,6 +13,12 @@
       "skillPath": "skills/code-comments/SKILL.md",
       "computedHash": "d4d2290d56f7971b9e1ad213f716178d1e887512792acc02497f1da5c4e68271"
     },
+    "database-migrations": {
+      "source": "affaan-m/everything-claude-code",
+      "sourceType": "github",
+      "skillPath": "skills/database-migrations/SKILL.md",
+      "computedHash": "71053b570ad648117f19b3456836a819a6b85f868628899ee28246d8a956b06f"
+    },
     "devops-engineer": {
       "source": "jeffallan/claude-skills",
       "sourceType": "github",

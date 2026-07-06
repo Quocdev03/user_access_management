@@ -16,9 +16,9 @@ func setupUserRoutes(rg *gin.RouterGroup, userHandler *handler.UserHandler, auth
 		users.PATCH("/me", userHandler.UpdateProfile)
 		emailRL := middleware.RateLimitMiddleware(redisClient, "change-email", 5, 20, time.Minute, 15*time.Minute)
 
-		users.POST("/me/email/request-change", emailRL, userHandler.RequestEmailChange)
+		users.POST("/me/email/change-request", emailRL, userHandler.RequestEmailChange)
 		users.POST("/me/email/verify", emailRL, userHandler.VerifyEmailChange)
-		users.POST("/me/email/resend-otp", emailRL, userHandler.ResendChangeEmailOTP)
+		users.POST("/me/email/resend", emailRL, userHandler.ResendChangeEmailOTP)
 
 		users.POST("/me/avatar", middleware.RateLimitMiddleware(redisClient, "upload-avatar", 5, 20, time.Minute, 15*time.Minute), userHandler.UploadAvatar)
 
