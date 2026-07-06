@@ -67,7 +67,7 @@ Hệ thống cung cấp các công cụ quản trị:
 
 ---
 
-## 4. Danh sách Tính năng & Use Cases (39 UC)
+## 4. Danh sách Tính năng & Use Cases (40 UC)
 
 ### Nhóm 1 — Authentication & Authorization
 
@@ -84,6 +84,7 @@ Hệ thống cung cấp các công cụ quản trị:
 | UC-09  | Role-Based Authorization (RBAC)       |
 | UC-10  | Permission-Based Authorization        |
 | UC-32  | Roles & Permissions Management        |
+| UC-40  | Force Change Password                 |
 
 ### Nhóm 2 — User Profile & User Service
 

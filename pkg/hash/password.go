@@ -29,8 +29,6 @@ func SHA256(data string) string {
 }
 
 func HashPassword(password string) (string, error) {
-	if len(password) > bcrypt.MaxCost { // giữ nguyên check 72 bytes phía dưới
-	}
 
 	if len([]byte(password)) > 72 {
 		return "", errors.New("mật khẩu vượt quá giới hạn 72 bytes của bcrypt")

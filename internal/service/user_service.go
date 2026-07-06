@@ -15,6 +15,7 @@ import (
 	"github.com/quocdev03/user-access-management/internal/config"
 	"github.com/quocdev03/user-access-management/internal/constant"
 	"github.com/quocdev03/user-access-management/internal/dto"
+	"github.com/quocdev03/user-access-management/internal/model"
 	"github.com/quocdev03/user-access-management/internal/repository"
 	"github.com/quocdev03/user-access-management/pkg/apperror"
 	"github.com/quocdev03/user-access-management/pkg/database"
@@ -24,9 +25,11 @@ import (
 type UserService struct {
 	userRepo    *repository.UserRepository
 	otpService  *OTPService
-	roleRepo    *repository.RoleRepository
-	sessionRepo *repository.SessionRepository
-	mailService *MailService
+	roleRepo     *repository.RoleRepository
+	sessionRepo  *repository.SessionRepository
+	deviceRepo   *repository.DeviceRepository
+	auditLogRepo *repository.AuditLogRepository
+	mailService  *MailService
 	txManager   *database.TxManager
 	cfg         *config.Config
 	logger      *zap.Logger
@@ -37,6 +40,8 @@ func NewUserService(
 	otpService *OTPService,
 	roleRepo *repository.RoleRepository,
 	sessionRepo *repository.SessionRepository,
+	deviceRepo *repository.DeviceRepository,
+	auditLogRepo *repository.AuditLogRepository,
 	mailService *MailService,
 	txManager *database.TxManager,
 	cfg *config.Config,
@@ -45,13 +50,58 @@ func NewUserService(
 	return &UserService{
 		userRepo:    userRepo,
 		otpService:  otpService,
-		roleRepo:    roleRepo,
-		sessionRepo: sessionRepo,
-		mailService: mailService,
+		roleRepo:     roleRepo,
+		sessionRepo:  sessionRepo,
+		deviceRepo:   deviceRepo,
+		auditLogRepo: auditLogRepo,
+		mailService:  mailService,
 		txManager:   txManager,
 		cfg:         cfg,
 		logger:      logger,
 	}
+}
+
+func (s *UserService) logAudit(ctx context.Context, userID uint64, action, status string) {
+	if err := s.auditLogRepo.Create(ctx, &model.AuditLog{
+		UserID: &userID, Action: action, Status: status,
+	}); err != nil {
+		s.logger.Warn("Không thể ghi audit log", zap.String("action", action), zap.Error(err))
+	}
+}
+
+func (s *UserService) GetSessions(ctx context.Context, userID uint64, currentTokenHash string) ([]dto.SessionResponse, error) {
+	sessions, err := s.sessionRepo.FindActiveSessionsByUserID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	res := []dto.SessionResponse{}
+	for _, ss := range sessions {
+		res = append(res, dto.SessionResponse{
+			ID: ss.ID, IPAddress: ss.IPAddress, UserAgent: ss.UserAgent,
+			DeviceID: ss.DeviceID, ExpiresAt: ss.ExpiresAt, CreatedAt: ss.CreatedAt,
+			IsCurrent: ss.TokenHash == currentTokenHash,
+		})
+	}
+	return res, nil
+}
+
+func (s *UserService) RevokeSession(ctx context.Context, userID, sessionID uint64) error {
+	return s.sessionRepo.DeleteByIDAndUserID(ctx, sessionID, userID)
+}
+
+func (s *UserService) GetDevices(ctx context.Context, userID uint64) ([]dto.DeviceResponse, error) {
+	devices, err := s.deviceRepo.FindByUserID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	res := []dto.DeviceResponse{}
+	for _, d := range devices {
+		res = append(res, dto.DeviceResponse{
+			ID: d.ID, DeviceName: d.DeviceName, DeviceType: d.DeviceType,
+			OS: d.OS, Browser: d.Browser, IPAddress: d.IPAddress, LastActiveAt: d.LastActiveAt,
+		})
+	}
+	return res, nil
 }
 
 func (s *UserService) GetProfile(ctx context.Context, userID uint64) (*dto.UserProfileResponse, error) {
@@ -85,7 +135,7 @@ func (s *UserService) GetProfile(ctx context.Context, userID uint64) (*dto.UserP
 }
 
 func (s *UserService) UpdateProfile(ctx context.Context, userID uint64, req dto.UpdateProfileRequest) error {
-	return s.txManager.RunInTx(ctx, func(txCtx context.Context) error {
+	err := s.txManager.RunInTx(ctx, func(txCtx context.Context) error {
 		userForUpdate, err := s.userRepo.FindByIDForUpdate(txCtx, userID)
 		if err != nil {
 			return fmt.Errorf("userRepo.FindByIDForUpdate: %w", err)
@@ -112,6 +162,10 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID uint64, req dto.
 		}
 		return nil
 	})
+	if err == nil {
+		s.logAudit(ctx, userID, "UPDATE_PROFILE", "success")
+	}
+	return err
 }
 
 func (s *UserService) RequestEmailChange(ctx context.Context, userID uint64, req dto.RequestEmailChangeRequest) error {
@@ -123,7 +177,16 @@ func (s *UserService) RequestEmailChange(ctx context.Context, userID uint64, req
 		return apperror.ErrNotFound
 	}
 
-	isLimited, _ := s.sessionRepo.IncrementRateLimit(ctx, "email_change", user.Email, 3, 1*time.Minute)
+	isLimited, err := s.sessionRepo.IncrementRateLimit(
+		ctx,
+		"email_change",
+		user.Email,
+		3,
+		1*time.Minute,
+	)
+	if err != nil {
+		return fmt.Errorf("sessionRepo.IncrementRateLimit: %w", err)
+	}
 	if isLimited {
 		return apperror.ErrRateLimited
 	}
@@ -167,6 +230,7 @@ func (s *UserService) RequestEmailChange(ctx context.Context, userID uint64, req
 
 	go sendEmailOld()
 	go sendEmailNew()
+	s.logAudit(ctx, userID, "REQUEST_EMAIL_CHANGE", "success")
 	return nil
 }
 
@@ -222,11 +286,17 @@ func (s *UserService) VerifyEmailChange(ctx context.Context, userID uint64, req 
 	go func() {
 		_ = s.mailService.SendEmailChangeNotification(oldEmail, newEmail)
 	}()
-
+	s.logAudit(ctx, userID, "VERIFY_EMAIL_CHANGE", "success")
 	return nil
 }
 
-func (s *UserService) UploadAvatar(ctx context.Context, userID uint64, src io.ReadSeeker, originalFileName string, fileSize int64) (*dto.UploadAvatarResponse, error) {
+func (s *UserService) UploadAvatar(
+	ctx context.Context,
+	userID uint64,
+	src io.ReadSeeker,
+	originalFileName string,
+	fileSize int64,
+) (*dto.UploadAvatarResponse, error) {
 	if fileSize > 2<<20 { // Giới hạn 2MB
 		return nil, apperror.ErrBadRequest.WithMessage("Kích thước ảnh đại diện không được vượt quá 2MB")
 	}
@@ -315,6 +385,7 @@ func (s *UserService) UploadAvatar(ctx context.Context, userID uint64, src io.Re
 		}
 	}
 
+	s.logAudit(ctx, userID, "UPLOAD_AVATAR", "success")
 	return &dto.UploadAvatarResponse{
 		AvatarURL: avatarURL,
 	}, nil
@@ -355,6 +426,7 @@ func (s *UserService) DeleteAvatar(ctx context.Context, userID uint64) error {
 		}
 	}
 
+	s.logAudit(ctx, userID, "DELETE_AVATAR", "success")
 	return nil
 }
 
@@ -375,7 +447,16 @@ func (s *UserService) ResendChangeEmailOTP(ctx context.Context, userID uint64) e
 		return apperror.ErrBadRequest.WithMessage("Không có yêu cầu đổi email nào đang chờ xử lý")
 	}
 
-	isLimited, _ := s.sessionRepo.IncrementRateLimit(ctx, "resend_email_otp", user.Email, 3, 1*time.Minute)
+	isLimited, err := s.sessionRepo.IncrementRateLimit(
+		ctx,
+		"resend_email_otp",
+		user.Email,
+		3,
+		1*time.Minute,
+	)
+	if err != nil {
+		return fmt.Errorf("sessionRepo.IncrementRateLimit: %w", err)
+	}
 	if isLimited {
 		return apperror.ErrRateLimited
 	}

@@ -1,4 +1,4 @@
-﻿package model
+package model
 
 import "time"
 
@@ -14,4 +14,11 @@ type AuditLog struct {
 	NewValues  *string   `db:"new_values" json:"new_values,omitempty"`
 	Status     string    `db:"status" json:"status"`
 	CreatedAt  time.Time `db:"created_at" json:"created_at"`
+}
+
+type PaginationMeta struct {
+	Page       int   `json:"page"`
+	PerPage    int   `json:"per_page"`
+	Total      int64 `json:"total"`
+	TotalPages int   `json:"total_pages"`
 }

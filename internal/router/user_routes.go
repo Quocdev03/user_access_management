@@ -23,5 +23,9 @@ func setupUserRoutes(rg *gin.RouterGroup, userHandler *handler.UserHandler, auth
 		users.POST("/me/avatar", middleware.RateLimitMiddleware(redisClient, "upload-avatar", 5, 20, time.Minute, 15*time.Minute), userHandler.UploadAvatar)
 
 		users.DELETE("/me/avatar", userHandler.DeleteAvatar)
+
+		users.GET("/me/sessions", userHandler.GetSessions)
+		users.DELETE("/me/sessions/:id", userHandler.RevokeSession)
+		users.GET("/me/devices", userHandler.GetDevices)
 	}
 }

@@ -62,8 +62,8 @@
 |------|-------|
 | `internal/middleware/auth_middleware.go` | Middleware xác thực JWT access token, kiểm tra Redis blacklist, inject user context |
 | `internal/middleware/rbac_middleware.go` | Middleware kiểm tra phân quyền (RBAC) bằng JWT roles |
-| `internal/handler/auth_handler.go` | `Register`, `VerifyEmail`, `Login`, `RefreshToken`, `Logout`, `LogoutAll`, `ForgotPassword`, `ResetPassword`, `ChangePassword` |
-	| `internal/router/router.go` | `POST /api/v1/auth/register`, `POST /api/v1/auth/email/verify`, `POST /api/v1/auth/login`, `POST /api/v1/auth/token/refresh`, `POST /api/v1/auth/logout`, `POST /api/v1/auth/logout-all`, `POST /api/v1/auth/password/forgot`, `POST /api/v1/auth/password/reset`, `POST /api/v1/auth/password/change` |
+| `internal/handler/auth_handler.go` | `Register`, `VerifyEmail`, `Login`, `RefreshToken`, `Logout`, `LogoutAll`, `ForgotPassword`, `ResetPassword`, `ChangePassword`, `ForceChangePassword` |
+| `internal/router/router.go` | (Cấu hình Gin, Swagger docs và khai báo các group API chính) |
 
 ---
 
@@ -160,6 +160,10 @@
 | B28 | Giải quyết Deadlock Đổi mật khẩu bắt buộc (`MustChangePassword`) | Bổ sung API `POST /api/v1/auth/force-change-password` để người dùng đổi mật khẩu tạm do Admin cung cấp mà không cần JWT Access Token. |
 | B29 | Lỗi công thức phân trang Admin | Cập nhật lại công thức `totalPages` trong `AdminUserService` để chia đúng số trang dựa trên `req.PerPage`. |
 | B30 | Lỗ hổng Broken Access Control và sai permission | Bổ sung `RequireRole(admin, moderator)` cho group `/admin`. Sửa 2 quyền `users.lock` và `users.reset_password`. Thêm admin bypass trong Middleware. Cập nhật CROSS JOIN tại migration `000014` để chống rớt quyền admin khi re-seed. |
+| M16 | Triển khai quản lý Roles & Permissions (UC-32) | Tạo `AdminRoleHandler` với đầy đủ CRUD cho Role, gán quyền cho role, gán role cho user. Tích hợp `AdminRoleService` và route. |
+| M17 | Triển khai Audit Log (UC-30) | Theo dõi user actions như update_profile, login. Bổ sung tính năng Admin xuất log ra file CSV trong `AdminAuditLogHandler` (tối đa 10,000 dòng có BOM). |
+| M18 | Tự động hóa API Docs bằng Swagger | Đã thêm toàn bộ annotation Swaggo cho hơn 30 API Endpoints (`auth`, `users`, `admin`), sinh file json/yaml thành công, cấu hình `gin-swagger` chạy trên route `/swagger/*any`. Khắc phục lỗi tương thích `LeftDelim` của lib cũ. |
+| R15 | Refactoring cấu trúc thư mục theo Business Domain | Gộp các file nhỏ lẻ trong từng layer (DTO, Model, Repository, Service, Handler) thành các file lớn hơn theo nghiệp vụ (`auth_*`, `admin_*`, `rbac_*`, `system_*`). Giảm tổng số file từ 36 xuống 18, giúp mã nguồn gọn gàng và dễ theo dõi hơn. |
 
 ---
 
@@ -178,8 +182,10 @@
 #### Handler & Routes
 | File | Routes |
 |------|-------|
-| `internal/router/admin_routes.go` | `GET /admin/users`, `GET /admin/users/:id`, `PUT /admin/users/:id`, `PATCH /admin/users/:id/status`, `POST /admin/users/:id/password/reset`, `POST /admin/users/:id/notify` |
-| `internal/middleware/rbac_middleware.go` | `PermissionMiddleware` kiểm tra quyền theo resource (VD: `users.read`, `users.update`) |
+| `internal/router/admin_routes.go` | Setup Group `/admin` với `Role/Permission Middleware` cho User, Roles, Audit Logs |
+| `internal/handler/admin_user_handler.go` | Endpoint quản lý user (`GET /admin/users`, `PUT /admin/users/:id`, `PATCH /admin/users/:id/status`, v.v) |
+| `internal/handler/admin_role_handler.go` | Endpoint quản lý Role và phân quyền (`GET /admin/roles`, `POST /admin/roles`, `POST /admin/roles/:id/permissions`, v.v) |
+| `internal/handler/admin_audit_log_handler.go` | Endpoint xuất nhật ký (`GET /admin/audit-logs/export`) |
 
 ---
 
@@ -188,11 +194,10 @@
 | UC | Tính năng | Ghi chú |
 |----|----------|---------|
 | UC-38 | Unit & Integration Test | Đã viết unit test cho `pkg/jwt`, các module khác chưa có |
-| UC-32 | Quản lý Roles & Permissions | Admin tạo role và gán permission (Chưa có) |
 
 ---
 
 ## 🔑 Bước tiếp theo đề xuất
 
-1. **UC-32 Roles & Permissions Management** → Chức năng để Admin tạo role mới, gán quyền và gán role cho user.
-2. **Viết Unit/Integration Test** → Đảm bảo độ che phủ code (coverage) cho các module Auth & User.
+1. **Viết Unit/Integration Test** → Đảm bảo độ che phủ code (coverage) cho các module Auth & User.
+2. **Setup ELK/Monitoring** (Tùy chọn) → Đưa Audit Logs từ Database ra hệ thống Elasticsearch để theo dõi theo thời gian thực.

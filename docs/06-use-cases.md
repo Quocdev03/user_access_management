@@ -130,6 +130,19 @@ Hệ thống UAM bao gồm **39 Use Cases** chia thành **6 nhóm** chức năng
 - **Quy tắc nghiệp vụ**:
   - Mật khẩu mới không được trùng mật khẩu cũ.
 
+### UC-40: Bắt buộc đổi mật khẩu (Force Change Password)
+
+- **Đối tượng**: Người dùng vừa bị admin reset mật khẩu
+- **Mô tả**: Bắt buộc người dùng đổi mật khẩu ở lần đăng nhập đầu tiên bằng mật khẩu tạm do admin cấp.
+- **Endpoint**: `POST /api/v1/auth/password/force-change`
+- **Luồng chính**:
+  1. Người dùng nhập email, mật khẩu tạm (được cấp qua mail) và mật khẩu mới.
+  2. Hệ thống kiểm tra mật khẩu tạm đúng.
+  3. Validate mật khẩu mới theo policy (→ UC-24).
+  4. Cập nhật mật khẩu mới, trạng thái force-change và kích hoạt tài khoản trở lại nếu cần.
+- **Quy tắc nghiệp vụ**:
+  - Không được dùng lại mật khẩu tạm làm mật khẩu mới.
+
 ### UC-09: Phân quyền theo vai trò (RBAC)
 
 - **Đối tượng**: Hệ thống

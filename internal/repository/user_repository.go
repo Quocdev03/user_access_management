@@ -117,12 +117,12 @@ func (r *UserRepository) UpdateUser(ctx context.Context, user *model.User) error
 
 // Hàm ListUsers là một hàm "chuyên trị" cho bài toán Tìm kiếm, Lọc và Phân trang (Pagination) dữ liệu lớn
 func (r *UserRepository) ListUsers(ctx context.Context, username, email, status, role string, limit, offset int, sortBy, sortOrder string) ([]model.User, int64, error) {
-	var users []model.User
+	users := []model.User{}
 	var total int64
 	db := database.GetDB(ctx, r.db)
 
 	baseQuery := "FROM users WHERE 1=1"
-	var args []any
+	args := []any{}
 
 	if username != "" {
 		baseQuery += " AND username LIKE ?"

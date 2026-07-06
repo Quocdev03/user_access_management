@@ -115,6 +115,7 @@ Các endpoint trả danh sách hỗ trợ query params:
 | POST | `/auth/password/forgot` | Yêu cầu đặt lại mật khẩu | Không |
 | POST | `/auth/password/reset` | Đặt lại mật khẩu bằng token | Không |
 | POST | `/auth/password/change` | Đổi mật khẩu (khi đã đăng nhập) | Có |
+| POST | `/auth/password/force-change` | Đổi mật khẩu bắt buộc sau khi admin reset | Không (dùng token tạm) |
 
 ### 3.2 Hồ sơ người dùng (User Profile)
 
@@ -346,5 +347,26 @@ Gửi lại mã OTP xác thực tài khoản qua email.
 {
   "success": true,
   "message": "Đã gửi lại mã OTP. Vui lòng kiểm tra email của bạn."
+}
+```
+
+### POST `/auth/password/force-change`
+
+Bắt buộc đổi mật khẩu sau khi tài khoản bị Admin reset mật khẩu. User đăng nhập bằng mật khẩu tạm, hệ thống yêu cầu đổi ngay lập tức để tiếp tục sử dụng.
+
+**Request:**
+```json
+{
+  "email": "nguyenvana@example.com",
+  "temporary_password": "AdminResetPassword@123",
+  "new_password": "MatKhauMoiCuaToi@123"
+}
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Đổi mật khẩu thành công. Vui lòng đăng nhập lại."
 }
 ```

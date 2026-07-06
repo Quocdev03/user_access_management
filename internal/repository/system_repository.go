@@ -44,3 +44,36 @@ func (r *AuditLogRepository) Create(ctx context.Context, log *model.AuditLog) er
 
 	return nil
 }
+
+func (r *AuditLogRepository) FindAllWithFilters(
+	ctx context.Context,
+	userID *uint64,
+	action *string,
+	start, end *string,
+) ([]model.AuditLog, error) {
+	query := `SELECT * FROM audit_logs WHERE 1=1`
+	args := []interface{}{}
+
+	if userID != nil {
+		query += ` AND user_id = ?`
+		args = append(args, *userID)
+	}
+	if action != nil && *action != "" {
+		query += ` AND action = ?`
+		args = append(args, *action)
+	}
+	if start != nil && *start != "" {
+		query += ` AND created_at >= ?`
+		args = append(args, *start)
+	}
+	if end != nil && *end != "" {
+		query += ` AND created_at <= ?`
+		args = append(args, *end)
+	}
+
+	query += ` ORDER BY created_at DESC LIMIT 10000`
+
+	logs := []model.AuditLog{}
+	err := database.GetDB(ctx, r.db).SelectContext(ctx, &logs, query, args...)
+	return logs, err
+}

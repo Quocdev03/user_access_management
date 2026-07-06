@@ -20,7 +20,7 @@ func setupAuthRoutes(rg *gin.RouterGroup, authHandler *handler.AuthHandler, auth
 		email := auth.Group("/email")
 		{
 			email.POST("/verify", middleware.RateLimitMiddleware(redisClient, "verify-email", 10, 30, time.Minute, 15*time.Minute), authHandler.VerifyEmail)
-			email.POST("/resend", middleware.RateLimitMiddleware(redisClient, "resend-verification-email", 5, 20, time.Minute, 15*time.Minute), authHandler.ResendVerificationEmail)
+			email.POST("/resend", middleware.RateLimitMiddleware(redisClient, "resend-verification-email", 10, 30, time.Minute, 15*time.Minute), authHandler.ResendVerificationEmail)
 		}
 
 		token := auth.Group("/token")
@@ -30,7 +30,7 @@ func setupAuthRoutes(rg *gin.RouterGroup, authHandler *handler.AuthHandler, auth
 
 		password := auth.Group("/password")
 		{
-			password.POST("/forgot", middleware.RateLimitMiddleware(redisClient, "forgot-password", 5, 20, time.Minute, 15*time.Minute), authHandler.ForgotPassword)
+			password.POST("/forgot", middleware.RateLimitMiddleware(redisClient, "forgot-password", 10, 30, time.Minute, 15*time.Minute), authHandler.ForgotPassword)
 			password.POST("/reset", middleware.RateLimitMiddleware(redisClient, "reset-password", 10, 30, time.Minute, 15*time.Minute), authHandler.ResetPassword)
 			password.POST("/change", authMiddleware, middleware.RateLimitMiddleware(redisClient, "change-password", 10, 30, time.Minute, 15*time.Minute), authHandler.ChangePassword)
 			password.POST("/force-change", middleware.RateLimitMiddleware(redisClient, "force-change-password", 10, 30, time.Minute, 15*time.Minute), authHandler.ForceChangePassword)

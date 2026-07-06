@@ -1,5 +1,6 @@
 package dto
 
+import "time"
 type UserInfoResponse struct {
 	ID       uint64 `json:"id"`
 	Username string `json:"username"`
@@ -72,4 +73,24 @@ type ForceChangePasswordRequest struct {
 	Email        string `json:"email" binding:"required,email"`
 	TempPassword string `json:"temp_password" binding:"required"`
 	NewPassword  string `json:"new_password" binding:"required,min=8"`
+}
+
+type SessionResponse struct {
+	ID        uint64    `json:"id"`
+	IPAddress *string   `json:"ip_address"`
+	UserAgent *string   `json:"user_agent"`
+	DeviceID  *uint64   `json:"device_id"`
+	ExpiresAt time.Time `json:"expires_at"`
+	CreatedAt time.Time `json:"created_at"`
+	IsCurrent bool      `json:"is_current"`
+}
+
+type DeviceResponse struct {
+	ID           uint64     `json:"id"`
+	DeviceName   *string    `json:"device_name"`
+	DeviceType   *string    `json:"device_type"`
+	OS           *string    `json:"os"`
+	Browser      *string    `json:"browser"`
+	IPAddress    *string    `json:"ip_address"`
+	LastActiveAt *time.Time `json:"last_active_at"`
 }

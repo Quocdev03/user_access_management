@@ -15,7 +15,7 @@
 
 ### File
 
-- Viết thường, dùng dấu gạch dưới: `auth_handler.go`, `user_service.go`, `audit_repository.go`.
+- Viết thường, dùng dấu gạch dưới: `auth_handler.go`, `user_service.go`, `system_repository.go`.
 - File trong thư mục model luôn kết thúc bằng `_model.go`: `user_model.go`, `role_model.go`.
 - Không lồng ghép quá sâu tên file (ưu tiên `password_repository.go` thay vì `password_reset_repository.go`).
 - File test: thêm hậu tố `_test.go`: `auth_service_test.go`.
@@ -195,7 +195,7 @@ main ← Production-ready code
 
 feat(auth): thêm API đăng ký tài khoản
 
-- Tạo RegisterHandler, RegisterService
+- Thêm logic vào AuthHandler, AuthService
 - Validate input, hash password bằng bcrypt
 - Gán role mặc định "user"
 - Gửi OTP xác thực email

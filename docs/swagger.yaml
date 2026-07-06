@@ -1,0 +1,1541 @@
+basePath: /api/v1
+definitions:
+  dto.AdminChangeStatusRequest:
+    properties:
+      status:
+        enum:
+        - active
+        - inactive
+        - locked
+        type: string
+    required:
+    - status
+    type: object
+  dto.AdminNotifyRequest:
+    properties:
+      message:
+        maxLength: 5000
+        type: string
+      subject:
+        maxLength: 200
+        type: string
+    required:
+    - message
+    - subject
+    type: object
+  dto.AdminUpdateUserRequest:
+    properties:
+      avatar_url:
+        type: string
+      date_of_birth:
+        type: string
+      email:
+        type: string
+      email_verified:
+        type: boolean
+      full_name:
+        maxLength: 100
+        minLength: 2
+        type: string
+      phone:
+        maxLength: 20
+        minLength: 9
+        type: string
+    type: object
+  dto.AssignPermissionsRequest:
+    properties:
+      permission_ids:
+        items:
+          type: integer
+        type: array
+    required:
+    - permission_ids
+    type: object
+  dto.AssignRoleRequest:
+    properties:
+      role_id:
+        type: integer
+    required:
+    - role_id
+    type: object
+  dto.ChangePasswordRequest:
+    properties:
+      new_password:
+        minLength: 8
+        type: string
+      old_password:
+        type: string
+    required:
+    - new_password
+    - old_password
+    type: object
+  dto.CreateRoleRequest:
+    properties:
+      description:
+        maxLength: 255
+        type: string
+      name:
+        maxLength: 50
+        type: string
+    required:
+    - name
+    type: object
+  dto.DeviceResponse:
+    properties:
+      browser:
+        type: string
+      device_name:
+        type: string
+      device_type:
+        type: string
+      id:
+        type: integer
+      ip_address:
+        type: string
+      last_active_at:
+        type: string
+      os:
+        type: string
+    type: object
+  dto.ForceChangePasswordRequest:
+    properties:
+      email:
+        type: string
+      new_password:
+        minLength: 8
+        type: string
+      temp_password:
+        type: string
+    required:
+    - email
+    - new_password
+    - temp_password
+    type: object
+  dto.ForgotPasswordRequest:
+    properties:
+      email:
+        type: string
+    required:
+    - email
+    type: object
+  dto.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  dto.LoginResponse:
+    properties:
+      access_token:
+        type: string
+      refresh_token:
+        type: string
+      user:
+        $ref: '#/definitions/dto.UserInfoResponse'
+    type: object
+  dto.PermissionResponse:
+    properties:
+      action:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      resource:
+        type: string
+    type: object
+  dto.RefreshTokenRequest:
+    properties:
+      refresh_token:
+        type: string
+    required:
+    - refresh_token
+    type: object
+  dto.RegisterRequest:
+    properties:
+      date_of_birth:
+        type: string
+      email:
+        type: string
+      full_name:
+        maxLength: 100
+        type: string
+      password:
+        minLength: 8
+        type: string
+      phone:
+        maxLength: 20
+        type: string
+      username:
+        maxLength: 50
+        minLength: 3
+        type: string
+    required:
+    - date_of_birth
+    - email
+    - full_name
+    - password
+    - phone
+    - username
+    type: object
+  dto.RegisterResponse:
+    properties:
+      email:
+        type: string
+      id:
+        type: integer
+      status:
+        type: string
+      username:
+        type: string
+    type: object
+  dto.RequestEmailChangeRequest:
+    properties:
+      current_password:
+        type: string
+      new_email:
+        type: string
+    required:
+    - current_password
+    - new_email
+    type: object
+  dto.ResendVerificationEmailRequest:
+    properties:
+      email:
+        type: string
+    required:
+    - email
+    type: object
+  dto.ResetPasswordRequest:
+    properties:
+      new_password:
+        minLength: 8
+        type: string
+      token:
+        type: string
+    required:
+    - new_password
+    - token
+    type: object
+  dto.RoleResponse:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      permissions:
+        items:
+          $ref: '#/definitions/dto.PermissionResponse'
+        type: array
+    type: object
+  dto.SessionResponse:
+    properties:
+      created_at:
+        type: string
+      device_id:
+        type: integer
+      expires_at:
+        type: string
+      id:
+        type: integer
+      ip_address:
+        type: string
+      is_current:
+        type: boolean
+      user_agent:
+        type: string
+    type: object
+  dto.UpdateProfileRequest:
+    properties:
+      date_of_birth:
+        type: string
+      full_name:
+        maxLength: 100
+        type: string
+      phone:
+        maxLength: 20
+        type: string
+    type: object
+  dto.UpdateRoleRequest:
+    properties:
+      description:
+        maxLength: 255
+        type: string
+      name:
+        maxLength: 50
+        type: string
+    required:
+    - name
+    type: object
+  dto.UploadAvatarResponse:
+    properties:
+      avatar_url:
+        type: string
+    type: object
+  dto.UserInfoResponse:
+    properties:
+      email:
+        type: string
+      full_name:
+        type: string
+      id:
+        type: integer
+      username:
+        type: string
+    type: object
+  dto.UserProfileResponse:
+    properties:
+      avatar_url:
+        type: string
+      created_at:
+        type: string
+      date_of_birth:
+        type: string
+      email:
+        type: string
+      email_verified:
+        type: boolean
+      full_name:
+        type: string
+      id:
+        type: integer
+      phone:
+        type: string
+      roles:
+        items:
+          type: string
+        type: array
+      status:
+        type: string
+      username:
+        type: string
+    type: object
+  dto.VerifyEmailChangeRequest:
+    properties:
+      new_otp:
+        type: string
+      old_otp:
+        type: string
+    required:
+    - new_otp
+    - old_otp
+    type: object
+  dto.VerifyEmailRequest:
+    properties:
+      email:
+        type: string
+      otp:
+        type: string
+    required:
+    - email
+    - otp
+    type: object
+  response.Response:
+    properties:
+      data: {}
+      error: {}
+      message:
+        type: string
+      meta: {}
+      success:
+        type: boolean
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: quocdt2003@gmail.com
+    name: Quoc Dev
+  description: Hệ thống quản lý truy cập người dùng RESTful API bằng Golang/Gin.
+  termsOfService: http://swagger.io/terms/
+  title: User Access Management API
+  version: "1.0"
+paths:
+  /admin/audit-logs/export:
+    get:
+      consumes:
+      - application/json
+      description: Xuất nhật ký hệ thống (audit logs) ra file CSV (tối đa 10000 dòng)
+      parameters:
+      - description: Lọc theo User ID
+        in: query
+        name: user_id
+        type: integer
+      - description: 'Lọc theo hành động (VD: login, create_user)'
+        in: query
+        name: action
+        type: string
+      - description: Từ ngày (YYYY-MM-DD)
+        in: query
+        name: start_date
+        type: string
+      - description: Đến ngày (YYYY-MM-DD)
+        in: query
+        name: end_date
+        type: string
+      produces:
+      - text/csv
+      responses:
+        "200":
+          description: File CSV
+          schema:
+            type: file
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - BearerAuth: []
+      summary: Xuất Audit Logs
+      tags:
+      - Admin - Audit Logs
+  /admin/roles:
+    get:
+      consumes:
+      - application/json
+      description: Lấy danh sách tất cả các role trong hệ thống
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/dto.RoleResponse'
+                  type: array
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - BearerAuth: []
+      summary: Lấy danh sách Roles
+      tags:
+      - Admin - Roles
+    post:
+      consumes:
+      - application/json
+      description: Tạo một role mới trong hệ thống
+      parameters:
+      - description: Thông tin Role
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateRoleRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.RoleResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - BearerAuth: []
+      summary: Tạo Role mới
+      tags:
+      - Admin - Roles
+  /admin/roles/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Xóa một role khỏi hệ thống (nếu không có user đang sử dụng)
+      parameters:
+      - description: Role ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - BearerAuth: []
+      summary: Xóa Role
+      tags:
+      - Admin - Roles
+    put:
+      consumes:
+      - application/json
+      description: Cập nhật thông tin của một role
+      parameters:
+      - description: Role ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Thông tin cập nhật
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateRoleRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - BearerAuth: []
+      summary: Cập nhật Role
+      tags:
+      - Admin - Roles
+  /admin/roles/{id}/permissions:
+    post:
+      consumes:
+      - application/json
+      description: Phân quyền (permissions) cho một role
+      parameters:
+      - description: Role ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Danh sách permission IDs
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AssignPermissionsRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - BearerAuth: []
+      summary: Gán Permissions cho Role
+      tags:
+      - Admin - Roles
+  /admin/users:
+    get:
+      consumes:
+      - application/json
+      description: Dành cho Admin lấy danh sách users (hỗ trợ phân trang, lọc, sắp
+        xếp)
+      parameters:
+      - description: Số trang
+        in: query
+        name: page
+        type: integer
+      - description: Kích thước trang
+        in: query
+        name: page_size
+        type: integer
+      - description: Sắp xếp theo trường nào
+        in: query
+        name: sort_by
+        type: string
+      - description: Chiều sắp xếp (asc/desc)
+        in: query
+        name: sort_order
+        type: string
+      - description: Lọc theo trạng thái
+        in: query
+        name: status
+        type: string
+      - description: Tìm kiếm theo username/email
+        in: query
+        name: search
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/dto.UserProfileResponse'
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - BearerAuth: []
+      summary: Lấy danh sách người dùng
+      tags:
+      - Admin - Users
+  /admin/users/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Dành cho Admin xem chi tiết thông tin của một user cụ thể
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.UserProfileResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - BearerAuth: []
+      summary: Xem chi tiết người dùng
+      tags:
+      - Admin - Users
+    put:
+      consumes:
+      - application/json
+      description: Dành cho Admin cập nhật thông tin cá nhân của user
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Dữ liệu cập nhật
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AdminUpdateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - BearerAuth: []
+      summary: Cập nhật thông tin người dùng
+      tags:
+      - Admin - Users
+  /admin/users/{id}/notify:
+    post:
+      consumes:
+      - application/json
+      description: Dành cho Admin gửi email thông báo trực tiếp tới user
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Nội dung thông báo
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AdminNotifyRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - BearerAuth: []
+      summary: Gửi thông báo cho người dùng
+      tags:
+      - Admin - Users
+  /admin/users/{id}/reset-password:
+    post:
+      consumes:
+      - application/json
+      description: Dành cho Admin reset mật khẩu của user về mật khẩu tạm thời
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - BearerAuth: []
+      summary: Đặt lại mật khẩu người dùng
+      tags:
+      - Admin - Users
+  /admin/users/{id}/roles:
+    post:
+      consumes:
+      - application/json
+      description: Gán một role cho một user
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Role ID cần gán
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AssignRoleRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - BearerAuth: []
+      summary: Gán Role cho User
+      tags:
+      - Admin - Roles
+  /admin/users/{id}/roles/{roleId}:
+    delete:
+      consumes:
+      - application/json
+      description: Gỡ một role đã được gán cho một user
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Role ID
+        in: path
+        name: roleId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - BearerAuth: []
+      summary: Gỡ Role khỏi User
+      tags:
+      - Admin - Roles
+  /admin/users/{id}/status:
+    patch:
+      consumes:
+      - application/json
+      description: Dành cho Admin khóa hoặc mở khóa tài khoản user
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Trạng thái và lý do
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AdminChangeStatusRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - BearerAuth: []
+      summary: Thay đổi trạng thái người dùng
+      tags:
+      - Admin - Users
+  /auth/change-password:
+    post:
+      consumes:
+      - application/json
+      description: Đổi mật khẩu tài khoản
+      parameters:
+      - description: Thông tin đổi mật khẩu
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ChangePasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - BearerAuth: []
+      summary: Đổi mật khẩu
+      tags:
+      - Authentication
+  /auth/force-change-password:
+    post:
+      consumes:
+      - application/json
+      description: Đổi mật khẩu (dành cho người dùng bị reset pass từ admin)
+      parameters:
+      - description: Thông tin mật khẩu mới
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ForceChangePasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - BearerAuth: []
+      summary: Đổi mật khẩu bắt buộc
+      tags:
+      - Authentication
+  /auth/forgot-password:
+    post:
+      consumes:
+      - application/json
+      description: Yêu cầu đặt lại mật khẩu bằng cách gửi email có chứa OTP
+      parameters:
+      - description: Email đã đăng ký
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ForgotPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: Quên mật khẩu
+      tags:
+      - Authentication
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Đăng nhập vào hệ thống
+      parameters:
+      - description: Thông tin đăng nhập
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.LoginResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: Đăng nhập
+      tags:
+      - Authentication
+  /auth/logout:
+    post:
+      consumes:
+      - application/json
+      description: Đăng xuất khỏi hệ thống
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - BearerAuth: []
+      summary: Đăng xuất
+      tags:
+      - Authentication
+  /auth/logout-all:
+    post:
+      consumes:
+      - application/json
+      description: Hủy tất cả các phiên đăng nhập của người dùng
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - BearerAuth: []
+      summary: Đăng xuất khỏi tất cả thiết bị
+      tags:
+      - Authentication
+  /auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: Cấp lại Access Token mới dựa trên Refresh Token
+      parameters:
+      - description: Refresh Token
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.RefreshTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.LoginResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: Làm mới Access Token
+      tags:
+      - Authentication
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Đăng ký người dùng mới vào hệ thống
+      parameters:
+      - description: Thông tin đăng ký
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.RegisterResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: Đăng ký tài khoản mới
+      tags:
+      - Authentication
+  /auth/resend-verification-email:
+    post:
+      consumes:
+      - application/json
+      description: Yêu cầu gửi lại email chứa OTP xác thực tài khoản
+      parameters:
+      - description: Thông tin yêu cầu
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ResendVerificationEmailRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: Gửi lại OTP xác thực
+      tags:
+      - Authentication
+  /auth/reset-password:
+    post:
+      consumes:
+      - application/json
+      description: Đặt lại mật khẩu bằng OTP
+      parameters:
+      - description: Thông tin đặt lại mật khẩu
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ResetPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: Đặt lại mật khẩu
+      tags:
+      - Authentication
+  /auth/verify-email:
+    post:
+      consumes:
+      - application/json
+      description: Xác thực tài khoản qua email
+      parameters:
+      - description: OTP xác thực
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.VerifyEmailRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: Xác thực email
+      tags:
+      - Authentication
+  /users/me:
+    get:
+      consumes:
+      - application/json
+      description: Lấy thông tin hồ sơ của người dùng hiện tại
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.UserProfileResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - BearerAuth: []
+      summary: Lấy thông tin cá nhân
+      tags:
+      - Users
+    put:
+      consumes:
+      - application/json
+      description: Cập nhật thông tin hồ sơ của người dùng hiện tại
+      parameters:
+      - description: Thông tin cập nhật
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateProfileRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - BearerAuth: []
+      summary: Cập nhật hồ sơ
+      tags:
+      - Users
+  /users/me/avatar:
+    delete:
+      consumes:
+      - application/json
+      description: Xóa ảnh đại diện hiện tại
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - BearerAuth: []
+      summary: Xóa ảnh đại diện
+      tags:
+      - Users
+    post:
+      consumes:
+      - multipart/form-data
+      description: Upload ảnh đại diện mới
+      parameters:
+      - description: File ảnh
+        in: formData
+        name: avatar
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.UploadAvatarResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - BearerAuth: []
+      summary: Tải lên ảnh đại diện
+      tags:
+      - Users
+  /users/me/devices:
+    get:
+      consumes:
+      - application/json
+      description: Lấy thông tin các thiết bị đã đăng nhập
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/dto.DeviceResponse'
+                  type: array
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - BearerAuth: []
+      summary: Lấy danh sách thiết bị
+      tags:
+      - Users
+  /users/me/email/request:
+    post:
+      consumes:
+      - application/json
+      description: Yêu cầu đổi địa chỉ email, hệ thống sẽ gửi OTP
+      parameters:
+      - description: Email mới
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.RequestEmailChangeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - BearerAuth: []
+      summary: Yêu cầu đổi email
+      tags:
+      - Users
+  /users/me/email/resend-otp:
+    post:
+      consumes:
+      - application/json
+      description: Yêu cầu gửi lại OTP cho thao tác đổi email
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - BearerAuth: []
+      summary: Gửi lại OTP đổi email
+      tags:
+      - Users
+  /users/me/email/verify:
+    post:
+      consumes:
+      - application/json
+      description: Nhập mã OTP để hoàn tất quá trình đổi email
+      parameters:
+      - description: OTP cũ và mới
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.VerifyEmailChangeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - BearerAuth: []
+      summary: Xác thực đổi email
+      tags:
+      - Users
+  /users/me/sessions:
+    get:
+      consumes:
+      - application/json
+      description: Lấy danh sách các phiên đăng nhập đang hoạt động của người dùng
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/dto.SessionResponse'
+                  type: array
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - BearerAuth: []
+      summary: Lấy danh sách phiên đăng nhập
+      tags:
+      - Users
+  /users/me/sessions/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Hủy một phiên đăng nhập cụ thể theo ID
+      parameters:
+      - description: Session ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - BearerAuth: []
+      summary: Xóa phiên đăng nhập
+      tags:
+      - Users
+swagger: "2.0"

@@ -27,7 +27,11 @@
     - Sau khi thay đổi Go source (\*.go), chạy `cmd /c "go build ./..."`. Nếu chỉ sửa docs, config, comment thì không cần build.
     - Nếu có unit test cho phần bị sửa, hãy chạy các test liên quan. Không chạy toàn bộ test suite nếu chỉ thay đổi nhỏ, trừ khi được yêu cầu.
     - **Rollback/Fix**: Nếu build hoặc test fail, tự phân tích và fix. Nếu lỗi phức tạp vượt quá phạm vi task, báo lại cho user và xin ý kiến, KHÔNG tự ý sửa lan man.
-4. **Cập nhật Docs**: Chỉ cập nhật `PROGRESS.md` khi hoàn thành feature, use case hoặc có thay đổi API, Database, Architecture. Không cập nhật khi refactor nhỏ, fix bug nhỏ, sửa comment hoặc formatting.
+4. **Cập nhật Docs**: BẮT BUỘC cập nhật `PROGRESS.md` khi:
+    - Hoàn thành một Feature, Use Case mới.
+    - Có thay đổi lớn về API, Database, Architecture.
+    - Cập nhật tài liệu quy mô lớn, mang tính toàn cục (VD: Tích hợp Swagger, bổ sung comment/docs cho toàn bộ module).
+    *Không cập nhật* nếu chỉ là refactor code nhỏ lẻ, fix bug lặt vặt, sửa lỗi typo hoặc format code thông thường.
 
 ## 3. QUY TẮC KIẾN TRÚC & CODE
 

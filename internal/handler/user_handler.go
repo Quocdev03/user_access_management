@@ -2,11 +2,13 @@ package handler
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/quocdev03/user-access-management/internal/dto"
 	"github.com/quocdev03/user-access-management/internal/service"
 	"github.com/quocdev03/user-access-management/pkg/apperror"
+	"github.com/quocdev03/user-access-management/pkg/hash"
 	"github.com/quocdev03/user-access-management/pkg/response"
 	"github.com/quocdev03/user-access-management/pkg/validator"
 )
@@ -33,6 +35,15 @@ func getUserID(c *gin.Context) (uint64, bool) {
 	return userID, true
 }
 
+// @Summary Lấy thông tin cá nhân
+// @Description Lấy thông tin hồ sơ của người dùng hiện tại
+// @Tags Users
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} response.Response{data=dto.UserProfileResponse}
+// @Failure 401 {object} response.Response
+// @Router /users/me [get]
 func (h *UserHandler) GetProfile(c *gin.Context) {
 	userID, ok := getUserID(c)
 	if !ok {
@@ -47,6 +58,17 @@ func (h *UserHandler) GetProfile(c *gin.Context) {
 	response.Success(c, http.StatusOK, "Lấy thông tin hồ sơ thành công", res)
 }
 
+// @Summary Cập nhật hồ sơ
+// @Description Cập nhật thông tin hồ sơ của người dùng hiện tại
+// @Tags Users
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param request body dto.UpdateProfileRequest true "Thông tin cập nhật"
+// @Success 200 {object} response.Response
+// @Failure 400 {object} response.Response
+// @Failure 401 {object} response.Response
+// @Router /users/me [put]
 func (h *UserHandler) UpdateProfile(c *gin.Context) {
 	userID, ok := getUserID(c)
 	if !ok {
@@ -66,6 +88,17 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 	response.Success(c, http.StatusOK, "Cập nhật hồ sơ thành công", nil)
 }
 
+// @Summary Yêu cầu đổi email
+// @Description Yêu cầu đổi địa chỉ email, hệ thống sẽ gửi OTP
+// @Tags Users
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param request body dto.RequestEmailChangeRequest true "Email mới"
+// @Success 200 {object} response.Response
+// @Failure 400 {object} response.Response
+// @Failure 401 {object} response.Response
+// @Router /users/me/email/request [post]
 func (h *UserHandler) RequestEmailChange(c *gin.Context) {
 	userID, ok := getUserID(c)
 	if !ok {
@@ -85,6 +118,17 @@ func (h *UserHandler) RequestEmailChange(c *gin.Context) {
 	response.Success(c, http.StatusOK, "Yêu cầu đổi email thành công. Mã xác thực OTP đã được gửi đến email cũ và email mới.", nil)
 }
 
+// @Summary Xác thực đổi email
+// @Description Nhập mã OTP để hoàn tất quá trình đổi email
+// @Tags Users
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param request body dto.VerifyEmailChangeRequest true "OTP cũ và mới"
+// @Success 200 {object} response.Response
+// @Failure 400 {object} response.Response
+// @Failure 401 {object} response.Response
+// @Router /users/me/email/verify [post]
 func (h *UserHandler) VerifyEmailChange(c *gin.Context) {
 	userID, ok := getUserID(c)
 	if !ok {
@@ -104,6 +148,17 @@ func (h *UserHandler) VerifyEmailChange(c *gin.Context) {
 	response.Success(c, http.StatusOK, "Thay đổi email thành công. Phiên hoạt động cũ của bạn đã được thu hồi.", nil)
 }
 
+// @Summary Tải lên ảnh đại diện
+// @Description Upload ảnh đại diện mới
+// @Tags Users
+// @Accept multipart/form-data
+// @Produce json
+// @Security BearerAuth
+// @Param avatar formData file true "File ảnh"
+// @Success 200 {object} response.Response{data=dto.UploadAvatarResponse}
+// @Failure 400 {object} response.Response
+// @Failure 401 {object} response.Response
+// @Router /users/me/avatar [post]
 func (h *UserHandler) UploadAvatar(c *gin.Context) {
 	userID, ok := getUserID(c)
 	if !ok {
@@ -132,6 +187,15 @@ func (h *UserHandler) UploadAvatar(c *gin.Context) {
 	response.Success(c, http.StatusOK, "Tải ảnh đại diện lên thành công", res)
 }
 
+// @Summary Xóa ảnh đại diện
+// @Description Xóa ảnh đại diện hiện tại
+// @Tags Users
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} response.Response
+// @Failure 401 {object} response.Response
+// @Router /users/me/avatar [delete]
 func (h *UserHandler) DeleteAvatar(c *gin.Context) {
 	userID, ok := getUserID(c)
 	if !ok {
@@ -146,6 +210,89 @@ func (h *UserHandler) DeleteAvatar(c *gin.Context) {
 	response.Success(c, http.StatusOK, "Xóa ảnh đại diện thành công", nil)
 }
 
+// @Summary Lấy danh sách phiên đăng nhập
+// @Description Lấy danh sách các phiên đăng nhập đang hoạt động của người dùng
+// @Tags Users
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} response.Response{data=[]dto.SessionResponse}
+// @Failure 401 {object} response.Response
+// @Router /users/me/sessions [get]
+func (h *UserHandler) GetSessions(c *gin.Context) {
+	userID, ok := getUserID(c)
+	if !ok {
+		return
+	}
+	tokenStr, exists := c.Get("token")
+	var currentTokenHash string
+	if exists {
+		currentTokenHash = hash.SHA256(tokenStr.(string))
+	}
+
+	res, err := h.userService.GetSessions(c.Request.Context(), userID, currentTokenHash)
+	if err != nil {
+		response.Error(c, err)
+		return
+	}
+	response.Success(c, http.StatusOK, "Thành công", res)
+}
+
+// @Summary Xóa phiên đăng nhập
+// @Description Hủy một phiên đăng nhập cụ thể theo ID
+// @Tags Users
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "Session ID"
+// @Success 200 {object} response.Response
+// @Failure 401 {object} response.Response
+// @Router /users/me/sessions/{id} [delete]
+func (h *UserHandler) RevokeSession(c *gin.Context) {
+	userID, ok := getUserID(c)
+	if !ok {
+		return
+	}
+	sessionID, _ := strconv.ParseUint(c.Param("id"), 10, 64)
+	err := h.userService.RevokeSession(c.Request.Context(), userID, sessionID)
+	if err != nil {
+		response.Error(c, err)
+		return
+	}
+	response.Success(c, http.StatusOK, "Đã xóa phiên", nil)
+}
+
+// @Summary Lấy danh sách thiết bị
+// @Description Lấy thông tin các thiết bị đã đăng nhập
+// @Tags Users
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} response.Response{data=[]dto.DeviceResponse}
+// @Failure 401 {object} response.Response
+// @Router /users/me/devices [get]
+func (h *UserHandler) GetDevices(c *gin.Context) {
+	userID, ok := getUserID(c)
+	if !ok {
+		return
+	}
+	res, err := h.userService.GetDevices(c.Request.Context(), userID)
+	if err != nil {
+		response.Error(c, err)
+		return
+	}
+	response.Success(c, http.StatusOK, "Thành công", res)
+}
+
+// @Summary Gửi lại OTP đổi email
+// @Description Yêu cầu gửi lại OTP cho thao tác đổi email
+// @Tags Users
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} response.Response
+// @Failure 401 {object} response.Response
+// @Router /users/me/email/resend-otp [post]
 func (h *UserHandler) ResendChangeEmailOTP(c *gin.Context) {
 	userID, ok := getUserID(c)
 	if !ok {

@@ -1,7 +1,9 @@
 package service
 
 import (
+	"bytes"
 	"context"
+	"encoding/csv"
 	"fmt"
 	"time"
 
@@ -159,7 +161,14 @@ func (s *AdminUserService) GetUserDetail(ctx context.Context, userID uint64) (*d
 	}, nil
 }
 
-func (s *AdminUserService) UpdateUser(ctx context.Context, adminID, targetID uint64, req dto.AdminUpdateUserRequest, ip, ua string) error {
+func (s *AdminUserService) UpdateUser(
+	ctx context.Context,
+	adminID, targetID uint64,
+	req dto.AdminUpdateUserRequest,
+	ip, ua string,
+) error {
+	var needsRevokeSession bool
+
 	err := s.txManager.RunInTx(ctx, func(txCtx context.Context) error {
 		user, err := s.userRepo.FindByIDForUpdate(txCtx, targetID)
 		if err != nil {
@@ -168,8 +177,6 @@ func (s *AdminUserService) UpdateUser(ctx context.Context, adminID, targetID uin
 		if user == nil {
 			return apperror.ErrNotFound
 		}
-
-		var needsRevokeSession bool
 
 		if req.FullName != nil {
 			user.FullName = *req.FullName
@@ -216,11 +223,6 @@ func (s *AdminUserService) UpdateUser(ctx context.Context, adminID, targetID uin
 			return err
 		}
 
-		// Nếu tài khoản bị set về Inactive, revoke sessions để ép văng ra
-		if needsRevokeSession {
-			_ = s.sessionRepo.RevokeAllUserTokens(txCtx, user.ID, 7*24*time.Hour) // Dùng mặc định 7 ngày do AdminUserService không chứa config
-		}
-
 		return nil
 	})
 
@@ -229,11 +231,22 @@ func (s *AdminUserService) UpdateUser(ctx context.Context, adminID, targetID uin
 		return err
 	}
 
+	if needsRevokeSession {
+		if err := s.sessionRepo.RevokeAllUserTokens(ctx, targetID, 7*24*time.Hour); err != nil {
+			s.logger.Warn("không thể revoke token redis sau update user", zap.Error(err), zap.Uint64("userID", targetID))
+		}
+	}
+
 	s.logAudit(ctx, adminID, "ADMIN_UPDATE_USER", fmt.Sprint(targetID), ip, ua, "success")
 	return nil
 }
 
-func (s *AdminUserService) ChangeUserStatus(ctx context.Context, adminID, targetID uint64, req dto.AdminChangeStatusRequest, ip, ua string) error {
+func (s *AdminUserService) ChangeUserStatus(
+	ctx context.Context,
+	adminID, targetID uint64,
+	req dto.AdminChangeStatusRequest,
+	ip, ua string,
+) error {
 	if adminID == targetID {
 		return apperror.ErrBadRequest.WithMessage("Không thể tự khoá tài khoản của chính mình")
 	}
@@ -248,9 +261,9 @@ func (s *AdminUserService) ChangeUserStatus(ctx context.Context, adminID, target
 		}
 
 		user.Status = constant.UserStatus(req.Status)
-		if user.Status == constant.StatusLocked {
+		if user.Status == constant.StatusLocked || user.Status == constant.StatusInactive {
 			if err := s.sessionRepo.DeleteByUserID(txCtx, targetID); err != nil {
-				s.logger.Warn("không thể xoá session khi lock user", zap.Error(err), zap.Uint64("userID", targetID))
+				s.logger.Warn("không thể xoá session khi đổi trạng thái user", zap.Error(err), zap.Uint64("userID", targetID))
 			}
 		}
 		return s.userRepo.UpdateUser(txCtx, user)
@@ -271,7 +284,11 @@ func (s *AdminUserService) ChangeUserStatus(ctx context.Context, adminID, target
 	return nil
 }
 
-func (s *AdminUserService) ResetUserPassword(ctx context.Context, adminID, targetID uint64, ip, ua string) error {
+func (s *AdminUserService) ResetUserPassword(
+	ctx context.Context,
+	adminID, targetID uint64,
+	ip, ua string,
+) error {
 	user, err := s.userRepo.FindByID(ctx, targetID)
 	if err != nil {
 		return fmt.Errorf("FindByID: %w", err)
@@ -352,4 +369,154 @@ func (s *AdminUserService) NotifyUser(ctx context.Context, adminID, targetID uin
 	s.logAudit(ctx, adminID, "ADMIN_NOTIFY_USER", fmt.Sprint(targetID), ip, ua, "success")
 	return nil
 
+}
+
+type AdminRoleService struct {
+	roleRepo       *repository.RoleRepository
+	permissionRepo *repository.PermissionRepository
+	sessionRepo    *repository.SessionRepository
+	txManager      *database.TxManager
+	logger         *zap.Logger
+}
+
+func NewAdminRoleService(
+	roleRepo *repository.RoleRepository,
+	permissionRepo *repository.PermissionRepository,
+	sessionRepo *repository.SessionRepository,
+	txManager *database.TxManager,
+	logger *zap.Logger,
+) *AdminRoleService {
+	return &AdminRoleService{
+		roleRepo:       roleRepo,
+		permissionRepo: permissionRepo,
+		sessionRepo:    sessionRepo,
+		txManager:      txManager,
+		logger:         logger,
+	}
+}
+
+func (s *AdminRoleService) ListRoles(ctx context.Context) ([]dto.RoleResponse, error) {
+	roles, err := s.roleRepo.FindAll(ctx)
+	if err != nil {
+		return nil, err
+	}
+	res := []dto.RoleResponse{}
+	for _, r := range roles {
+		perms, _ := s.roleRepo.GetPermissionsByRoleID(ctx, r.ID)
+		pRes := []dto.PermissionResponse{}
+		for _, p := range perms {
+			pRes = append(pRes, dto.PermissionResponse{
+				ID: p.ID, Name: p.Name, Description: p.Description, Resource: p.Resource, Action: p.Action,
+			})
+		}
+		res = append(res, dto.RoleResponse{
+			ID: r.ID, Name: r.Name, Description: r.Description, CreatedAt: r.CreatedAt, Permissions: pRes,
+		})
+	}
+	return res, nil
+}
+
+func (s *AdminRoleService) CreateRole(ctx context.Context, req dto.CreateRoleRequest) (*dto.RoleResponse, error) {
+	role := &model.Role{Name: req.Name, Description: req.Description}
+	if err := s.roleRepo.Create(ctx, role); err != nil {
+		return nil, err
+	}
+	return &dto.RoleResponse{ID: role.ID, Name: role.Name, Description: role.Description, CreatedAt: role.CreatedAt}, nil
+}
+
+func (s *AdminRoleService) UpdateRole(ctx context.Context, id uint64, req dto.UpdateRoleRequest) error {
+	return s.roleRepo.Update(ctx, &model.Role{ID: id, Name: req.Name, Description: req.Description})
+}
+
+func (s *AdminRoleService) DeleteRole(ctx context.Context, id uint64) error {
+	return s.roleRepo.Delete(ctx, id)
+}
+
+func (s *AdminRoleService) AssignPermissions(ctx context.Context, roleID uint64, req dto.AssignPermissionsRequest) error {
+	return s.txManager.RunInTx(ctx, func(txCtx context.Context) error {
+		return s.roleRepo.AssignPermissions(txCtx, roleID, req.PermissionIDs)
+	})
+}
+
+func (s *AdminRoleService) AssignUserRole(ctx context.Context, userID uint64, req dto.AssignRoleRequest) error {
+	return s.txManager.RunInTx(ctx, func(txCtx context.Context) error {
+		if err := s.roleRepo.AssignRoleToUser(txCtx, userID, req.RoleID); err != nil {
+			return err
+		}
+		if err := s.sessionRepo.DeleteByUserID(txCtx, userID); err != nil {
+			return fmt.Errorf("sessionRepo.DeleteByUserID: %w", err)
+		}
+		return nil
+	})
+}
+
+func (s *AdminRoleService) RemoveUserRole(ctx context.Context, userID, roleID uint64) error {
+	return s.txManager.RunInTx(ctx, func(txCtx context.Context) error {
+		if err := s.roleRepo.RemoveRoleFromUser(txCtx, userID, roleID); err != nil {
+			return err
+		}
+		if err := s.sessionRepo.DeleteByUserID(txCtx, userID); err != nil {
+			return fmt.Errorf("sessionRepo.DeleteByUserID: %w", err)
+		}
+		return nil
+	})
+}
+
+type AdminAuditLogService struct {
+	auditLogRepo *repository.AuditLogRepository
+	logger       *zap.Logger
+}
+
+func NewAdminAuditLogService(auditLogRepo *repository.AuditLogRepository, logger *zap.Logger) *AdminAuditLogService {
+	return &AdminAuditLogService{auditLogRepo: auditLogRepo, logger: logger}
+}
+
+func (s *AdminAuditLogService) ExportAuditLogs(ctx context.Context, req dto.ExportAuditLogsRequest) ([]byte, error) {
+	logs, err := s.auditLogRepo.FindAllWithFilters(
+		ctx,
+		req.UserID,
+		req.Action,
+		req.StartDate,
+		req.EndDate,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("auditLogRepo.FindAllWithFilters: %w", err)
+	}
+
+	var buf bytes.Buffer
+	// Đính kèm BOM để Excel hiển thị tốt Tiếng Việt
+	buf.WriteString("\xEF\xBB\xBF")
+
+	writer := csv.NewWriter(&buf)
+	header := []string{"ID", "UserID", "Action", "Resource", "ResourceID", "IPAddress", "Status", "CreatedAt"}
+	if err := writer.Write(header); err != nil {
+		return nil, err
+	}
+
+	for _, log := range logs {
+		userID := ""
+		if log.UserID != nil {
+			userID = fmt.Sprint(*log.UserID)
+		}
+		resource := ""
+		if log.Resource != nil {
+			resource = *log.Resource
+		}
+		resourceID := ""
+		if log.ResourceID != nil {
+			resourceID = *log.ResourceID
+		}
+		ip := ""
+		if log.IPAddress != nil {
+			ip = *log.IPAddress
+		}
+
+		row := []string{
+			fmt.Sprint(log.ID), userID, log.Action, resource, resourceID, ip, log.Status,
+			log.CreatedAt.Format("2006-01-02 15:04:05"),
+		}
+		_ = writer.Write(row)
+	}
+	writer.Flush()
+	return buf.Bytes(), writer.Error()
 }

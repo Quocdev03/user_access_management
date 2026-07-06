@@ -1,8 +1,6 @@
 package router
 
 import (
-	"context"
-	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -15,6 +13,11 @@ import (
 	"github.com/quocdev03/user-access-management/pkg/database"
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
+
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
+
+	_ "github.com/quocdev03/user-access-management/docs"
 )
 
 func Setup(db *sqlx.DB, redisClient *redis.Client, logger *zap.Logger, cfg *config.Config) *gin.Engine {
@@ -24,10 +27,10 @@ func Setup(db *sqlx.DB, redisClient *redis.Client, logger *zap.Logger, cfg *conf
 
 	r.Use(middleware.CORSMiddleware(cfg))
 
-	r.StaticFile("/", "./ui_test/index.html")
-
 	userRepo := repository.NewUserRepository(db)
 	otpRepo := repository.NewOTPRepository(db)
+	deviceRepo := repository.NewDeviceRepository(db)
+	permissionRepo := repository.NewPermissionRepository(db)
 	roleRepo := repository.NewRoleRepository(db)
 	sessionRepo := repository.NewSessionRepository(db, redisClient)
 	passwordRepo := repository.NewPasswordRepository(db)
@@ -44,48 +47,34 @@ func Setup(db *sqlx.DB, redisClient *redis.Client, logger *zap.Logger, cfg *conf
 		otpService,
 		roleRepo,
 		sessionRepo,
+		deviceRepo,
+		auditLogRepo,
 		mailService,
 		txManager,
 		cfg,
 		logger,
 	)
 	adminUserService := service.NewAdminUserService(userRepo, roleRepo, sessionRepo, auditLogRepo, mailService, txManager, logger)
+	adminRoleService := service.NewAdminRoleService(roleRepo, permissionRepo, sessionRepo, txManager, logger)
+	adminAuditLogService := service.NewAdminAuditLogService(auditLogRepo, logger)
 
 	authHandler := handler.NewAuthHandler(authService, passwordService)
 	userHandler := handler.NewUserHandler(userService)
-	adminUserHandler := handler.NewAdminUserHandler(adminUserService)
+	adminHandler := handler.NewAdminHandler(adminUserService, adminRoleService, adminAuditLogService)
 
 	authMiddleware := middleware.AuthMiddleware(cfg, sessionRepo, logger)
 
-	health := r.Group("/health")
-	{
-		health.GET("", func(c *gin.Context) {
-			c.JSON(http.StatusOK, gin.H{"status": "UP"})
-		})
-
-		health.GET("/ready", middleware.RateLimitMiddleware(redisClient, "ready", 10, 30, time.Minute, 15*time.Minute), func(c *gin.Context) {
-			ctx, cancel := context.WithTimeout(c.Request.Context(), 2*time.Second)
-			defer cancel()
-
-			if err := db.PingContext(ctx); err != nil {
-				c.JSON(http.StatusServiceUnavailable, gin.H{"status": "DOWN", "error": "MySQL down"})
-				return
-			}
-			if err := redisClient.Ping(ctx).Err(); err != nil {
-				c.JSON(http.StatusServiceUnavailable, gin.H{"status": "DOWN", "error": "Redis down"})
-				return
-			}
-			c.JSON(http.StatusOK, gin.H{"status": "UP", "mysql": "UP", "redis": "UP"})
-		})
-	}
+	setupHealthRoutes(r, db, redisClient)
 
 	v1 := r.Group("/api/v1")
 	v1.Use(middleware.RateLimitMiddleware(redisClient, "global", cfg.Security.RateLimitRequests, cfg.Security.RateLimitRequests*3, cfg.Security.RateLimitWindow, 15*time.Minute))
 	{
 		setupAuthRoutes(v1, authHandler, authMiddleware, redisClient)
 		setupUserRoutes(v1, userHandler, authMiddleware, redisClient)
-		setupAdminRoutes(v1, adminUserHandler, authMiddleware, roleRepo)
+		setupAdminRoutes(v1, adminHandler, authMiddleware, roleRepo)
 	}
+	r.StaticFile("/api-test", "./ui/index.html")
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	return r
 }

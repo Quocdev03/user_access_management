@@ -26,6 +26,16 @@ func NewAuthHandler(authService *service.AuthService, passwordService *service.P
 }
 
 
+// @Summary Đăng ký tài khoản mới
+// @Description Đăng ký người dùng mới vào hệ thống
+// @Tags Authentication
+// @Accept json
+// @Produce json
+// @Param request body dto.RegisterRequest true "Thông tin đăng ký"
+// @Success 201 {object} response.Response{data=dto.RegisterResponse}
+// @Failure 400 {object} response.Response
+// @Failure 500 {object} response.Response
+// @Router /auth/register [post]
 func (h *AuthHandler) Register(c *gin.Context) {
 	req, ok := validator.BindAndValidate[dto.RegisterRequest](c)
 	if !ok {
@@ -42,6 +52,16 @@ func (h *AuthHandler) Register(c *gin.Context) {
 }
 
 
+// @Summary Xác thực email
+// @Description Xác thực tài khoản qua email
+// @Tags Authentication
+// @Accept json
+// @Produce json
+// @Param request body dto.VerifyEmailRequest true "OTP xác thực"
+// @Success 200 {object} response.Response
+// @Failure 400 {object} response.Response
+// @Failure 500 {object} response.Response
+// @Router /auth/verify-email [post]
 func (h *AuthHandler) VerifyEmail(c *gin.Context) {
 	req, ok := validator.BindAndValidate[dto.VerifyEmailRequest](c)
 	if !ok {
@@ -58,6 +78,16 @@ func (h *AuthHandler) VerifyEmail(c *gin.Context) {
 }
 
 
+// @Summary Gửi lại OTP xác thực
+// @Description Yêu cầu gửi lại email chứa OTP xác thực tài khoản
+// @Tags Authentication
+// @Accept json
+// @Produce json
+// @Param request body dto.ResendVerificationEmailRequest true "Thông tin yêu cầu"
+// @Success 200 {object} response.Response
+// @Failure 400 {object} response.Response
+// @Failure 500 {object} response.Response
+// @Router /auth/resend-verification-email [post]
 func (h *AuthHandler) ResendVerificationEmail(c *gin.Context) {
 	req, ok := validator.BindAndValidate[dto.ResendVerificationEmailRequest](c)
 	if !ok {
@@ -74,6 +104,17 @@ func (h *AuthHandler) ResendVerificationEmail(c *gin.Context) {
 }
 
 
+// @Summary Đăng nhập
+// @Description Đăng nhập vào hệ thống
+// @Tags Authentication
+// @Accept json
+// @Produce json
+// @Param request body dto.LoginRequest true "Thông tin đăng nhập"
+// @Success 200 {object} response.Response{data=dto.LoginResponse}
+// @Failure 400 {object} response.Response
+// @Failure 401 {object} response.Response
+// @Failure 500 {object} response.Response
+// @Router /auth/login [post]
 func (h *AuthHandler) Login(c *gin.Context) {
 	req, ok := validator.BindAndValidate[dto.LoginRequest](c)
 	if !ok {
@@ -90,6 +131,16 @@ func (h *AuthHandler) Login(c *gin.Context) {
 }
 
 
+// @Summary Làm mới Access Token
+// @Description Cấp lại Access Token mới dựa trên Refresh Token
+// @Tags Authentication
+// @Accept json
+// @Produce json
+// @Param request body dto.RefreshTokenRequest true "Refresh Token"
+// @Success 200 {object} response.Response{data=dto.LoginResponse}
+// @Failure 400 {object} response.Response
+// @Failure 401 {object} response.Response
+// @Router /auth/refresh [post]
 func (h *AuthHandler) RefreshToken(c *gin.Context) {
 	req, ok := validator.BindAndValidate[dto.RefreshTokenRequest](c)
 	if !ok {
@@ -106,6 +157,15 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 }
 
 
+// @Summary Đăng xuất
+// @Description Đăng xuất khỏi hệ thống
+// @Tags Authentication
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} response.Response
+// @Failure 401 {object} response.Response
+// @Router /auth/logout [post]
 func (h *AuthHandler) Logout(c *gin.Context) {
 	rawToken := c.MustGet("token").(string)
 	claims := c.MustGet("tokenClaims").(*jwt.Claims)
@@ -120,6 +180,15 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 }
 
 
+// @Summary Đăng xuất khỏi tất cả thiết bị
+// @Description Hủy tất cả các phiên đăng nhập của người dùng
+// @Tags Authentication
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} response.Response
+// @Failure 401 {object} response.Response
+// @Router /auth/logout-all [post]
 func (h *AuthHandler) LogoutAll(c *gin.Context) {
 	claims := c.MustGet("tokenClaims").(*jwt.Claims)
 
@@ -133,6 +202,15 @@ func (h *AuthHandler) LogoutAll(c *gin.Context) {
 }
 
 
+// @Summary Quên mật khẩu
+// @Description Yêu cầu đặt lại mật khẩu bằng cách gửi email có chứa OTP
+// @Tags Authentication
+// @Accept json
+// @Produce json
+// @Param request body dto.ForgotPasswordRequest true "Email đã đăng ký"
+// @Success 200 {object} response.Response
+// @Failure 400 {object} response.Response
+// @Router /auth/forgot-password [post]
 func (h *AuthHandler) ForgotPassword(c *gin.Context) {
 	req, ok := validator.BindAndValidate[dto.ForgotPasswordRequest](c)
 	if !ok {
@@ -149,6 +227,15 @@ func (h *AuthHandler) ForgotPassword(c *gin.Context) {
 }
 
 
+// @Summary Đặt lại mật khẩu
+// @Description Đặt lại mật khẩu bằng OTP
+// @Tags Authentication
+// @Accept json
+// @Produce json
+// @Param request body dto.ResetPasswordRequest true "Thông tin đặt lại mật khẩu"
+// @Success 200 {object} response.Response
+// @Failure 400 {object} response.Response
+// @Router /auth/reset-password [post]
 func (h *AuthHandler) ResetPassword(c *gin.Context) {
 	req, ok := validator.BindAndValidate[dto.ResetPasswordRequest](c)
 	if !ok {
@@ -165,6 +252,17 @@ func (h *AuthHandler) ResetPassword(c *gin.Context) {
 }
 
 
+// @Summary Đổi mật khẩu
+// @Description Đổi mật khẩu tài khoản
+// @Tags Authentication
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param request body dto.ChangePasswordRequest true "Thông tin đổi mật khẩu"
+// @Success 200 {object} response.Response
+// @Failure 400 {object} response.Response
+// @Failure 401 {object} response.Response
+// @Router /auth/change-password [post]
 func (h *AuthHandler) ChangePassword(c *gin.Context) {
 	req, ok := validator.BindAndValidate[dto.ChangePasswordRequest](c)
 	if !ok {
@@ -181,6 +279,16 @@ func (h *AuthHandler) ChangePassword(c *gin.Context) {
 	response.Success(c, http.StatusOK, "Đổi mật khẩu thành công. Vui lòng đăng nhập lại trên các thiết bị.", nil)
 }
 
+// @Summary Đổi mật khẩu bắt buộc
+// @Description Đổi mật khẩu (dành cho người dùng bị reset pass từ admin)
+// @Tags Authentication
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param request body dto.ForceChangePasswordRequest true "Thông tin mật khẩu mới"
+// @Success 200 {object} response.Response
+// @Failure 400 {object} response.Response
+// @Router /auth/force-change-password [post]
 func (h *AuthHandler) ForceChangePassword(c *gin.Context) {
 	req, ok := validator.BindAndValidate[dto.ForceChangePasswordRequest](c)
 	if !ok {

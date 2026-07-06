@@ -24,6 +24,14 @@ import (
 	"go.uber.org/zap"
 )
 
+// @title User Access Management API
+// @version 1.0
+// @description Hệ thống quản lý truy cập người dùng RESTful API bằng Golang/Gin.
+// @termsOfService http://swagger.io/terms/
+// @contact.name Quoc Dev
+// @contact.email quocdt2003@gmail.com
+// @host localhost:8080
+// @BasePath /api/v1
 // main là hàm chính khởi động toàn bộ ứng dụng.
 // Nó nạp biến môi trường, khởi tạo logger toàn cục, thiết lập
 // các kết nối đến MySQL và Redis, sau đó gắn (mount) Gin HTTP router.
@@ -39,7 +47,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to initialize logger: %v", err)
 	}
-	defer logr.Sync()
+	defer func() { _ = logr.Sync() }()
 
 	zap.ReplaceGlobals(logr)
 
