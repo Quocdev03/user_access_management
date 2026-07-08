@@ -2,7 +2,7 @@
 -- User Access Management (UAM) — Database Schema (Tham khảo)
 -- MySQL 8 | InnoDB | utf8mb4_unicode_ci
 -- =============================================================================
--- File này được tổng hợp từ toàn bộ migration (000001 → 000012).
+-- File này được tổng hợp từ toàn bộ migration (000001 → 000014).
 -- Dùng để tham khảo cấu trúc DB hoặc import trực tiếp (thay cho migrate).
 -- Thứ tự tạo bảng đảm bảo FK dependency:
 --   users → roles → permissions → user_roles → role_permissions
@@ -232,17 +232,17 @@ CREATE TABLE IF NOT EXISTS `audit_logs` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =============================================================================
--- SEED DATA (000011 + 000012)
+-- SEED DATA (000011 → 000014)
 -- =============================================================================
 
 -- Seed: Roles
-INSERT INTO `roles` (`name`, `description`) VALUES
+INSERT IGNORE INTO `roles` (`name`, `description`) VALUES
     ('admin',     'Quản trị viên hệ thống — toàn quyền'),
     ('moderator', 'Người kiểm duyệt — quản lý user và nội dung'),
     ('user',      'Người dùng thông thường');
 
 -- Seed: Permissions
-INSERT INTO `permissions` (`name`, `description`, `resource`, `action`) VALUES
+INSERT IGNORE INTO `permissions` (`name`, `description`, `resource`, `action`) VALUES
     ('users.create',  'Tạo người dùng mới',                'users', 'create'),
     ('users.read',    'Xem thông tin người dùng',           'users', 'read'),
     ('users.update',  'Cập nhật thông tin người dùng',      'users', 'update'),
@@ -261,14 +261,14 @@ INSERT INTO `permissions` (`name`, `description`, `resource`, `action`) VALUES
     ('audit_logs.export', 'Xuất nhật ký kiểm toán',         'audit_logs', 'export');
 
 -- Admin gets ALL permissions
-INSERT INTO `role_permissions` (`role_id`, `permission_id`)
+INSERT IGNORE INTO `role_permissions` (`role_id`, `permission_id`)
 SELECT r.id, p.id
 FROM `roles` r
 CROSS JOIN `permissions` p
 WHERE r.name = 'admin';
 
 -- Moderator gets user management permissions
-INSERT INTO `role_permissions` (`role_id`, `permission_id`)
+INSERT IGNORE INTO `role_permissions` (`role_id`, `permission_id`)
 SELECT r.id, p.id
 FROM `roles` r
 CROSS JOIN `permissions` p
@@ -279,7 +279,7 @@ WHERE r.name = 'moderator'
   );
 
 -- User gets basic self-service permissions
-INSERT INTO `role_permissions` (`role_id`, `permission_id`)
+INSERT IGNORE INTO `role_permissions` (`role_id`, `permission_id`)
 SELECT r.id, p.id
 FROM `roles` r
 CROSS JOIN `permissions` p
@@ -287,9 +287,9 @@ WHERE r.name = 'user'
   AND p.name IN ('users.read');
 
 -- Seed: Super Admin Account
-INSERT INTO `users` (
+INSERT IGNORE INTO `users` (
     `username`, `email`, `password_hash`, `full_name`, `phone`,
-    `date_of_birth`, `status`, `email_verified`
+    `date_of_birth`, `status`, `email_verified`, `must_change_password`
 ) VALUES (
     'admin_quocdev',
     'quocdt2003@gmail.com',
@@ -298,8 +298,9 @@ INSERT INTO `users` (
     '0378286742',
     '2003-04-06',
     'active',
-    1
+    1,
+    0
 );
 
-INSERT INTO `user_roles` (`user_id`, `role_id`)
+INSERT IGNORE INTO `user_roles` (`user_id`, `role_id`)
 SELECT `id`, 1 FROM `users` WHERE `username` = 'admin_quocdev';
