@@ -45,6 +45,3 @@ uploads/
 brain/
 scratch/
 
-# Credentials (SECURITY: chứa mật khẩu plaintext)
-superadmin_credentials.txt
-*.txt
