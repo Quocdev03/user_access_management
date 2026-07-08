@@ -60,7 +60,7 @@ func main() {
 	defer db.Close()
 	logr.Info("Connected to MySQL successfully")
 
-	if err := database.RunMigrations(db.DB, "migrations"); err != nil {
+	if err := database.RunMigrations(cfg.Database, "migrations"); err != nil {
 		logr.Fatal("Failed to run database migrations", zap.Error(err))
 	}
 	logr.Info("Database migrations applied successfully")
