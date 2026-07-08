@@ -60,6 +60,11 @@ func main() {
 	defer db.Close()
 	logr.Info("Connected to MySQL successfully")
 
+	if err := database.RunMigrations(db.DB, "migrations"); err != nil {
+		logr.Fatal("Failed to run database migrations", zap.Error(err))
+	}
+	logr.Info("Database migrations applied successfully")
+
 	redisClient, err := database.ConnectRedis(cfg.Redis)
 	if err != nil {
 		logr.Fatal("Failed to connect to Redis", zap.Error(err))
