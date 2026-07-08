@@ -1,0 +1,2004 @@
+<!doctype html>
+<html lang="en" class="light">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>UAM API Console — Workspace</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+            rel="stylesheet"
+        />
+        <script src="https://unpkg.com/lucide@latest"></script>
+        <script>
+            tailwind.config = {
+                darkMode: "class",
+                theme: {
+                    extend: {
+                        fontFamily: {
+                            sans: ["Inter", "sans-serif"],
+                            mono: ['"JetBrains Mono"', "monospace"]
+                        },
+                        colors: {
+                            accent: "var(--accent-color)",
+                            border: "var(--border-color)",
+                            panel: "var(--bg-secondary)",
+                        }
+                    }
+                }
+            };
+        </script>
+        <style>
+            :root {
+                /* Professional Clean Light Mode (Default) */
+                --bg-primary: #f8fafc;
+                --bg-secondary: #ffffff;
+                --bg-tertiary: #f1f5f9;
+                --border-color: #e2e8f0;
+                --text-primary: #0f172a;
+                --text-secondary: #334155;
+                --text-muted: #64748b;
+                --accent-color: #4f46e5;
+                --accent-hover: #4338ca;
+                --accent-dim: rgba(79, 70, 229, 0.05);
+                --accent-dim2: rgba(79, 70, 229, 0.12);
+                --success-color: #10b981;
+                --error-color: #ef4444;
+                --dot-color: rgba(79, 70, 229, 0.025);
+            }
+
+            .dark {
+                /* Professional Clean Dark Mode */
+                --bg-primary: #09090b;
+                --bg-secondary: #18181b;
+                --bg-tertiary: #27272a;
+                --border-color: #27272a;
+                --text-primary: #f4f4f5;
+                --text-secondary: #a1a1aa;
+                --text-muted: #71717a;
+                --accent-color: #818cf8;
+                --accent-hover: #6366f1;
+                --accent-dim: rgba(129, 140, 248, 0.08);
+                --accent-dim2: rgba(129, 140, 248, 0.18);
+                --success-color: #34d399;
+                --error-color: #f43f5e;
+                --dot-color: rgba(129, 140, 248, 0.015);
+            }
+
+            * {
+                font-family: 'Inter', sans-serif;
+            }
+
+            .font-mono {
+                font-family: 'JetBrains Mono', monospace !important;
+            }
+
+            body {
+                background-color: var(--bg-primary);
+                color: var(--text-primary);
+                background-image: radial-gradient(var(--dot-color) 1px, transparent 1px);
+                background-size: 20px 20px;
+                transition: background-color 0.2s ease, color 0.2s ease;
+            }
+
+            /* Custom Scrollbar */
+            ::-webkit-scrollbar {
+                width: 6px;
+                height: 6px;
+            }
+            ::-webkit-scrollbar-track {
+                background: transparent;
+            }
+            ::-webkit-scrollbar-thumb {
+                background: var(--border-color);
+                border-radius: 9999px;
+            }
+            ::-webkit-scrollbar-thumb:hover {
+                background: var(--text-muted);
+            }
+
+            /* Toggle variables */
+            .tin {
+                background-color: var(--bg-primary);
+                border-color: var(--border-color);
+                color: var(--text-primary);
+            }
+            .tin:focus {
+                border-color: var(--accent-color);
+                box-shadow: 0 0 0 1px var(--accent-color);
+            }
+            
+            /* Status styles for stdout block */
+            .out {
+                font-family: 'JetBrains Mono', monospace;
+                font-size: 0.75rem;
+                background-color: var(--bg-primary);
+                border: 1px solid var(--border-color);
+                border-radius: 0.375rem;
+                padding: 0.75rem;
+                max-height: 200px;
+                overflow-y: auto;
+                white-space: pre-wrap;
+                word-break: break-all;
+                margin-top: 0.5rem;
+            }
+            .out.success {
+                border-left: 3px solid var(--success-color);
+            }
+            .out.error {
+                border-left: 3px solid var(--error-color);
+            }
+
+            /* Brighter Gradient Action Buttons */
+            main button.bg-indigo-600 {
+                background: linear-gradient(135deg, var(--accent-color) 0%, #a78bfa 100%) !important;
+                color: #ffffff !important;
+                border-radius: 0.5rem !important;
+                box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15) !important;
+                transition: all 0.2s ease !important;
+            }
+            main button.bg-indigo-600:hover {
+                transform: translateY(-1px) !important;
+                box-shadow: 0 6px 16px rgba(99, 102, 241, 0.25) !important;
+                filter: brightness(1.1) !important;
+            }
+            main button.bg-indigo-600:active {
+                transform: translateY(0) !important;
+            }
+
+            main button.bg-rose-600 {
+                background: linear-gradient(135deg, #f43f5e 0%, #fb7185 100%) !important;
+                color: #ffffff !important;
+                border-radius: 0.5rem !important;
+                box-shadow: 0 4px 12px rgba(244, 63, 94, 0.15) !important;
+                transition: all 0.2s ease !important;
+            }
+            main button.bg-rose-600:hover {
+                transform: translateY(-1px) !important;
+                box-shadow: 0 6px 16px rgba(244, 63, 94, 0.25) !important;
+                filter: brightness(1.1) !important;
+            }
+            main button.bg-rose-600:active {
+                transform: translateY(0) !important;
+            }
+
+            main button.bg-zinc-600 {
+                background: linear-gradient(135deg, #4b5563 0%, #6b7280 100%) !important;
+                color: #ffffff !important;
+                border-radius: 0.5rem !important;
+                box-shadow: 0 4px 12px rgba(75, 85, 99, 0.1) !important;
+                transition: all 0.2s ease !important;
+            }
+            main button.bg-zinc-600:hover {
+                transform: translateY(-1px) !important;
+                box-shadow: 0 6px 16px rgba(75, 85, 99, 0.2) !important;
+                filter: brightness(1.1) !important;
+            }
+            main button.bg-zinc-600:active {
+                transform: translateY(0) !important;
+            }
+
+            /* Sidebar highlights */
+            .active-item {
+                background-color: var(--accent-dim) !important;
+                color: var(--accent-color) !important;
+                font-weight: 600;
+            }
+        </style>
+    </head>
+    <body class="h-screen w-screen flex overflow-hidden text-sm bg-[var(--bg-primary)] text-[var(--text-primary)]">
+        
+        <!-- Mobile Sidebar Backdrop -->
+        <div id="sidebar-backdrop" onclick="toggleMobileSidebar(false)" class="fixed inset-0 bg-black/50 z-40 hidden lg:hidden backdrop-blur-sm"></div>
+
+        <!-- SIDEBAR PANEL -->
+        <aside class="fixed inset-y-0 left-0 z-50 transform -translate-x-full lg:relative lg:translate-x-0 transition-transform duration-300 w-80 flex-shrink-0 flex flex-col border-r border-[var(--border-color)] bg-[var(--bg-secondary)] h-full overflow-hidden">
+            <!-- App Logo/Header -->
+            <div class="p-4 border-b border-[var(--border-color)] flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <div class="w-6 h-6 rounded-lg bg-gradient-to-tr from-violet-500 via-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-xs shadow-md shadow-indigo-500/10">U</div>
+                    <span class="font-semibold tracking-tight text-[var(--text-primary)]">UAM API Console</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <!-- Theme Toggle Button -->
+                    <button
+                        onclick="toggleTheme()"
+                        class="p-1.5 rounded-lg border border-[var(--border-color)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-all"
+                        title="Toggle Theme"
+                    >
+                        <span id="themeIcon" class="flex items-center justify-center">
+                            <i data-lucide="sun" class="w-4 h-4 dark:hidden"></i>
+                            <i data-lucide="moon" class="w-4 h-4 hidden dark:block"></i>
+                        </span>
+                    </button>
+                    <!-- Close Mobile Sidebar Button -->
+                    <button
+                        onclick="toggleMobileSidebar(false)"
+                        class="p-1.5 rounded-lg border border-[var(--border-color)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] lg:hidden flex items-center justify-center"
+                        title="Close Menu"
+                    >
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Environment Selector & Status -->
+            <div class="p-4 border-b border-[var(--border-color)] space-y-3 bg-[var(--bg-primary)]/50">
+                <div class="flex items-center justify-between text-xs text-[var(--text-secondary)]">
+                    <span class="font-medium">Môi trường</span>
+                    <span id="baseUrlDisplay" class="font-mono text-[10px] text-[var(--text-muted)]">base: -</span>
+                </div>
+                <div class="flex bg-[var(--bg-primary)] p-0.5 rounded-lg border border-[var(--border-color)]">
+                    <button
+                        id="envLabelLocal"
+                        onclick="setEnv(false)"
+                        class="flex-1 text-center py-1.5 text-xs rounded-md transition-all font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                    >
+                        Local
+                    </button>
+                    <button
+                        id="envLabelProd"
+                        onclick="setEnv(true)"
+                        class="flex-1 text-center py-1.5 text-xs rounded-md transition-all font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                    >
+                        Production
+                    </button>
+                </div>
+            </div>
+
+            <!-- Search Filter -->
+            <div class="p-3 border-b border-[var(--border-color)]">
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-[var(--text-muted)]">
+                        <i data-lucide="search" class="w-3.5 h-3.5"></i>
+                    </span>
+                    <input
+                        type="text"
+                        oninput="filterEndpoints(this.value)"
+                        placeholder="Tìm endpoint hoặc path..."
+                        class="w-full pl-9 pr-3 py-1.5 bg-[var(--bg-primary)] border border-[var(--border-color)] text-xs rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 text-[var(--text-primary)] placeholder-[var(--text-muted)]"
+                    />
+                </div>
+            </div>
+
+            <!-- Endpoint Navigation List -->
+            <nav class="flex-1 overflow-y-auto p-2 space-y-4">
+                <!-- Group: Health -->
+                <div class="sidebar-group space-y-1">
+                    <div class="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5">
+                        <i data-lucide="activity" class="w-3 h-3"></i>
+                        System Health
+                    </div>
+                    <div class="space-y-0.5">
+                        <div id="nav-health" onclick="selectEndpoint('health')" data-method="GET" data-path="/health" data-desc="Kiểm tra xem Go API server có hoạt động không." data-uc="UC-31" data-uc-name="System Health & Readiness Diagnostics" class="sidebar-item pl-3 pr-2 py-1.5 rounded-lg text-xs flex items-center justify-between cursor-pointer text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-all">
+                            <span>Health Check</span>
+                            <span class="text-[9px] font-bold text-sky-400 bg-sky-500/10 px-1.5 py-0.5 rounded border border-sky-500/10">GET</span>
+                        </div>
+                        <div id="nav-ready" onclick="selectEndpoint('ready')" data-method="GET" data-path="/health/ready" data-desc="Kiểm tra chi tiết kết nối Database và Redis." data-uc="UC-31" data-uc-name="System Health & Readiness Diagnostics" class="sidebar-item pl-3 pr-2 py-1.5 rounded-lg text-xs flex items-center justify-between cursor-pointer text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-all">
+                            <span>Readiness Check</span>
+                            <span class="text-[9px] font-bold text-sky-400 bg-sky-500/10 px-1.5 py-0.5 rounded border border-sky-500/10">GET</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Group: Authentication -->
+                <div class="sidebar-group space-y-1">
+                    <div class="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5">
+                        <i data-lucide="key" class="w-3 h-3"></i>
+                        Authentication
+                    </div>
+                    <div class="space-y-0.5">
+                        <div id="nav-register" onclick="selectEndpoint('register')" data-method="POST" data-path="/api/v1/auth/register" data-desc="Đăng ký tài khoản người dùng mới." data-uc="UC-01" data-uc-name="User Registration Flow" class="sidebar-item pl-3 pr-2 py-1.5 rounded-lg text-xs flex items-center justify-between cursor-pointer text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-all">
+                            <span>Đăng ký</span>
+                            <span class="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/10">POST</span>
+                        </div>
+                        <div id="nav-verify-email" onclick="selectEndpoint('verify-email')" data-method="POST" data-path="/api/v1/auth/email/verify" data-desc="Xác thực email bằng mã OTP gửi về." data-uc="UC-02" data-uc-name="Email Verification & OTP Flow" class="sidebar-item pl-3 pr-2 py-1.5 rounded-lg text-xs flex items-center justify-between cursor-pointer text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-all flex-shrink-0">
+                            <span>Xác thực OTP</span>
+                            <span class="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/10">POST</span>
+                        </div>
+                        <div id="nav-resend-verify" onclick="selectEndpoint('resend-verify')" data-method="POST" data-path="/api/v1/auth/email/resend" data-desc="Gửi lại email/OTP xác thực tài khoản." data-uc="UC-02" data-uc-name="Email Verification & OTP Flow" class="sidebar-item pl-3 pr-2 py-1.5 rounded-lg text-xs flex items-center justify-between cursor-pointer text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-all">
+                            <span>Gửi lại OTP đăng ký</span>
+                            <span class="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/10">POST</span>
+                        </div>
+                        <div id="nav-login" onclick="selectEndpoint('login')" data-method="POST" data-path="/api/v1/auth/login" data-desc="Đăng nhập nhận Access Token & Refresh Token." data-uc="UC-03" data-uc-name="User Password & Access Token Auth" class="sidebar-item pl-3 pr-2 py-1.5 rounded-lg text-xs flex items-center justify-between cursor-pointer text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-all">
+                            <span>Đăng nhập</span>
+                            <span class="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/10">POST</span>
+                        </div>
+                        <div id="nav-refresh" onclick="selectEndpoint('refresh')" data-method="POST" data-path="/api/v1/auth/token/refresh" data-desc="Dùng Refresh Token để gia hạn phiên làm việc." data-uc="UC-04" data-uc-name="Refresh Token Rotation & Session Extender" class="sidebar-item pl-3 pr-2 py-1.5 rounded-lg text-xs flex items-center justify-between cursor-pointer text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-all">
+                            <span>Gia hạn Token</span>
+                            <span class="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/10">POST</span>
+                        </div>
+                        <div id="nav-forgot-pwd" onclick="selectEndpoint('forgot-pwd')" data-method="POST" data-path="/api/v1/auth/password/forgot" data-desc="Yêu cầu link / mã khôi phục mật khẩu qua email." data-uc="UC-07" data-uc-name="Self-Service Password Recovery" class="sidebar-item pl-3 pr-2 py-1.5 rounded-lg text-xs flex items-center justify-between cursor-pointer text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-all">
+                            <span>Quên mật khẩu</span>
+                            <span class="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/10">POST</span>
+                        </div>
+                        <div id="nav-reset-pwd" onclick="selectEndpoint('reset-pwd')" data-method="POST" data-path="/api/v1/auth/password/reset" data-desc="Đặt lại mật khẩu mới bằng mã xác thực từ email." data-uc="UC-07" data-uc-name="Self-Service Password Recovery" class="sidebar-item pl-3 pr-2 py-1.5 rounded-lg text-xs flex items-center justify-between cursor-pointer text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-all">
+                            <span>Đặt lại mật khẩu</span>
+                            <span class="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/10">POST</span>
+                        </div>
+                        <div id="nav-force-change-pwd" onclick="selectEndpoint('force-change-pwd')" data-method="POST" data-path="/api/v1/auth/password/force-change" data-desc="Đổi mật khẩu tạm thời khi admin chỉ định." data-uc="UC-40" data-uc-name="Enforce Administrative Password Policy" class="sidebar-item pl-3 pr-2 py-1.5 rounded-lg text-xs flex items-center justify-between cursor-pointer text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-all">
+                            <span>Đổi pass bắt buộc</span>
+                            <span class="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/10">POST</span>
+                        </div>
+                        <div id="nav-change-pwd" onclick="selectEndpoint('change-pwd')" data-method="POST" data-path="/api/v1/auth/password/change" data-desc="Đổi mật khẩu khi đang đăng nhập (yêu cầu Access Token)." data-uc="UC-08" data-uc-name="User Authentication Credential Rotation" class="sidebar-item pl-3 pr-2 py-1.5 rounded-lg text-xs flex items-center justify-between cursor-pointer text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-all">
+                            <span>Đổi mật khẩu</span>
+                            <span class="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/10">POST</span>
+                        </div>
+                        <div id="nav-logout" onclick="selectEndpoint('logout')" data-method="POST" data-path="/api/v1/auth/logout" data-desc="Đăng xuất và hủy phiên làm việc hiện tại." data-uc="UC-05" data-uc-name="Session Revocation & Logout" class="sidebar-item pl-3 pr-2 py-1.5 rounded-lg text-xs flex items-center justify-between cursor-pointer text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-all">
+                            <span>Đăng xuất</span>
+                            <span class="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/10">POST</span>
+                        </div>
+                        <div id="nav-logout-all" onclick="selectEndpoint('logout-all')" data-method="POST" data-path="/api/v1/auth/logout-all" data-desc="Đăng xuất khỏi tất cả các thiết bị khác." data-uc="UC-21" data-uc-name="Revocation of All Concurrent Sessions" class="sidebar-item pl-3 pr-2 py-1.5 rounded-lg text-xs flex items-center justify-between cursor-pointer text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-all">
+                            <span>Đăng xuất tất cả</span>
+                            <span class="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/10">POST</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Group: User Profile -->
+                <div class="sidebar-group space-y-1">
+                    <div class="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5">
+                        <i data-lucide="user" class="w-3 h-3"></i>
+                        User Profile
+                    </div>
+                    <div class="space-y-0.5">
+                        <div id="nav-get-me" onclick="selectEndpoint('get-me')" data-method="GET" data-path="/api/v1/users/me" data-desc="Lấy thông tin hồ sơ của tài khoản đang đăng nhập." data-uc="UC-11" data-uc-name="Access Identity Profile Credentials" class="sidebar-item pl-3 pr-2 py-1.5 rounded-lg text-xs flex items-center justify-between cursor-pointer text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-all">
+                            <span>Xem hồ sơ</span>
+                            <span class="text-[9px] font-bold text-sky-400 bg-sky-500/10 px-1.5 py-0.5 rounded border border-sky-500/10">GET</span>
+                        </div>
+                        <div id="nav-put-me" onclick="selectEndpoint('put-me')" data-method="PATCH" data-path="/api/v1/users/me" data-desc="Cập nhật thông tin chi tiết tài khoản." data-uc="UC-12" data-uc-name="Modify Profile Attributes" class="sidebar-item pl-3 pr-2 py-1.5 rounded-lg text-xs flex items-center justify-between cursor-pointer text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-all">
+                            <span>Cập nhật hồ sơ</span>
+                            <span class="text-[9px] font-bold text-violet-400 bg-violet-500/10 px-1.5 py-0.5 rounded border border-violet-500/10">PATCH</span>
+                        </div>
+                        <div id="nav-upload-avatar" onclick="selectEndpoint('upload-avatar')" data-method="POST" data-path="/api/v1/users/me/avatar" data-desc="Tải lên ảnh đại diện của bạn." data-uc="UC-14" data-uc-name="Profile Avatar Image Management" class="sidebar-item pl-3 pr-2 py-1.5 rounded-lg text-xs flex items-center justify-between cursor-pointer text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-all flex-shrink-0">
+                            <span>Tải ảnh đại diện</span>
+                            <span class="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/10">POST</span>
+                        </div>
+                        <div id="nav-del-avatar" onclick="selectEndpoint('del-avatar')" data-method="DELETE" data-path="/api/v1/users/me/avatar" data-desc="Xóa ảnh đại diện hiện tại." data-uc="UC-14" data-uc-name="Profile Avatar Image Management" class="sidebar-item pl-3 pr-2 py-1.5 rounded-lg text-xs flex items-center justify-between cursor-pointer text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-all flex-shrink-0">
+                            <span>Xóa ảnh đại diện</span>
+                            <span class="text-[9px] font-bold text-rose-400 bg-rose-500/10 px-1.5 py-0.5 rounded border border-rose-500/10">DEL</span>
+                        </div>
+                        <div id="nav-req-email" onclick="selectEndpoint('req-email')" data-method="POST" data-path="/api/v1/users/me/email/change-request" data-desc="Yêu cầu thay đổi địa chỉ email liên kết." data-uc="UC-13" data-uc-name="Self-Service Email Re-Binding Flow" class="sidebar-item pl-3 pr-2 py-1.5 rounded-lg text-xs flex items-center justify-between cursor-pointer text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-all">
+                            <span>Yêu cầu đổi email</span>
+                            <span class="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/10">POST</span>
+                        </div>
+                        <div id="nav-re-email-resend" onclick="selectEndpoint('re-email-resend')" data-method="POST" data-path="/api/v1/users/me/email/resend" data-desc="Gửi lại mã OTP xác nhận việc đổi email." data-uc="UC-13" data-uc-name="Self-Service Email Re-Binding Flow" class="sidebar-item pl-3 pr-2 py-1.5 rounded-lg text-xs flex items-center justify-between cursor-pointer text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-all">
+                            <span>Gửi lại OTP đổi email</span>
+                            <span class="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/10">POST</span>
+                        </div>
+                        <div id="nav-v-email" onclick="selectEndpoint('v-email')" data-method="POST" data-path="/api/v1/users/me/email/verify" data-desc="Xác nhận mã OTP để hoàn tất đổi email." data-uc="UC-13" data-uc-name="Self-Service Email Re-Binding Flow" class="sidebar-item pl-3 pr-2 py-1.5 rounded-lg text-xs flex items-center justify-between cursor-pointer text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-all">
+                            <span>Xác nhận đổi email</span>
+                            <span class="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/10">POST</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Group: Admin Users -->
+                <div class="sidebar-group space-y-1">
+                    <div class="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5">
+                        <i data-lucide="shield" class="w-3 h-3"></i>
+                        Admin: Users
+                    </div>
+                    <div class="space-y-0.5">
+                        <div id="nav-ad-list" onclick="selectEndpoint('ad-list')" data-method="GET" data-path="/api/v1/admin/users" data-desc="Danh sách người dùng và tìm kiếm." data-uc="UC-15" data-uc-name="Administrative Directory Search & Profiling" class="sidebar-item pl-3 pr-2 py-1.5 rounded-lg text-xs flex items-center justify-between cursor-pointer text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-all flex-shrink-0">
+                            <span>Danh sách user</span>
+                            <span class="text-[9px] font-bold text-sky-400 bg-sky-500/10 px-1.5 py-0.5 rounded border border-sky-500/10">GET</span>
+                        </div>
+                        <div id="nav-ad-get" onclick="selectEndpoint('ad-get')" data-method="GET" data-path="/api/v1/admin/users/:id" data-desc="Xem chi tiết người dùng theo ID." data-uc="UC-15" data-uc-name="Administrative Directory Search & Profiling" class="sidebar-item pl-3 pr-2 py-1.5 rounded-lg text-xs flex items-center justify-between cursor-pointer text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-all flex-shrink-0">
+                            <span>Chi tiết user</span>
+                            <span class="text-[9px] font-bold text-sky-400 bg-sky-500/10 px-1.5 py-0.5 rounded border border-sky-500/10">GET</span>
+                        </div>
+                        <div id="nav-ad-put" onclick="selectEndpoint('ad-put')" data-method="PUT" data-path="/api/v1/admin/users/:id" data-desc="Cập nhật chi tiết user bất kỳ." data-uc="UC-16" data-uc-name="Administrative User Modification" class="sidebar-item pl-3 pr-2 py-1.5 rounded-lg text-xs flex items-center justify-between cursor-pointer text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-all">
+                            <span>Sửa user</span>
+                            <span class="text-[9px] font-bold text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/10">PUT</span>
+                        </div>
+                        <div id="nav-ad-st" onclick="selectEndpoint('ad-st')" data-method="PATCH" data-path="/api/v1/admin/users/:id/status" data-desc="Thay đổi trạng thái hoạt động (active, locked...) của user." data-uc="UC-17" data-uc-name="Administrative Block/Unblock & Account Locking" class="sidebar-item pl-3 pr-2 py-1.5 rounded-lg text-xs flex items-center justify-between cursor-pointer text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-all">
+                            <span>Thay đổi trạng thái</span>
+                            <span class="text-[9px] font-bold text-violet-400 bg-violet-500/10 px-1.5 py-0.5 rounded border border-violet-500/10">PATCH</span>
+                        </div>
+                        <div id="nav-ad-rp" onclick="selectEndpoint('ad-rp')" data-method="POST" data-path="/api/v1/admin/users/:id/password/reset" data-desc="Khôi phục mật khẩu mặc định cho user." data-uc="UC-18" data-uc-name="Administrative Credential Reset" class="sidebar-item pl-3 pr-2 py-1.5 rounded-lg text-xs flex items-center justify-between cursor-pointer text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-all flex-shrink-0">
+                            <span>Reset mật khẩu</span>
+                            <span class="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/10">POST</span>
+                        </div>
+                        <div id="nav-ad-noti" onclick="selectEndpoint('ad-noti')" data-method="POST" data-path="/api/v1/admin/users/:id/notify" data-desc="Gửi thông báo cưỡng chế tới email người dùng." data-uc="UC-27" data-uc-name="Administrative Force Notifications" class="sidebar-item pl-3 pr-2 py-1.5 rounded-lg text-xs flex items-center justify-between cursor-pointer text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-all">
+                            <span>Gửi thông báo</span>
+                            <span class="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/10">POST</span>
+                        </div>
+                        <div id="nav-ad-assign-role" onclick="selectEndpoint('ad-assign-role')" data-method="POST" data-path="/api/v1/admin/users/:id/roles" data-desc="Gán vai trò (Role) cho người dùng." data-uc="UC-09" data-uc-name="Role-Based Security Membership Assignment" class="sidebar-item pl-3 pr-2 py-1.5 rounded-lg text-xs flex items-center justify-between cursor-pointer text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-all flex-shrink-0">
+                            <span>Gán vai trò</span>
+                            <span class="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/10">POST</span>
+                        </div>
+                        <div id="nav-ad-remove-role" onclick="selectEndpoint('ad-remove-role')" data-method="DELETE" data-path="/api/v1/admin/users/:id/roles/:roleId" data-desc="Hủy gán vai trò khỏi người dùng." data-uc="UC-09" data-uc-name="Role-Based Security Membership Assignment" class="sidebar-item pl-3 pr-2 py-1.5 rounded-lg text-xs flex items-center justify-between cursor-pointer text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-all">
+                            <span>Xóa vai trò</span>
+                            <span class="text-[9px] font-bold text-rose-400 bg-rose-500/10 px-1.5 py-0.5 rounded border border-rose-500/10">DEL</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Group: Admin Roles -->
+                <div class="sidebar-group space-y-1">
+                    <div class="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5">
+                        <i data-lucide="lock" class="w-3 h-3"></i>
+                        Admin: Roles & Perms
+                    </div>
+                    <div class="space-y-0.5">
+                        <div id="nav-ad-list-roles" onclick="selectEndpoint('ad-list-roles')" data-method="GET" data-path="/api/v1/admin/roles" data-desc="Danh sách vai trò và phân quyền hệ thống." data-uc="UC-32" data-uc-name="RBAC Authorization Roles & Permissions Directory" class="sidebar-item pl-3 pr-2 py-1.5 rounded-lg text-xs flex items-center justify-between cursor-pointer text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-all flex-shrink-0">
+                            <span>Danh sách vai trò</span>
+                            <span class="text-[9px] font-bold text-sky-400 bg-sky-500/10 px-1.5 py-0.5 rounded border border-sky-500/10">GET</span>
+                        </div>
+                        <div id="nav-ad-create-role" onclick="selectEndpoint('ad-create-role')" data-method="POST" data-path="/api/v1/admin/roles" data-desc="Tạo vai trò mới trong hệ thống." data-uc="UC-32" data-uc-name="RBAC Authorization Roles & Permissions Directory" class="sidebar-item pl-3 pr-2 py-1.5 rounded-lg text-xs flex items-center justify-between cursor-pointer text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-all flex-shrink-0">
+                            <span>Tạo vai trò</span>
+                            <span class="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/10">POST</span>
+                        </div>
+                        <div id="nav-ad-update-role" onclick="selectEndpoint('ad-update-role')" data-method="PUT" data-path="/api/v1/admin/roles/:id" data-desc="Cập nhật chi tiết một vai trò." data-uc="UC-32" data-uc-name="RBAC Authorization Roles & Permissions Directory" class="sidebar-item pl-3 pr-2 py-1.5 rounded-lg text-xs flex items-center justify-between cursor-pointer text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-all flex-shrink-0">
+                            <span>Sửa vai trò</span>
+                            <span class="text-[9px] font-bold text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/10">PUT</span>
+                        </div>
+                        <div id="nav-ad-assign-perm" onclick="selectEndpoint('ad-assign-perm')" data-method="PUT" data-path="/api/v1/admin/roles/:id/permissions" data-desc="Gán danh sách các quyền (Permissions) cho vai trò." data-uc="UC-32" data-uc-name="RBAC Authorization Roles & Permissions Directory" class="sidebar-item pl-3 pr-2 py-1.5 rounded-lg text-xs flex items-center justify-between cursor-pointer text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-all flex-shrink-0">
+                            <span>Gán quyền</span>
+                            <span class="text-[9px] font-bold text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/10">PUT</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Group: Audit Logs -->
+                <div class="sidebar-group space-y-1">
+                    <div class="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5">
+                        <i data-lucide="database" class="w-3 h-3"></i>
+                        Admin: System Logs
+                    </div>
+                    <div class="space-y-0.5">
+                        <div id="nav-ad-export-audit" onclick="selectEndpoint('ad-export-audit')" data-method="GET" data-path="/api/v1/admin/audit-logs/export" data-desc="Tải về tệp CSV nhật ký hành động người dùng." data-uc="UC-30" data-uc-name="Export System Audit & Compliance Logs" class="sidebar-item pl-3 pr-2 py-1.5 rounded-lg text-xs flex items-center justify-between cursor-pointer text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-all flex-shrink-0">
+                            <span>Xuất nhật ký (CSV)</span>
+                            <span class="text-[9px] font-bold text-sky-400 bg-sky-500/10 px-1.5 py-0.5 rounded border border-sky-500/10">GET</span>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+
+            <!-- Bottom Session Status / Active Tokens -->
+            <div class="p-3 border-t border-[var(--border-color)] bg-[var(--bg-primary)]/40 space-y-2">
+                <div class="text-[10px] font-bold tracking-wider text-[var(--text-muted)] uppercase flex items-center justify-between">
+                    <span>Active Session</span>
+                    <button onclick="clearSessionTokens()" class="text-[9px] text-rose-400 hover:text-rose-300 font-medium">Clear</button>
+                </div>
+                <!-- Mini visual display of tokens -->
+                <div class="space-y-1.5">
+                    <div class="flex items-center justify-between gap-1 text-[11px]">
+                        <span class="text-[var(--text-muted)] font-mono">Access:</span>
+                        <div class="flex items-center gap-1 min-w-0">
+                            <span id="sidebar-access-indicator" class="font-mono truncate text-[var(--text-secondary)] w-36 text-right">-</span>
+                            <button onclick="copySidebarToken('log-access-token')" class="p-0.5 rounded hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)]" title="Copy Access Token">
+                                <i data-lucide="copy" class="w-3 h-3"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between gap-1 text-[11px]">
+                        <span class="text-[var(--text-muted)] font-mono">Refresh:</span>
+                        <div class="flex items-center gap-1 min-w-0">
+                            <span id="sidebar-refresh-indicator" class="font-mono truncate text-[var(--text-secondary)] w-36 text-right">-</span>
+                            <button onclick="copySidebarToken('ref-token')" class="p-0.5 rounded hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)]" title="Copy Refresh Token">
+                                <i data-lucide="copy" class="w-3 h-3"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- MAIN WORKSPACE CONTAINER -->
+        <div class="flex-1 flex flex-col xl:flex-row overflow-hidden min-w-0">
+            <!-- CENTER REQUEST PANELS -->
+            <main class="flex-1 flex flex-col min-w-0 bg-[var(--bg-primary)]">
+                <!-- Active Request Header / Bar -->
+                <div class="p-4 border-b border-[var(--border-color)] bg-[var(--bg-secondary)] flex items-center justify-between flex-shrink-0">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <!-- Menu Toggle on Mobile -->
+                        <button
+                            onclick="toggleMobileSidebar(true)"
+                            class="p-1.5 rounded-lg border border-[var(--border-color)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] lg:hidden flex items-center justify-center flex-shrink-0"
+                            title="Open Menu"
+                        >
+                            <i data-lucide="menu" class="w-4 h-4"></i>
+                        </button>
+                        <div class="flex flex-col gap-1 min-w-0">
+                            <div class="flex items-center gap-3">
+                                <span id="active-endpoint-method" class="px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider">-</span>
+                                <span id="active-endpoint-path" class="font-mono text-sm font-semibold truncate text-[var(--text-primary)]">-</span>
+                                <span id="active-endpoint-uc" class="hidden px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 uppercase tracking-wider flex-shrink-0">-</span>
+                            </div>
+                            <div id="active-endpoint-uc-text" class="hidden text-xs text-[var(--text-secondary)] font-medium">Use Case: -</div>
+                        </div>
+                    </div>
+                    <div class="text-xs text-[var(--text-muted)] font-mono hidden sm:block" id="active-endpoint-desc">// -</div>
+                </div>
+
+            <!-- Workspace Details Pane -->
+            <div class="flex-1 overflow-y-auto p-6 space-y-6">
+
+                <!-- 1. Health Check Form -->
+                <div id="form-health" class="endpoint-form hidden space-y-4">
+                    <div class="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl p-5 space-y-4">
+                        <div>
+                            <h3 class="font-medium text-[var(--text-primary)]">Health Check API</h3>
+                            <p class="text-xs text-[var(--text-secondary)] mt-1">Lightweight endpoint to quickly verify that the Go web server is up and routing requests.</p>
+                        </div>
+                        <button onclick="checkHealth()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all">
+                            <i data-lucide="play" class="w-3.5 h-3.5"></i> Chạy Health Check
+                        </button>
+                        <div id="res-health" class="out hidden"></div>
+                    </div>
+                </div>
+
+                <!-- 2. Readiness Check Form -->
+                <div id="form-ready" class="endpoint-form hidden space-y-4">
+                    <div class="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl p-5 space-y-4">
+                        <div>
+                            <h3 class="font-medium text-[var(--text-primary)]">Readiness Check API</h3>
+                            <p class="text-xs text-[var(--text-secondary)] mt-1">Verifies deep connectivity checking if MySQL (Aiven) and Redis (Render) dependencies are healthy.</p>
+                        </div>
+                        <button onclick="checkReady()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all">
+                            <i data-lucide="database" class="w-3.5 h-3.5"></i> Chạy Readiness Check
+                        </button>
+                        <div id="res-ready" class="out hidden"></div>
+                    </div>
+                </div>
+
+                <!-- 3. Register Form -->
+                <div id="form-register" class="endpoint-form hidden space-y-4">
+                    <div class="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl p-5 space-y-4">
+                        <h3 class="font-medium text-[var(--text-primary)]">Đăng ký tài khoản</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="space-y-1">
+                                <label class="text-xs font-semibold text-[var(--text-secondary)]">Username *</label>
+                                <input id="reg-username" type="text" placeholder="johndoe" class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500" />
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-xs font-semibold text-[var(--text-secondary)]">Email *</label>
+                                <input id="reg-email" type="email" placeholder="john@example.com" class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500" />
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-xs font-semibold text-[var(--text-secondary)]">Mật khẩu *</label>
+                                <input id="reg-password" type="password" placeholder="••••••••" class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500" />
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-xs font-semibold text-[var(--text-secondary)]">Họ và tên</label>
+                                <input id="reg-full-name" type="text" placeholder="John Doe" class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500" />
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-xs font-semibold text-[var(--text-secondary)]">Số điện thoại</label>
+                                <input id="reg-phone" type="text" placeholder="0123456789" class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500" />
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-xs font-semibold text-[var(--text-secondary)]">Ngày sinh</label>
+                                <input id="reg-dob" type="date" class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500" />
+                            </div>
+                        </div>
+                        <button onclick="handleRequest('register','POST','/api/v1/auth/register',{username: getVal('reg-username'),email: getVal('reg-email'),password: getVal('reg-password'),full_name: getVal('reg-full-name'),phone: getVal('reg-phone'),date_of_birth: getVal('reg-dob')})" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all">
+                            <i data-lucide="play" class="w-3.5 h-3.5"></i> Gửi Đăng Ký
+                        </button>
+                        <div id="res-register" class="out hidden"></div>
+                    </div>
+                </div>
+
+                <!-- 4. Verify Email Form -->
+                <div id="form-verify-email" class="endpoint-form hidden space-y-4">
+                    <div class="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl p-5 space-y-4">
+                        <h3 class="font-medium text-[var(--text-primary)]">Xác thực OTP đăng ký</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="space-y-1">
+                                <label class="text-xs font-semibold text-[var(--text-secondary)]">Email *</label>
+                                <input id="ve-email" type="email" placeholder="john@example.com" class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500" />
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-xs font-semibold text-[var(--text-secondary)]">OTP *</label>
+                                <input id="ve-otp" type="text" placeholder="123456" class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500" />
+                            </div>
+                        </div>
+                        <button onclick="handleRequest('verify-email','POST','/api/v1/auth/email/verify',{email: getVal('ve-email'),otp: getVal('ve-otp')})" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all">
+                            <i data-lucide="play" class="w-3.5 h-3.5"></i> Xác Thực OTP
+                        </button>
+                        <div id="res-verify-email" class="out hidden"></div>
+                    </div>
+                </div>
+
+                <!-- 5. Resend Verification OTP Form -->
+                <div id="form-resend-verify" class="endpoint-form hidden space-y-4">
+                    <div class="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl p-5 space-y-4">
+                        <h3 class="font-medium text-[var(--text-primary)]">Gửi lại mã OTP đăng ký</h3>
+                        <div class="space-y-1">
+                            <label class="text-xs font-semibold text-[var(--text-secondary)]">Email *</label>
+                            <input id="rve-email" type="email" placeholder="john@example.com" class="w-full max-w-md px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500" />
+                        </div>
+                        <button onclick="handleRequest('resend-verify','POST','/api/v1/auth/email/resend',{email: getVal('rve-email')})" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all">
+                            <i data-lucide="play" class="w-3.5 h-3.5"></i> Gửi lại mã
+                        </button>
+                        <div id="res-resend-verify" class="out hidden"></div>
+                    </div>
+                </div>
+
+                <!-- 6. Login Form -->
+                <div id="form-login" class="endpoint-form hidden space-y-4">
+                    <div class="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl p-5 space-y-4">
+                        <h3 class="font-medium text-[var(--text-primary)]">Đăng nhập</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="space-y-1">
+                                <label class="text-xs font-semibold text-[var(--text-secondary)]">Email *</label>
+                                <input id="log-email" type="email" placeholder="john@example.com" class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500" />
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-xs font-semibold text-[var(--text-secondary)]">Mật khẩu *</label>
+                                <input id="log-password" type="password" placeholder="••••••••" class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500" />
+                            </div>
+                        </div>
+                        <button onclick="handleLogin()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all">
+                            <i data-lucide="key-round" class="w-3.5 h-3.5"></i> Đăng Nhập
+                        </button>
+                        <div id="res-login" class="out hidden"></div>
+                        
+                        <div class="border-t border-[var(--border-color)] pt-4 space-y-3">
+                            <h4 class="text-xs font-semibold text-[var(--text-secondary)]">// Token Tự Động Lưu Trữ</h4>
+                            <div class="space-y-2">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-24 text-xs font-mono text-[var(--text-muted)]">access_token:</span>
+                                    <input id="log-access-token" type="text" readonly class="flex-1 font-mono text-[10px] px-2 py-1.5 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded border-dashed text-[var(--text-secondary)] focus:outline-none" />
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="w-24 text-xs font-mono text-[var(--text-muted)]">refresh_token:</span>
+                                    <input id="log-refresh-token" type="text" readonly class="flex-1 font-mono text-[10px] px-2 py-1.5 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded border-dashed text-[var(--text-secondary)] focus:outline-none" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 7. Refresh Token Form -->
+                <div id="form-refresh" class="endpoint-form hidden space-y-4">
+                    <div class="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl p-5 space-y-4">
+                        <h3 class="font-medium text-[var(--text-primary)]">Gia hạn Session</h3>
+                        <div class="space-y-1">
+                            <label class="text-xs font-semibold text-[var(--text-secondary)]">Refresh Token *</label>
+                            <input id="ref-token" type="text" placeholder="Nhập Refresh Token..." class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs font-mono text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500" />
+                        </div>
+                        <button onclick="handleRefresh()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all">
+                            <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Gia Hạn
+                        </button>
+                        <div id="res-refresh" class="out hidden"></div>
+
+                        <div class="border-t border-[var(--border-color)] pt-4 space-y-3">
+                            <h4 class="text-xs font-semibold text-[var(--text-secondary)]">// Token Mới Thu Được</h4>
+                            <div class="space-y-2">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-24 text-xs font-mono text-[var(--text-muted)]">access_token:</span>
+                                    <input id="ref-access-token" type="text" readonly class="flex-1 font-mono text-[10px] px-2 py-1.5 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded border-dashed text-[var(--text-secondary)] focus:outline-none" />
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="w-24 text-xs font-mono text-[var(--text-muted)]">refresh_token:</span>
+                                    <input id="ref-new-refresh-token" type="text" readonly class="flex-1 font-mono text-[10px] px-2 py-1.5 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded border-dashed text-[var(--text-secondary)] focus:outline-none" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 8. Forgot Password Form -->
+                <div id="form-forgot-pwd" class="endpoint-form hidden space-y-4">
+                    <div class="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl p-5 space-y-4">
+                        <h3 class="font-medium text-[var(--text-primary)]">Yêu cầu khôi phục mật khẩu</h3>
+                        <div class="space-y-1">
+                            <label class="text-xs font-semibold text-[var(--text-secondary)]">Email đăng ký *</label>
+                            <input id="fp-email" type="email" placeholder="john@example.com" class="w-full max-w-md px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500" />
+                        </div>
+                        <button onclick="handleRequest('forgot-pwd','POST','/api/v1/auth/password/forgot',{email: getVal('fp-email')})" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all">
+                            <i data-lucide="play" class="w-3.5 h-3.5"></i> Gửi Yêu Cầu
+                        </button>
+                        <div id="res-forgot-pwd" class="out hidden"></div>
+                    </div>
+                </div>
+
+                <!-- 9. Reset Password Form -->
+                <div id="form-reset-pwd" class="endpoint-form hidden space-y-4">
+                    <div class="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl p-5 space-y-4">
+                        <h3 class="font-medium text-[var(--text-primary)]">Đặt lại mật khẩu mới</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="space-y-1">
+                                <label class="text-xs font-semibold text-[var(--text-secondary)]">Reset Token *</label>
+                                <input id="rp-token" type="text" placeholder="Token từ email..." class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500" />
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-xs font-semibold text-[var(--text-secondary)]">Mật khẩu mới *</label>
+                                <input id="rp-new-pwd" type="password" placeholder="••••••••" class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500" />
+                            </div>
+                        </div>
+                        <button onclick="handleRequest('reset-pwd','POST','/api/v1/auth/password/reset',{token: getVal('rp-token'),new_password: getVal('rp-new-pwd')})" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all">
+                            <i data-lucide="play" class="w-3.5 h-3.5"></i> Đặt mật khẩu mới
+                        </button>
+                        <div id="res-reset-pwd" class="out hidden"></div>
+                    </div>
+                </div>
+
+                <!-- 10. Force Change Password Form -->
+                <div id="form-force-change-pwd" class="endpoint-form hidden space-y-4">
+                    <div class="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl p-5 space-y-4">
+                        <h3 class="font-medium text-[var(--text-primary)]">Đổi mật khẩu cưỡng chế</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="space-y-1">
+                                <label class="text-xs font-semibold text-[var(--text-secondary)]">Email *</label>
+                                <input id="fcp-email" type="email" placeholder="john@example.com" class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500" />
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-xs font-semibold text-[var(--text-secondary)]">Mật khẩu tạm thời *</label>
+                                <input id="fcp-temp" type="password" placeholder="••••••••" class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500" />
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-xs font-semibold text-[var(--text-secondary)]">Mật khẩu mới *</label>
+                                <input id="fcp-new" type="password" placeholder="••••••••" class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500" />
+                            </div>
+                        </div>
+                        <button onclick="handleRequest('force-change-pwd','POST','/api/v1/auth/password/force-change',{email: getVal('fcp-email'),temp_password: getVal('fcp-temp'),new_password: getVal('fcp-new')})" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all">
+                            <i data-lucide="play" class="w-3.5 h-3.5"></i> Đổi mật khẩu
+                        </button>
+                        <div id="res-force-change-pwd" class="out hidden"></div>
+                    </div>
+                </div>
+
+                <!-- 11. Change Password Form -->
+                <div id="form-change-pwd" class="endpoint-form hidden space-y-4">
+                    <div class="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl p-5 space-y-4">
+                        <h3 class="font-medium text-[var(--text-primary)]">Đổi mật khẩu người dùng</h3>
+                        <div class="space-y-3">
+                            <div class="space-y-1">
+                                <label class="text-xs font-semibold text-[var(--text-secondary)]">Access Token *</label>
+                                <input id="cp-token" type="text" placeholder="Nhập Access Token..." class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs font-mono text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500" />
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="space-y-1">
+                                    <label class="text-xs font-semibold text-[var(--text-secondary)]">Mật khẩu cũ *</label>
+                                    <input id="cp-old" type="password" placeholder="••••••••" class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500" />
+                                </div>
+                                <div class="space-y-1">
+                                    <label class="text-xs font-semibold text-[var(--text-secondary)]">Mật khẩu mới *</label>
+                                    <input id="cp-new" type="password" placeholder="••••••••" class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500" />
+                                </div>
+                            </div>
+                        </div>
+                        <button onclick="handleRequest('change-pwd','POST','/api/v1/auth/password/change',{old_password: getVal('cp-old'),new_password: getVal('cp-new')},getVal('cp-token'))" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all">
+                            <i data-lucide="play" class="w-3.5 h-3.5"></i> Đổi Mật Khẩu
+                        </button>
+                        <div id="res-change-pwd" class="out hidden"></div>
+                    </div>
+                </div>
+
+                <!-- 12. Logout Form -->
+                <div id="form-logout" class="endpoint-form hidden space-y-4">
+                    <div class="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl p-5 space-y-4">
+                        <h3 class="font-medium text-[var(--text-primary)]">Đăng xuất phiên làm việc hiện tại</h3>
+                        <div class="space-y-1">
+                            <label class="text-xs font-semibold text-[var(--text-secondary)]">Access Token *</label>
+                            <input id="out-token" type="text" placeholder="Nhập Access Token..." class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs font-mono text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500" />
+                        </div>
+                        <button onclick="handleRequest('logout','POST','/api/v1/auth/logout',{},getVal('out-token'))" class="px-4 py-2 bg-zinc-600 hover:bg-zinc-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all">
+                            <i data-lucide="log-out" class="w-3.5 h-3.5"></i> Đăng xuất
+                        </button>
+                        <div id="res-logout" class="out hidden"></div>
+                    </div>
+                </div>
+
+                <!-- 13. Logout All Form -->
+                <div id="form-logout-all" class="endpoint-form hidden space-y-4">
+                    <div class="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl p-5 space-y-4">
+                        <h3 class="font-medium text-[var(--text-primary)]">Đăng xuất trên tất cả các thiết bị</h3>
+                        <div class="space-y-1">
+                            <label class="text-xs font-semibold text-[var(--text-secondary)]">Access Token *</label>
+                            <input id="out-all-token" type="text" placeholder="Nhập Access Token..." class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs font-mono text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500" />
+                        </div>
+                        <button onclick="handleRequest('logout-all','POST','/api/v1/auth/logout-all',{},getVal('out-all-token'))" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all">
+                            <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i> Thu hồi mọi thiết bị
+                        </button>
+                        <div id="res-logout-all" class="out hidden"></div>
+                    </div>
+                </div>
+
+                <!-- 14. Get Profile Form -->
+                <div id="form-get-me" class="endpoint-form hidden space-y-4">
+                    <div class="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl p-5 space-y-4">
+                        <h3 class="font-medium text-[var(--text-primary)]">Lấy thông tin profile cá nhân</h3>
+                        <div class="space-y-1">
+                            <label class="text-xs font-semibold text-[var(--text-secondary)]">Access Token *</label>
+                            <input id="get-me-token" type="text" placeholder="Nhập Access Token..." class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs font-mono text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500" />
+                        </div>
+                        <button onclick="handleRequest('get-me','GET','/api/v1/users/me',null,getVal('get-me-token'))" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all">
+                            <i data-lucide="user" class="w-3.5 h-3.5"></i> Lấy Profile
+                        </button>
+                        <div id="res-get-me" class="out hidden"></div>
+                    </div>
+                </div>
+
+                <!-- 15. Update Profile Form -->
+                <div id="form-put-me" class="endpoint-form hidden space-y-4">
+                    <div class="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl p-5 space-y-4">
+                        <h3 class="font-medium text-[var(--text-primary)]">Cập nhật profile cá nhân</h3>
+                        <div class="space-y-3">
+                            <div class="space-y-1">
+                                <label class="text-xs font-semibold text-[var(--text-secondary)]">Access Token *</label>
+                                <input id="put-me-token" type="text" placeholder="Nhập Access Token..." class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs font-mono text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500" />
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div class="space-y-1">
+                                    <label class="text-xs font-semibold text-[var(--text-secondary)]">Họ và tên</label>
+                                    <input id="put-me-full-name" type="text" placeholder="John Doe" class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500" />
+                                </div>
+                                <div class="space-y-1">
+                                    <label class="text-xs font-semibold text-[var(--text-secondary)]">Số điện thoại</label>
+                                    <input id="put-me-phone" type="text" placeholder="0123456789" class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500" />
+                                </div>
+                                <div class="space-y-1">
+                                    <label class="text-xs font-semibold text-[var(--text-secondary)]">Ngày sinh</label>
+                                    <input id="put-me-dob" type="date" class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500" />
+                                </div>
+                            </div>
+                        </div>
+                        <button onclick="(() => { let p = {}; let fn = getVal('put-me-full-name'); if (fn) p.full_name = fn; let ph = getVal('put-me-phone'); if (ph) p.phone = ph; let dob = getVal('put-me-dob'); if (dob) p.date_of_birth = dob; handleRequest('put-me','PATCH','/api/v1/users/me',p,getVal('put-me-token')); })()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all">
+                            <i data-lucide="play" class="w-3.5 h-3.5"></i> Cập Nhật
+                        </button>
+                        <div id="res-put-me" class="out hidden"></div>
+                    </div>
+                </div>
+
+                <!-- 16. Upload Avatar Form -->
+                <div id="form-upload-avatar" class="endpoint-form hidden space-y-4">
+                    <div class="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl p-5 space-y-4">
+                        <h3 class="font-medium text-[var(--text-primary)]">Tải ảnh đại diện mới</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="space-y-1">
+                                <label class="text-xs font-semibold text-[var(--text-secondary)]">Access Token *</label>
+                                <input id="upload-avatar-token" type="text" placeholder="Nhập Access Token..." class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs font-mono text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500" />
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-xs font-semibold text-[var(--text-secondary)]">Chọn tệp hình ảnh *</label>
+                                <input id="upload-avatar-file" type="file" class="w-full text-xs px-2 py-1.5 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] focus:outline-none" />
+                            </div>
+                        </div>
+                        <button onclick="handleUploadAvatar()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all">
+                            <i data-lucide="upload" class="w-3.5 h-3.5"></i> Đăng ảnh đại diện
+                        </button>
+                        <div id="res-upload-avatar" class="out hidden"></div>
+                    </div>
+                </div>
+
+                <!-- 17. Delete Avatar Form -->
+                <div id="form-del-avatar" class="endpoint-form hidden space-y-4">
+                    <div class="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl p-5 space-y-4">
+                        <h3 class="font-medium text-[var(--text-primary)]">Xóa ảnh đại diện hiện tại</h3>
+                        <div class="space-y-1">
+                            <label class="text-xs font-semibold text-[var(--text-secondary)]">Access Token *</label>
+                            <input id="del-avatar-token" type="text" placeholder="Nhập Access Token..." class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs font-mono text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500" />
+                        </div>
+                        <button onclick="handleRequest('del-avatar','DELETE','/api/v1/users/me/avatar',null,getVal('del-avatar-token'))" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all">
+                            <i data-lucide="trash" class="w-3.5 h-3.5"></i> Xóa ảnh
+                        </button>
+                        <div id="res-del-avatar" class="out hidden"></div>
+                    </div>
+                </div>
+
+                <!-- 18. Change Email Request Form -->
+                <div id="form-req-email" class="endpoint-form hidden space-y-4">
+                    <div class="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl p-5 space-y-4">
+                        <h3 class="font-medium text-[var(--text-primary)]">Yêu cầu thay đổi địa chỉ email</h3>
+                        <div class="space-y-3">
+                            <div class="space-y-1">
+                                <label class="text-xs font-semibold text-[var(--text-secondary)]">Access Token *</label>
+                                <input id="req-email-token" type="text" placeholder="Nhập Access Token..." class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs font-mono text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500" />
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="space-y-1">
+                                    <label class="text-xs font-semibold text-[var(--text-secondary)]">Mật khẩu xác nhận *</label>
+                                    <input id="req-email-pwd" type="password" placeholder="••••••••" class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500" />
+                                </div>
+                                <div class="space-y-1">
+                                    <label class="text-xs font-semibold text-[var(--text-secondary)]">Địa chỉ email mới *</label>
+                                    <input id="req-email-new" type="email" placeholder="new@example.com" class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500" />
+                                </div>
+                            </div>
+                        </div>
+                        <button onclick="handleRequest('req-email','POST','/api/v1/users/me/email/change-request',{current_password: getVal('req-email-pwd'),new_email: getVal('req-email-new')},getVal('req-email-token'))" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all">
+                            <i data-lucide="play" class="w-3.5 h-3.5"></i> Yêu Cầu Thay Đổi
+                        </button>
+                        <div id="res-req-email" class="out hidden"></div>
+                    </div>
+                </div>
+
+                <!-- 19. Change Email Resend OTP Form -->
+                <div id="form-re-email-resend" class="endpoint-form hidden space-y-4">
+                    <div class="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl p-5 space-y-4">
+                        <h3 class="font-medium text-[var(--text-primary)]">Gửi lại mã OTP đổi email</h3>
+                        <div class="space-y-1">
+                            <label class="text-xs font-semibold text-[var(--text-secondary)]">Access Token *</label>
+                            <input id="re-email-resend-token" type="text" placeholder="Nhập Access Token..." class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs font-mono text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500" />
+                        </div>
+                        <button onclick="handleRequest('re-email-resend','POST','/api/v1/users/me/email/resend',{},getVal('re-email-resend-token'))" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all">
+                            <i data-lucide="play" class="w-3.5 h-3.5"></i> Gửi lại mã
+                        </button>
+                        <div id="res-re-email-resend" class="out hidden"></div>
+                    </div>
+                </div>
+
+                <!-- 20. Change Email Verify Form -->
+                <div id="form-v-email" class="endpoint-form hidden space-y-4">
+                    <div class="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl p-5 space-y-4">
+                        <h3 class="font-medium text-[var(--text-primary)]">Xác nhận mã đổi địa chỉ email</h3>
+                        <div class="space-y-3">
+                            <div class="space-y-1">
+                                <label class="text-xs font-semibold text-[var(--text-secondary)]">Access Token *</label>
+                                <input id="v-email-token" type="text" placeholder="Nhập Access Token..." class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs font-mono text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500" />
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="space-y-1">
+                                    <label class="text-xs font-semibold text-[var(--text-secondary)]">OTP gửi về Email cũ *</label>
+                                    <input id="v-email-old-otp" type="text" placeholder="123456" class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500" />
+                                </div>
+                                <div class="space-y-1">
+                                    <label class="text-xs font-semibold text-[var(--text-secondary)]">OTP gửi về Email mới *</label>
+                                    <input id="v-email-new-otp" type="text" placeholder="123456" class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500" />
+                                </div>
+                            </div>
+                        </div>
+                        <button onclick="handleRequest('v-email','POST','/api/v1/users/me/email/verify',{old_otp: getVal('v-email-old-otp'),new_otp: getVal('v-email-new-otp')},getVal('v-email-token'))" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all">
+                            <i data-lucide="play" class="w-3.5 h-3.5"></i> Hoàn Tất Đổi
+                        </button>
+                        <div id="res-v-email" class="out hidden"></div>
+                    </div>
+                </div>
+
+                <!-- 21. Admin List Users Form -->
+                <div id="form-ad-list" class="endpoint-form hidden space-y-4">
+                    <div class="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl p-5 space-y-4">
+                        <h3 class="font-medium text-[var(--text-primary)]">Admin: Tra cứu & Tìm kiếm Users</h3>
+                        <div class="space-y-3">
+                            <div class="space-y-1">
+                                <label class="text-xs font-semibold text-[var(--text-secondary)]">Access Token (Admin) *</label>
+                                <input id="ad-list-token" type="text" placeholder="Nhập Token Admin..." class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs font-mono text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500" />
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="space-y-1">
+                                    <label class="text-xs font-semibold text-[var(--text-secondary)]">Trang số (Page)</label>
+                                    <input id="ad-list-page" type="number" placeholder="1" class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500" />
+                                </div>
+                                <div class="space-y-1">
+                                    <label class="text-xs font-semibold text-[var(--text-secondary)]">Lọc vai trò (Role)</label>
+                                    <input id="ad-list-role" type="text" placeholder="admin, moderator, user..." class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500" />
+                                </div>
+                            </div>
+                        </div>
+                        <button onclick="(() => { let query = new URLSearchParams(); let page = getVal('ad-list-page'); let role = getVal('ad-list-role'); if (page) query.append('page', page); if (role) query.append('role', role); let path = '/api/v1/admin/users'; if (query.toString()) path += '?' + query.toString(); handleRequest('ad-list','GET',path,null,getVal('ad-list-token')); })()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all">
+                            <i data-lucide="users" class="w-3.5 h-3.5"></i> Danh Sách Users
+                        </button>
+                        <div id="res-ad-list" class="out hidden"></div>
+                    </div>
+                </div>
+
+                <!-- 22. Admin Get User Detail Form -->
+                <div id="form-ad-get" class="endpoint-form hidden space-y-4">
+                    <div class="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl p-5 space-y-4">
+                        <h3 class="font-medium text-[var(--text-primary)]">Admin: Chi tiết tài khoản người dùng</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="space-y-1">
+                                <label class="text-xs font-semibold text-[var(--text-secondary)]">Access Token (Admin) *</label>
+                                <input id="ad-get-token" type="text" placeholder="Nhập Token Admin..." class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs font-mono text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500" />
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-xs font-semibold text-[var(--text-secondary)]">ID Người dùng *</label>
+                                <input id="ad-get-id" type="text" placeholder="1" class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500" />
+                            </div>
+                        </div>
+                        <button onclick="handleRequest('ad-get','GET','/api/v1/admin/users/'+getVal('ad-get-id'),null,getVal('ad-get-token'))" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all">
+                            <i data-lucide="user" class="w-3.5 h-3.5"></i> Tìm Chi Tiết
+                        </button>
+                        <div id="res-ad-get" class="out hidden"></div>
+                    </div>
+                </div>
+
+                <!-- 23. Admin Update User Form -->
+                <div id="form-ad-put" class="endpoint-form hidden space-y-4">
+                    <div class="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl p-5 space-y-4">
+                        <h3 class="font-medium text-[var(--text-primary)]">Admin: Cập nhật thông tin chi tiết User</h3>
+                        <div class="space-y-3">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="space-y-1">
+                                    <label class="text-xs font-semibold text-[var(--text-secondary)]">Access Token (Admin) *</label>
+                                    <input id="ad-put-token" type="text" placeholder="Nhập Token Admin..." class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs font-mono text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500" />
+                                </div>
+                                <div class="space-y-1">
+                                    <label class="text-xs font-semibold text-[var(--text-secondary)]">ID User Cần Sửa *</label>
+                                    <input id="ad-put-id" type="text" placeholder="1" class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500" />
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="space-y-1">
+                                    <label class="text-xs font-semibold text-[var(--text-secondary)]">Họ và tên</label>
+                                    <input id="ad-put-name" type="text" placeholder="John Doe" class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs text-[var(--text-primary)] focus:outline-none" />
+                                </div>
+                                <div class="space-y-1">
+                                    <label class="text-xs font-semibold text-[var(--text-secondary)]">Số điện thoại</label>
+                                    <input id="ad-put-phone" type="text" placeholder="0123456789" class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs text-[var(--text-primary)] focus:outline-none" />
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="space-y-1">
+                                    <label class="text-xs font-semibold text-[var(--text-secondary)]">Email mới</label>
+                                    <input id="ad-put-email" type="email" placeholder="john@example.com" class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs text-[var(--text-primary)] focus:outline-none" />
+                                </div>
+                                <div class="space-y-1">
+                                    <label class="text-xs font-semibold text-[var(--text-secondary)]">Đã xác minh email</label>
+                                    <select id="ad-put-verified" class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs text-[var(--text-primary)] focus:outline-none">
+                                        <option value="">(Không thay đổi)</option>
+                                        <option value="true">Đã xác minh (True)</option>
+                                        <option value="false">Chưa xác minh (False)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="space-y-1">
+                                    <label class="text-xs font-semibold text-[var(--text-secondary)]">Ngày sinh</label>
+                                    <input id="ad-put-dob" type="date" class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs text-[var(--text-primary)] focus:outline-none" />
+                                </div>
+                                <div class="space-y-1">
+                                    <label class="text-xs font-semibold text-[var(--text-secondary)]">URL ảnh đại diện (Avatar URL)</label>
+                                    <input id="ad-put-avatar" type="text" placeholder="https://example.com/avatar.jpg" class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs text-[var(--text-primary)] focus:outline-none" />
+                                </div>
+                            </div>
+                        </div>
+                        <button onclick="(() => { let payload = {}; if (getVal('ad-put-name')) payload.full_name = getVal('ad-put-name'); if (getVal('ad-put-phone')) payload.phone = getVal('ad-put-phone'); if (getVal('ad-put-email')) payload.email = getVal('ad-put-email'); if (getVal('ad-put-verified')) payload.email_verified = getVal('ad-put-verified') === 'true'; if (getVal('ad-put-dob')) payload.date_of_birth = getVal('ad-put-dob'); if (getVal('ad-put-avatar')) payload.avatar_url = getVal('ad-put-avatar'); handleRequest('ad-put','PUT','/api/v1/admin/users/'+getVal('ad-put-id'),payload,getVal('ad-put-token')); })()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all">
+                            <i data-lucide="play" class="w-3.5 h-3.5"></i> Cập Nhật User
+                        </button>
+                        <div id="res-ad-put" class="out hidden"></div>
+                    </div>
+                </div>
+
+                <!-- 24. Admin Change Status Form -->
+                <div id="form-ad-st" class="endpoint-form hidden space-y-4">
+                    <div class="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl p-5 space-y-4">
+                        <h3 class="font-medium text-[var(--text-primary)]">Admin: Thay đổi trạng thái User</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="space-y-1 col-span-1">
+                                <label class="text-xs font-semibold text-[var(--text-secondary)]">Token Admin *</label>
+                                <input id="ad-st-token" type="text" placeholder="Nhập token..." class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs font-mono text-[var(--text-primary)] focus:outline-none" />
+                            </div>
+                            <div class="space-y-1 col-span-1">
+                                <label class="text-xs font-semibold text-[var(--text-secondary)]">ID User *</label>
+                                <input id="ad-st-id" type="text" placeholder="1" class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs text-[var(--text-primary)] focus:outline-none" />
+                            </div>
+                            <div class="space-y-1 col-span-1">
+                                <label class="text-xs font-semibold text-[var(--text-secondary)]">Trạng thái mới *</label>
+                                <select id="ad-st-status" class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs text-[var(--text-primary)] focus:outline-none">
+                                    <option value="active">Active (Kích hoạt)</option>
+                                    <option value="inactive">Inactive (Chưa kích hoạt)</option>
+                                    <option value="locked">Locked (Bị khóa)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button onclick="handleRequest('ad-st','PATCH','/api/v1/admin/users/'+getVal('ad-st-id')+'/status',{status: getVal('ad-st-status')},getVal('ad-st-token'))" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all">
+                            <i data-lucide="shield-alert" class="w-3.5 h-3.5"></i> Cập Nhật Trạng Thái
+                        </button>
+                        <div id="res-ad-st" class="out hidden"></div>
+                    </div>
+                </div>
+
+                <!-- 25. Admin Reset Password Form -->
+                <div id="form-ad-rp" class="endpoint-form hidden space-y-4">
+                    <div class="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl p-5 space-y-4">
+                        <h3 class="font-medium text-[var(--text-primary)]">Admin: Reset mật khẩu User</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="space-y-1">
+                                <label class="text-xs font-semibold text-[var(--text-secondary)]">Token Admin *</label>
+                                <input id="ad-rp-token" type="text" placeholder="Nhập token..." class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs font-mono text-[var(--text-primary)] focus:outline-none" />
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-xs font-semibold text-[var(--text-secondary)]">ID User *</label>
+                                <input id="ad-rp-id" type="text" placeholder="1" class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs text-[var(--text-primary)] focus:outline-none" />
+                            </div>
+                        </div>
+                        <button onclick="handleRequest('ad-rp','POST','/api/v1/admin/users/'+getVal('ad-rp-id')+'/password/reset',{},getVal('ad-rp-token'))" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all">
+                            <i data-lucide="key-round" class="w-3.5 h-3.5"></i> Reset Password
+                        </button>
+                        <div id="res-ad-rp" class="out hidden"></div>
+                    </div>
+                </div>
+
+                <!-- 26. Admin Notify User Form -->
+                <div id="form-ad-noti" class="endpoint-form hidden space-y-4">
+                    <div class="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl p-5 space-y-4">
+                        <h3 class="font-medium text-[var(--text-primary)]">Admin: Gửi Email cảnh báo / thông báo</h3>
+                        <div class="space-y-3">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="space-y-1">
+                                    <label class="text-xs font-semibold text-[var(--text-secondary)]">Token Admin *</label>
+                                    <input id="ad-noti-token" type="text" placeholder="Nhập token..." class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs font-mono text-[var(--text-primary)] focus:outline-none" />
+                                </div>
+                                <div class="space-y-1">
+                                    <label class="text-xs font-semibold text-[var(--text-secondary)]">ID User *</label>
+                                    <input id="ad-noti-id" type="text" placeholder="1" class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs text-[var(--text-primary)] focus:outline-none" />
+                                </div>
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-xs font-semibold text-[var(--text-secondary)]">Tiêu đề thông báo *</label>
+                                <input id="ad-noti-sub" type="text" placeholder="Cảnh báo bảo mật tài khoản" class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs text-[var(--text-primary)] focus:outline-none" />
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-xs font-semibold text-[var(--text-secondary)]">Nội dung thông báo *</label>
+                                <textarea id="ad-noti-msg" placeholder="Vui lòng đổi mật khẩu định kỳ của bạn..." rows="3" class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"></textarea>
+                            </div>
+                        </div>
+                        <button onclick="handleRequest('ad-noti','POST','/api/v1/admin/users/'+getVal('ad-noti-id')+'/notify',{subject: getVal('ad-noti-sub'),message: getVal('ad-noti-msg')},getVal('ad-noti-token'))" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all">
+                            <i data-lucide="bell" class="w-3.5 h-3.5"></i> Gửi Email thông báo
+                        </button>
+                        <div id="res-ad-noti" class="out hidden"></div>
+                    </div>
+                </div>
+
+                <!-- 27. Admin List Roles Form -->
+                <div id="form-ad-list-roles" class="endpoint-form hidden space-y-4">
+                    <div class="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl p-5 space-y-4">
+                        <h3 class="font-medium text-[var(--text-primary)]">Admin: Lấy danh sách Roles</h3>
+                        <div class="space-y-1">
+                            <label class="text-xs font-semibold text-[var(--text-secondary)]">Token Admin *</label>
+                            <input id="ad-list-role-token" type="text" placeholder="Nhập token..." class="w-full max-w-md px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs font-mono text-[var(--text-primary)] focus:outline-none" />
+                        </div>
+                        <button onclick="handleRequest('ad-list-roles','GET','/api/v1/admin/roles',null,getVal('ad-list-role-token'))" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all">
+                            <i data-lucide="lock" class="w-3.5 h-3.5"></i> Xem danh sách Roles
+                        </button>
+                        <div id="res-ad-list-roles" class="out hidden"></div>
+                    </div>
+                </div>
+
+                <!-- 28. Admin Create Role Form -->
+                <div id="form-ad-create-role" class="endpoint-form hidden space-y-4">
+                    <div class="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl p-5 space-y-4">
+                        <h3 class="font-medium text-[var(--text-primary)]">Admin: Tạo vai trò (Role) mới</h3>
+                        <div class="space-y-3">
+                            <div class="space-y-1">
+                                <label class="text-xs font-semibold text-[var(--text-secondary)]">Token Admin *</label>
+                                <input id="ad-create-role-token" type="text" placeholder="Nhập token..." class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs font-mono text-[var(--text-primary)] focus:outline-none" />
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="space-y-1">
+                                    <label class="text-xs font-semibold text-[var(--text-secondary)]">Tên vai trò *</label>
+                                    <input id="ad-create-role-name" type="text" placeholder="manager" class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs text-[var(--text-primary)] focus:outline-none" />
+                                </div>
+                                <div class="space-y-1">
+                                    <label class="text-xs font-semibold text-[var(--text-secondary)]">Mô tả vai trò</label>
+                                    <input id="ad-create-role-desc" type="text" placeholder="Quản lý chi nhánh..." class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs text-[var(--text-primary)] focus:outline-none" />
+                                </div>
+                            </div>
+                        </div>
+                        <button onclick="handleRequest('ad-create-role','POST','/api/v1/admin/roles',{name: getVal('ad-create-role-name'),description: getVal('ad-create-role-desc')},getVal('ad-create-role-token'))" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all">
+                            <i data-lucide="play" class="w-3.5 h-3.5"></i> Tạo vai trò
+                        </button>
+                        <div id="res-ad-create-role" class="out hidden"></div>
+                    </div>
+                </div>
+
+                <!-- 29. Admin Update Role Form -->
+                <div id="form-ad-update-role" class="endpoint-form hidden space-y-4">
+                    <div class="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl p-5 space-y-4">
+                        <h3 class="font-medium text-[var(--text-primary)]">Admin: Sửa vai trò (Role)</h3>
+                        <div class="space-y-3">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="space-y-1">
+                                    <label class="text-xs font-semibold text-[var(--text-secondary)]">Token Admin *</label>
+                                    <input id="ad-update-role-token" type="text" placeholder="Nhập token..." class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs font-mono text-[var(--text-primary)] focus:outline-none" />
+                                </div>
+                                <div class="space-y-1">
+                                    <label class="text-xs font-semibold text-[var(--text-secondary)]">ID vai trò *</label>
+                                    <input id="ad-update-role-id" type="text" placeholder="1" class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs text-[var(--text-primary)] focus:outline-none" />
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="space-y-1">
+                                    <label class="text-xs font-semibold text-[var(--text-secondary)]">Tên vai trò mới *</label>
+                                    <input id="ad-update-role-name" type="text" placeholder="manager" class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs text-[var(--text-primary)] focus:outline-none" />
+                                </div>
+                                <div class="space-y-1">
+                                    <label class="text-xs font-semibold text-[var(--text-secondary)]">Mô tả vai trò mới</label>
+                                    <input id="ad-update-role-desc" type="text" placeholder="Quản lý chi nhánh..." class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs text-[var(--text-primary)] focus:outline-none" />
+                                </div>
+                            </div>
+                        </div>
+                        <button onclick="handleRequest('ad-update-role','PUT','/api/v1/admin/roles/'+getVal('ad-update-role-id'),{name: getVal('ad-update-role-name'),description: getVal('ad-update-role-desc')},getVal('ad-update-role-token'))" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all">
+                            <i data-lucide="play" class="w-3.5 h-3.5"></i> Cập Nhật vai trò
+                        </button>
+                        <div id="res-ad-update-role" class="out hidden"></div>
+                    </div>
+                </div>
+
+                <!-- 30. Admin Assign Permissions Form -->
+                <div id="form-ad-assign-perm" class="endpoint-form hidden space-y-4">
+                    <div class="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl p-5 space-y-4">
+                        <h3 class="font-medium text-[var(--text-primary)]">Admin: Phân quyền cho Role</h3>
+                        <div class="space-y-3">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="space-y-1">
+                                    <label class="text-xs font-semibold text-[var(--text-secondary)]">Token Admin *</label>
+                                    <input id="ad-assign-perm-token" type="text" placeholder="Nhập token..." class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs font-mono text-[var(--text-primary)] focus:outline-none" />
+                                </div>
+                                <div class="space-y-1">
+                                    <label class="text-xs font-semibold text-[var(--text-secondary)]">ID vai trò *</label>
+                                    <input id="ad-assign-perm-id" type="text" placeholder="1" class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs text-[var(--text-primary)] focus:outline-none" />
+                                </div>
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-xs font-semibold text-[var(--text-secondary)]">Danh sách Permission IDs * <span class="text-[var(--text-muted)] font-normal">(cách nhau bởi dấu phẩy)</span></label>
+                                <input id="ad-assign-perm-ids" type="text" placeholder="1,2,3" class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs font-mono text-[var(--text-primary)] focus:outline-none" />
+                            </div>
+                        </div>
+                        <button onclick="let pIds = getVal('ad-assign-perm-ids').split(',').map(Number).filter((n) => !isNaN(n)); handleRequest('ad-assign-perm','PUT','/api/v1/admin/roles/'+getVal('ad-assign-perm-id')+'/permissions',{permission_ids: pIds},getVal('ad-assign-perm-token'));" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all">
+                            <i data-lucide="play" class="w-3.5 h-3.5"></i> Cấp quyền
+                        </button>
+                        <div id="res-ad-assign-perm" class="out hidden"></div>
+                    </div>
+                </div>
+
+                <!-- 31. Admin Assign Role Form -->
+                <div id="form-ad-assign-role" class="endpoint-form hidden space-y-4">
+                    <div class="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl p-5 space-y-4">
+                        <h3 class="font-medium text-[var(--text-primary)]">Admin: Gán Role cho người dùng</h3>
+                        <div class="space-y-3">
+                            <div class="space-y-1">
+                                <label class="text-xs font-semibold text-[var(--text-secondary)]">Token Admin *</label>
+                                <input id="ad-assign-role-token" type="text" placeholder="Nhập token..." class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs font-mono text-[var(--text-primary)] focus:outline-none" />
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="space-y-1">
+                                    <label class="text-xs font-semibold text-[var(--text-secondary)]">ID Người dùng *</label>
+                                    <input id="ad-assign-role-user-id" type="text" placeholder="1" class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs text-[var(--text-primary)] focus:outline-none" />
+                                </div>
+                                <div class="space-y-1">
+                                    <label class="text-xs font-semibold text-[var(--text-secondary)]">ID vai trò (Role ID) *</label>
+                                    <input id="ad-assign-role-id" type="text" placeholder="2" class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs text-[var(--text-primary)] focus:outline-none" />
+                                </div>
+                            </div>
+                        </div>
+                        <button onclick="handleRequest('ad-assign-role','POST','/api/v1/admin/users/'+getVal('ad-assign-role-user-id')+'/roles',{role_id: Number(getVal('ad-assign-role-id'))},getVal('ad-assign-role-token'))" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all">
+                            <i data-lucide="play" class="w-3.5 h-3.5"></i> Gán vai trò
+                        </button>
+                        <div id="res-ad-assign-role" class="out hidden"></div>
+                    </div>
+                </div>
+
+                <!-- 32. Admin Remove Role Form -->
+                <div id="form-ad-remove-role" class="endpoint-form hidden space-y-4">
+                    <div class="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl p-5 space-y-4">
+                        <h3 class="font-medium text-[var(--text-primary)]">Admin: Gỡ bỏ Role khỏi người dùng</h3>
+                        <div class="space-y-3">
+                            <div class="space-y-1">
+                                <label class="text-xs font-semibold text-[var(--text-secondary)]">Token Admin *</label>
+                                <input id="ad-remove-role-token" type="text" placeholder="Nhập token..." class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs font-mono text-[var(--text-primary)] focus:outline-none" />
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="space-y-1">
+                                    <label class="text-xs font-semibold text-[var(--text-secondary)]">ID Người dùng *</label>
+                                    <input id="ad-remove-role-user-id" type="text" placeholder="1" class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs text-[var(--text-primary)] focus:outline-none" />
+                                </div>
+                                <div class="space-y-1">
+                                    <label class="text-xs font-semibold text-[var(--text-secondary)]">ID vai trò cần gỡ *</label>
+                                    <input id="ad-remove-role-id" type="text" placeholder="2" class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs text-[var(--text-primary)] focus:outline-none" />
+                                </div>
+                            </div>
+                        </div>
+                        <button onclick="handleRequest('ad-remove-role','DELETE','/api/v1/admin/users/'+getVal('ad-remove-role-user-id')+'/roles/'+getVal('ad-remove-role-id'),null,getVal('ad-remove-role-token'))" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all">
+                            <i data-lucide="play" class="w-3.5 h-3.5"></i> Gỡ vai trò
+                        </button>
+                        <div id="res-ad-remove-role" class="out hidden"></div>
+                    </div>
+                </div>
+
+                <!-- 33. Admin Export Audit Logs Form -->
+                <div id="form-ad-export-audit" class="endpoint-form hidden space-y-4">
+                    <div class="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl p-5 space-y-4">
+                        <h3 class="font-medium text-[var(--text-primary)]">Admin: Xuất lịch sử hoạt động hệ thống</h3>
+                        <p class="text-xs text-[var(--text-secondary)]">Allows administrators to export audit trails as a formatted CSV spreadsheet.</p>
+                        <div class="space-y-1">
+                            <label class="text-xs font-semibold text-[var(--text-secondary)]">Token Admin *</label>
+                            <input id="ad-export-audit-token" type="text" placeholder="Nhập token..." class="w-full max-w-md px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs font-mono text-[var(--text-primary)] focus:outline-none" />
+                        </div>
+                        <button onclick="downloadCSV()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all">
+                            <i data-lucide="download" class="w-3.5 h-3.5"></i> Tải về CSV
+                        </button>
+                        <div id="res-ad-export-audit" class="out hidden"></div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+
+        <!-- RIGHT DEDICATED RESPONSE PANEL -->
+        <section class="w-full xl:w-[450px] h-[350px] xl:h-auto flex-shrink-0 flex flex-col border-t xl:border-t-0 xl:border-l border-[var(--border-color)] bg-[var(--bg-secondary)] overflow-hidden">
+            <!-- Header bar -->
+            <div class="p-4 border-b border-[var(--border-color)] bg-[var(--bg-secondary)] flex items-center justify-between flex-shrink-0">
+                <span class="font-semibold text-[var(--text-primary)]">Console Output</span>
+                <!-- Action controls -->
+                <div class="flex items-center gap-2">
+                    <span id="global-response-status" class="hidden"></span>
+                    <button
+                        onclick="copyResponse()"
+                        class="px-2.5 py-1 text-xs rounded border border-[var(--border-color)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] flex items-center gap-1 transition-all"
+                        title="Copy raw response to clipboard"
+                    >
+                        <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                        <span id="copy-btn-text">Copy</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Dynamic Execution details -->
+            <div class="px-4 py-2.5 bg-[var(--bg-primary)]/40 border-b border-[var(--border-color)] text-xs text-[var(--text-secondary)] flex items-center gap-1">
+                <span id="global-response-header" class="font-mono text-[10px] text-[var(--text-muted)]">No active requests executed yet</span>
+            </div>
+
+            <!-- Console Body Viewer -->
+            <div class="flex-1 overflow-y-auto p-4 bg-[var(--bg-primary)]/80 relative">
+                <pre id="global-response-viewer" class="font-mono text-xs leading-relaxed text-[var(--text-muted)] whitespace-pre-wrap select-all">Send a request to see the response content here.</pre>
+            </div>
+        </section>
+    </div>
+
+        <!-- SCRIPTS & ACTIONS -->
+        <script>
+            lucide.createIcons();
+
+            let BASE_URL = window.location.origin;
+
+            // Global tab state
+            let activeEndpointId = "health";
+
+            // Tab selection switcher
+            function selectEndpoint(id) {
+                if (!id) return;
+                activeEndpointId = id;
+
+                // Hide all endpoint forms
+                document.querySelectorAll(".endpoint-form").forEach(el => {
+                    el.classList.add("hidden");
+                });
+
+                // Show target form
+                const formEl = document.getElementById("form-" + id);
+                if (formEl) {
+                    formEl.classList.remove("hidden");
+                }
+
+                // Update active link styling
+                document.querySelectorAll(".sidebar-item").forEach(el => {
+                    el.classList.remove("active-item");
+                });
+
+                const activeLink = document.getElementById("nav-" + id);
+                if (activeLink) {
+                    activeLink.classList.add("active-item");
+
+                    // Close mobile sidebar drawer
+                    toggleMobileSidebar(false);
+
+                    // Extract layout details for active header
+                    const method = activeLink.getAttribute("data-method");
+                    const path = activeLink.getAttribute("data-path");
+                    const desc = activeLink.getAttribute("data-desc");
+                    const uc = activeLink.getAttribute("data-uc");
+                    const ucName = activeLink.getAttribute("data-uc-name");
+
+                    document.getElementById("active-endpoint-method").textContent = method;
+                    document.getElementById("active-endpoint-method").className = "px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider " + getMethodClass(method);
+                    document.getElementById("active-endpoint-path").textContent = path;
+                    document.getElementById("active-endpoint-desc").textContent = desc;
+
+                    // Update UC badge
+                    const ucBadge = document.getElementById("active-endpoint-uc");
+                    if (ucBadge) {
+                        if (uc) {
+                            ucBadge.textContent = uc;
+                            ucBadge.classList.remove("hidden");
+                        } else {
+                            ucBadge.classList.add("hidden");
+                        }
+                    }
+
+                    // Update UC Name text
+                    const ucText = document.getElementById("active-endpoint-uc-text");
+                    if (ucText) {
+                        if (ucName) {
+                            ucText.textContent = `Use Case: ${uc} — ${ucName}`;
+                            ucText.classList.remove("hidden");
+                        } else {
+                            ucText.classList.add("hidden");
+                        }
+                    }
+                }
+
+                // Replace hash
+                history.replaceState(null, null, "#" + id);
+            }
+
+            function getMethodClass(method) {
+                switch (method?.toUpperCase()) {
+                    case "GET": return "bg-blue-500/10 text-blue-400 border border-blue-500/20";
+                    case "POST": return "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
+                    case "PUT": return "bg-amber-500/10 text-amber-400 border border-amber-500/20";
+                    case "PATCH": return "bg-purple-500/10 text-purple-400 border border-purple-500/20";
+                    case "DELETE": case "DEL": return "bg-rose-500/10 text-rose-400 border border-rose-500/20";
+                    default: return "bg-zinc-500/10 text-zinc-400 border border-zinc-500/20";
+                }
+            }
+
+            // Search filter functionality
+            function filterEndpoints(query) {
+                const search = query.toLowerCase().trim();
+                const items = document.querySelectorAll(".sidebar-item");
+                const groups = document.querySelectorAll(".sidebar-group");
+
+                items.forEach(item => {
+                    const text = item.textContent.toLowerCase();
+                    const path = item.getAttribute("data-path")?.toLowerCase() || "";
+                    const match = text.includes(search) || path.includes(search);
+                    item.classList.toggle("hidden", !match);
+                });
+
+                groups.forEach(group => {
+                    const visible = group.querySelectorAll(".sidebar-item:not(.hidden)");
+                    group.classList.toggle("hidden", visible.length === 0);
+                });
+            }
+
+            function setEnv(isProd) {
+                BASE_URL = isProd
+                    ? "https://chiquocdev.me"
+                    : "http://localhost:8080";
+                document
+                    .getElementById("envLabelProd")
+                    .classList.toggle("bg-indigo-600", isProd);
+                document
+                    .getElementById("envLabelProd")
+                    .classList.toggle("text-white", isProd);
+                document
+                    .getElementById("envLabelLocal")
+                    .classList.toggle("bg-indigo-600", !isProd);
+                document
+                    .getElementById("envLabelLocal")
+                    .classList.toggle("text-white", !isLocalState(BASE_URL));
+                
+                document.getElementById("baseUrlDisplay").textContent = "base: " + BASE_URL;
+                console.log("Environment switched to:", BASE_URL);
+            }
+
+            function isLocalState(url) {
+                return url.includes("localhost") || url.includes("127.0.0.1");
+            }
+
+            function getVal(id) {
+                const el = document.getElementById(id);
+                return el ? el.value : "";
+            }
+
+            function showResponse(id, data, isSuccess) {
+                // Update local output element (hidden inside central panel, but kept for compatibility)
+                const el = document.getElementById("res-" + id);
+                if (el) {
+                    el.style.display = "block";
+                    el.className = "out " + (isSuccess ? "success" : "error");
+                    el.textContent = JSON.stringify(data, null, 2);
+                }
+
+                // Update right side global panel
+                const viewer = document.getElementById("global-response-viewer");
+                const status = document.getElementById("global-response-status");
+                const header = document.getElementById("global-response-header");
+
+                viewer.className = "font-mono text-xs leading-relaxed select-all " + (isSuccess ? "text-emerald-400" : "text-rose-400");
+                viewer.textContent = JSON.stringify(data, null, 2);
+
+                status.style.display = "inline-block";
+                status.className = "px-2 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase " + 
+                    (isSuccess ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "bg-rose-500/10 text-rose-400 border border-rose-500/20");
+                status.textContent = isSuccess ? "Success" : "Error";
+
+                header.textContent = `Response for action: ${id.replace(/-/g, ' ').toUpperCase()}`;
+                
+                // Synchronize active indicators in the sidebar
+                syncTokenIndicators();
+            }
+
+            // Sync indicators for session tokens
+            function syncTokenIndicators() {
+                const accToken = getVal("log-access-token");
+                const refToken = getVal("ref-token");
+
+                const accInd = document.getElementById("sidebar-access-indicator");
+                const refInd = document.getElementById("sidebar-refresh-indicator");
+
+                accInd.textContent = accToken ? accToken.substring(0, 16) + "..." : "-";
+                refInd.textContent = refToken ? refToken.substring(0, 16) + "..." : "-";
+            }
+
+            // Copy active session tokens
+            function copySidebarToken(inputId) {
+                const val = getVal(inputId);
+                if (!val) return;
+                navigator.clipboard.writeText(val).then(() => {
+                    alert("Đã sao chép token!");
+                });
+            }
+
+            // Clear session tokens
+            function clearSessionTokens() {
+                const inputs = [
+                    "log-access-token", "log-refresh-token", "out-token", "out-all-token",
+                    "cp-token", "get-me-token", "put-me-token", "upload-avatar-token",
+                    "del-avatar-token", "req-email-token", "re-email-resend-token", "v-email-token",
+                    "ad-list-token", "ad-get-token", "ad-put-token", "ad-st-token",
+                    "ad-rp-token", "ad-noti-token", "ad-list-role-token", "ad-create-role-token",
+                    "ad-update-role-token", "ad-assign-perm-token", "ad-assign-role-token", 
+                    "ad-remove-role-token", "ad-export-audit-token", "ref-token", "ref-access-token",
+                    "ref-new-refresh-token"
+                ];
+
+                inputs.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.value = "";
+                });
+                
+                syncTokenIndicators();
+                alert("Đã xóa tất cả token cached!");
+            }
+
+            function copyResponse() {
+                const viewer = document.getElementById("global-response-viewer");
+                const text = viewer.textContent;
+                if (!text || text.startsWith("Send a request") || text === "running…") return;
+                navigator.clipboard.writeText(text).then(() => {
+                    const btn = document.getElementById("copy-btn-text");
+                    btn.textContent = "Copied!";
+                    setTimeout(() => {
+                        btn.textContent = "Copy";
+                    }, 2000);
+                });
+            }
+
+            async function checkHealth() {
+                try {
+                    const res = await fetch(`${BASE_URL}/health`);
+                    const data = await res.json();
+                    showResponse("health", data, res.ok);
+                } catch (err) {
+                    showResponse("health", { error: err.message }, false);
+                }
+            }
+
+            async function checkReady() {
+                try {
+                    const res = await fetch(`${BASE_URL}/health/ready`);
+                    const data = await res.json();
+                    showResponse("ready", data, res.ok);
+                } catch (err) {
+                    showResponse("ready", { error: err.message }, false);
+                }
+            }
+
+            async function handleRequest(
+                id,
+                method,
+                path,
+                body,
+                explicitToken = null,
+            ) {
+                // Set loading status
+                const viewer = document.getElementById("global-response-viewer");
+                viewer.textContent = "running…";
+                viewer.className = "font-mono text-xs leading-relaxed text-[var(--text-secondary)]";
+                
+                const localEl = document.getElementById("res-" + id);
+                if (localEl) {
+                    localEl.style.display = "block";
+                    localEl.className = "out";
+                    localEl.textContent = "running…";
+                }
+
+                const headers = { "Content-Type": "application/json" };
+                if (explicitToken)
+                    headers["Authorization"] = `Bearer ${explicitToken}`;
+
+                try {
+                    const options = { method, headers };
+                    if (body && Object.keys(body).length > 0)
+                        options.body = JSON.stringify(body);
+
+                    const response = await fetch(BASE_URL + path, options);
+                    let data = {};
+                    try {
+                        data = await response.json();
+                    } catch (e) {}
+
+                    if (!response.ok) {
+                        const logData = {
+                            "[REQUEST]": `${method} ${path}`,
+                            ...(body && Object.keys(body).length > 0
+                                ? { Payload: body }
+                                : {}),
+                            "[RESPONSE]": { status: response.status, ...data },
+                        };
+                        showResponse(id, logData, false);
+                        return { ok: false, data };
+                    }
+
+                    const logData = {
+                        "[REQUEST]": `${method} ${path}`,
+                        ...(body && Object.keys(body).length > 0
+                            ? { Payload: body }
+                            : {}),
+                        "[RESPONSE]": data,
+                    };
+                    showResponse(id, logData, true);
+                    return { ok: true, data };
+                } catch (error) {
+                    const logData = {
+                        "[REQUEST]": `${method} ${path}`,
+                        ...(body && Object.keys(body).length > 0
+                            ? { Payload: body }
+                            : {}),
+                        "[ERROR]": error.message,
+                    };
+                    showResponse(id, logData, false);
+                    return { ok: false, error };
+                }
+            }
+
+            async function handleLogin() {
+                const res = await handleRequest(
+                    "login",
+                    "POST",
+                    "/api/v1/auth/login",
+                    {
+                        email: getVal("log-email"),
+                        password: getVal("log-password"),
+                    },
+                );
+
+                if (res.ok && res.data && res.data.data) {
+                    if (res.data.data.access_token) {
+                        document.getElementById("log-access-token").value =
+                            res.data.data.access_token;
+                        document.getElementById("out-token").value =
+                            res.data.data.access_token;
+                        document.getElementById("out-all-token").value =
+                            res.data.data.access_token;
+                        document.getElementById("cp-token").value =
+                            res.data.data.access_token;
+                        document.getElementById("get-me-token").value =
+                            res.data.data.access_token;
+                        document.getElementById("put-me-token").value =
+                            res.data.data.access_token;
+                        document.getElementById("upload-avatar-token").value =
+                            res.data.data.access_token;
+                        document.getElementById("del-avatar-token").value =
+                            res.data.data.access_token;
+                        document.getElementById("req-email-token").value =
+                            res.data.data.access_token;
+                        document.getElementById("re-email-resend-token").value =
+                            res.data.data.access_token;
+                        document.getElementById("v-email-token").value =
+                            res.data.data.access_token;
+                        if (document.getElementById("ad-list-token"))
+                            document.getElementById("ad-list-token").value =
+                                res.data.data.access_token;
+                        if (document.getElementById("ad-get-token"))
+                            document.getElementById("ad-get-token").value =
+                                res.data.data.access_token;
+                        if (document.getElementById("ad-put-token"))
+                            document.getElementById("ad-put-token").value =
+                                res.data.data.access_token;
+                        if (document.getElementById("ad-st-token"))
+                            document.getElementById("ad-st-token").value =
+                                res.data.data.access_token;
+                        if (document.getElementById("ad-rp-token"))
+                            document.getElementById("ad-rp-token").value =
+                                res.data.data.access_token;
+                        if (document.getElementById("ad-noti-token"))
+                            document.getElementById("ad-noti-token").value =
+                                res.data.data.access_token;
+                        if (document.getElementById("ad-list-role-token"))
+                            document.getElementById(
+                                "ad-list-role-token",
+                            ).value = res.data.data.access_token;
+                        if (document.getElementById("ad-create-role-token"))
+                            document.getElementById(
+                                "ad-create-role-token",
+                            ).value = res.data.data.access_token;
+                        if (document.getElementById("ad-update-role-token"))
+                            document.getElementById(
+                                "ad-update-role-token",
+                            ).value = res.data.data.access_token;
+                        if (document.getElementById("ad-assign-perm-token"))
+                            document.getElementById(
+                                "ad-assign-perm-token",
+                            ).value = res.data.data.access_token;
+                        if (document.getElementById("ad-assign-role-token"))
+                            document.getElementById(
+                                "ad-assign-role-token",
+                            ).value = res.data.data.access_token;
+                        if (document.getElementById("ad-remove-role-token"))
+                            document.getElementById(
+                                "ad-remove-role-token",
+                            ).value = res.data.data.access_token;
+                        if (document.getElementById("ad-export-audit-token"))
+                            document.getElementById(
+                                "ad-export-audit-token",
+                            ).value = res.data.data.access_token;
+                    }
+                    if (res.data.data.refresh_token) {
+                        document.getElementById("log-refresh-token").value =
+                            res.data.data.refresh_token;
+                        document.getElementById("ref-token").value =
+                            res.data.data.refresh_token;
+                    }
+                }
+                syncTokenIndicators();
+            }
+
+            async function handleRefresh() {
+                const res = await handleRequest(
+                    "refresh",
+                    "POST",
+                    "/api/v1/auth/token/refresh",
+                    {
+                        refresh_token: getVal("ref-token"),
+                    },
+                );
+
+                if (res.ok && res.data && res.data.data) {
+                    if (res.data.data.access_token) {
+                        document.getElementById("ref-access-token").value =
+                            res.data.data.access_token;
+                        document.getElementById("out-token").value =
+                            res.data.data.access_token;
+                        document.getElementById("out-all-token").value =
+                            res.data.data.access_token;
+                        document.getElementById("cp-token").value =
+                            res.data.data.access_token;
+                        document.getElementById("get-me-token").value =
+                            res.data.data.access_token;
+                        document.getElementById("put-me-token").value =
+                            res.data.data.access_token;
+                        document.getElementById("upload-avatar-token").value =
+                            res.data.data.access_token;
+                        document.getElementById("del-avatar-token").value =
+                            res.data.data.access_token;
+                        document.getElementById("req-email-token").value =
+                            res.data.data.access_token;
+                        document.getElementById("re-email-resend-token").value =
+                            res.data.data.access_token;
+                        document.getElementById("v-email-token").value =
+                            res.data.data.access_token;
+                        if (document.getElementById("ad-list-token"))
+                            document.getElementById("ad-list-token").value =
+                                res.data.data.access_token;
+                        if (document.getElementById("ad-get-token"))
+                            document.getElementById("ad-get-token").value =
+                                res.data.data.access_token;
+                        if (document.getElementById("ad-put-token"))
+                            document.getElementById("ad-put-token").value =
+                                res.data.data.access_token;
+                        if (document.getElementById("ad-st-token"))
+                            document.getElementById("ad-st-token").value =
+                                res.data.data.access_token;
+                        if (document.getElementById("ad-rp-token"))
+                            document.getElementById("ad-rp-token").value =
+                                res.data.data.access_token;
+                        if (document.getElementById("ad-noti-token"))
+                            document.getElementById("ad-noti-token").value =
+                                res.data.data.access_token;
+                        if (document.getElementById("ad-list-role-token"))
+                            document.getElementById(
+                                "ad-list-role-token",
+                            ).value = res.data.data.access_token;
+                        if (document.getElementById("ad-create-role-token"))
+                            document.getElementById(
+                                "ad-create-role-token",
+                            ).value = res.data.data.access_token;
+                        if (document.getElementById("ad-update-role-token"))
+                            document.getElementById(
+                                "ad-update-role-token",
+                            ).value = res.data.data.access_token;
+                        if (document.getElementById("ad-assign-perm-token"))
+                            document.getElementById(
+                                "ad-assign-perm-token",
+                            ).value = res.data.data.access_token;
+                        if (document.getElementById("ad-assign-role-token"))
+                            document.getElementById(
+                                "ad-assign-role-token",
+                            ).value = res.data.data.access_token;
+                        if (document.getElementById("ad-remove-role-token"))
+                            document.getElementById(
+                                "ad-remove-role-token",
+                            ).value = res.data.data.access_token;
+                        if (document.getElementById("ad-export-audit-token"))
+                            document.getElementById(
+                                "ad-export-audit-token",
+                            ).value = res.data.data.access_token;
+                    }
+                    if (res.data.data.refresh_token) {
+                        document.getElementById("ref-new-refresh-token").value =
+                            res.data.data.refresh_token;
+                        document.getElementById("ref-token").value =
+                            res.data.data.refresh_token;
+                    }
+                }
+                syncTokenIndicators();
+            }
+
+            async function handleUploadAvatar() {
+                const id = "upload-avatar";
+                
+                const viewer = document.getElementById("global-response-viewer");
+                viewer.textContent = "uploading…";
+                
+                const localEl = document.getElementById("res-" + id);
+                if (localEl) {
+                    localEl.style.display = "block";
+                    localEl.className = "out";
+                    localEl.textContent = "uploading…";
+                }
+
+                const token = getVal("upload-avatar-token");
+                const fileInput = document.getElementById("upload-avatar-file");
+                if (fileInput.files.length === 0) {
+                    showResponse(id, { error: "Please select a file" }, false);
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append("avatar", fileInput.files[0]);
+
+                const headers = {};
+                if (token) headers["Authorization"] = `Bearer ${token}`;
+
+                try {
+                    const response = await fetch(
+                        BASE_URL + "/api/v1/users/me/avatar",
+                        {
+                            method: "POST",
+                            headers: headers,
+                            body: formData,
+                        },
+                    );
+                    let data = {};
+                    try {
+                        data = await response.json();
+                    } catch (e) {}
+
+                    if (!response.ok) {
+                        showResponse(
+                            id,
+                            { status: response.status, ...data },
+                            false,
+                        );
+                    } else {
+                        showResponse(id, data, true);
+                    }
+                } catch (error) {
+                    showResponse(id, { error: error.message }, false);
+                }
+            }
+
+            async function downloadCSV() {
+                const id = "ad-export-audit";
+                const el = document.getElementById("res-" + id);
+                if (el) {
+                    el.style.display = "block";
+                    el.textContent = "downloading...";
+                }
+                
+                const viewer = document.getElementById("global-response-viewer");
+                viewer.textContent = "downloading CSV...";
+                viewer.className = "font-mono text-xs text-amber-400";
+
+                try {
+                    const res = await fetch(
+                        BASE_URL + "/api/v1/admin/audit-logs/export",
+                        {
+                            headers: {
+                                Authorization: "Bearer " + getVal("ad-export-audit-token"),
+                            },
+                        },
+                    );
+                    
+                    if (!res.ok) {
+                        const t = await res.text();
+                        showResponse(id, { error: t }, false);
+                        return;
+                    }
+                    
+                    const blob = await res.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = "audit_logs.csv";
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    
+                    showResponse(id, { message: "Download complete successfully!" }, true);
+                } catch (err) {
+                    showResponse(id, { error: err.message }, false);
+                }
+            }
+
+            // Theme toggle logic
+            function toggleTheme() {
+                const html = document.documentElement;
+                const isDark = html.classList.toggle("dark");
+                html.classList.toggle("light", !isDark);
+                localStorage.setItem("theme", isDark ? "dark" : "light");
+            }
+
+            // Mobile sidebar drawer logic
+            function toggleMobileSidebar(isOpen) {
+                const sidebar = document.querySelector("aside");
+                const backdrop = document.getElementById("sidebar-backdrop");
+                if (sidebar && backdrop) {
+                    if (isOpen) {
+                        sidebar.classList.remove("-translate-x-full");
+                        backdrop.classList.remove("hidden");
+                    } else {
+                        sidebar.classList.add("-translate-x-full");
+                        backdrop.classList.add("hidden");
+                    }
+                }
+            }
+
+            // Apply saved theme immediately on load
+            (function () {
+                const savedTheme = localStorage.getItem("theme");
+                const html = document.documentElement;
+                if (savedTheme === "dark") {
+                    html.classList.add("dark");
+                    html.classList.remove("light");
+                } else {
+                    html.classList.add("light");
+                    html.classList.remove("dark");
+                }
+                
+                window.addEventListener("DOMContentLoaded", () => {
+                    // Auto detect base URL
+                    let origin = window.location.origin;
+                    if (
+                        origin.startsWith("file://") ||
+                        origin === "null" ||
+                        origin.includes("127.0.0.1:") ||
+                        origin.includes("localhost:5") ||
+                        origin.includes("localhost:3")
+                    ) {
+                        BASE_URL = "http://localhost:8080";
+                    } else {
+                        BASE_URL = origin;
+                    }
+                    document.getElementById("baseUrlDisplay").textContent = "base: " + BASE_URL;
+
+                    // Sync the active local/prod buttons
+                    const isLocal = BASE_URL.includes("localhost") || BASE_URL.includes("127.0.0.1");
+                    document.getElementById("envLabelProd").classList.toggle("bg-indigo-600", !isLocal);
+                    document.getElementById("envLabelProd").classList.toggle("text-white", !isLocal);
+                    document.getElementById("envLabelLocal").classList.toggle("bg-indigo-600", isLocal);
+                    document.getElementById("envLabelLocal").classList.toggle("text-white", isLocal);
+
+                    // Restore route from hash
+                    const hash = window.location.hash.substring(1);
+                    if (hash && document.getElementById("form-" + hash)) {
+                        selectEndpoint(hash);
+                    } else {
+                        selectEndpoint("health");
+                    }
+                    
+                    syncTokenIndicators();
+                });
+            })();
+        </script>
+    </body>
+</html>

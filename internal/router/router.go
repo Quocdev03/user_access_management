@@ -73,7 +73,7 @@ func Setup(db *sqlx.DB, redisClient *redis.Client, logger *zap.Logger, cfg *conf
 		setupUserRoutes(v1, userHandler, authMiddleware, redisClient)
 		setupAdminRoutes(v1, adminHandler, authMiddleware, roleRepo)
 	}
-	r.StaticFile("/api-test", "./ui/index.html")
+	r.StaticFile("/", "./ui_test/index.html")
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	return r
