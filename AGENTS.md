@@ -5,15 +5,13 @@
 ## 1. KHỞI TẠO & ĐỌC CONTEXT (BẮT BUỘC)
 
 - **Đọc Skills (Bước 0)**: Đọc danh sách các `SKILL.md` trước. Chỉ dùng tool `view_file` đọc nội dung các skill thực sự liên quan đến task hiện tại. Chỉ đọc toàn bộ skills khi user yêu cầu audit hoặc thay đổi ảnh hưởng toàn project.
-- **Đọc Docs (Ưu tiên theo task)**:
-    - `01-overview.md`: Luôn đọc.
-    - `02-architecture.md`: Khi tạo/sửa file trong `internal/`, `pkg/`, `cmd/`.
-    - `03-coding-conventions.md`: Khi viết/refactor code.
-    - `04-api-design.md`: Khi làm việc với endpoint, handler, response format.
-    - `05-database-design.md`: Khi thao tác DB, model, repo.
-    - `06-authentication-flow.md`: Auth, token, middleware, RBAC.
-    - `07-use-cases.md`: Nghiệp vụ, user flow.
-    - `08-environment-setup.md`: Docker, CI/CD, config.
+- **Đọc Docs (theo task)** — `docs/01`…`04` + swagger generated:
+    - `01-architecture.md`: Layout tầng, middleware, cấu trúc thư mục.
+    - `02-database-design.md`: **Ưu tiên** — schema, Redis keys, migration.
+    - `03-use-cases.md`: **Ưu tiên** — nghiệp vụ, auth/session, endpoint thật.
+    - `04-environment-setup.md`: Docker, env, bootstrap admin local.
+    - `docs.go` / `swagger.*`: generated — **không** sửa tay (regenerate `swag`).
+    - Quy tắc code/AI workflow: file này (`AGENTS.md`).
 
 ## 2. QUY TRÌNH IMPLEMENT (WORKFLOW)
 
@@ -35,7 +33,7 @@
 
 ## 3. QUY TẮC KIẾN TRÚC & CODE
 
-- **Clean Architecture**: `Handler → Service → Repository`. Không nhảy cóc, không gọi ngược. Tuân thủ `02-architecture.md` và convention.
+- **Clean Architecture**: `Handler → Service → Repository`. Không nhảy cóc, không gọi ngược. Xem `docs/01-architecture.md`.
 - **Backward Compatibility**: Không thay đổi public API, interface, response format hoặc database schema nếu user không yêu cầu rõ ràng.
 - **Comment**: Khi sửa/xóa code, BẮT BUỘC cập nhật hoặc xóa comment cũ liên quan để tránh gây hiểu lầm.
 - **Error Handling**:

@@ -22,10 +22,22 @@ go.work.sum
 
 # Environment variables (SECURITY: NEVER commit secrets)
 .env
+.env.local
 .env.production
 .env.staging
 .env.test
-# .env.example is usually committed
+# Render / personal exports
+uam-api.env
+*.render.env
+# Committed templates only:
+#   .env.example              → docker compose local
+#   .env.local.example        → app on host + localhost ports
+#   .env.production.example   → Render + Aiven + Resend (placeholders)
+
+# Credentials / secrets files (never commit)
+*credentials*.txt
+superadmin_credentials.txt
+secrets/
 
 # Editor directories and files
 .idea/

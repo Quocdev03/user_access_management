@@ -116,6 +116,26 @@ func (r *RoleRepository) Update(ctx context.Context, role *model.Role) error {
 	return err
 }
 
+func (r *RoleRepository) FindByID(ctx context.Context, id uint64) (*model.Role, error) {
+	var role model.Role
+	query := `SELECT * FROM roles WHERE id = ? LIMIT 1`
+	err := database.GetDB(ctx, r.db).GetContext(ctx, &role, query, id)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &role, nil
+}
+
+func (r *RoleRepository) CountUsersByRoleID(ctx context.Context, roleID uint64) (int64, error) {
+	var count int64
+	query := `SELECT COUNT(*) FROM user_roles WHERE role_id = ?`
+	err := database.GetDB(ctx, r.db).GetContext(ctx, &count, query, roleID)
+	return count, err
+}
+
 func (r *RoleRepository) Delete(ctx context.Context, id uint64) error {
 	query := `DELETE FROM roles WHERE id = ?`
 	_, err := database.GetDB(ctx, r.db).ExecContext(ctx, query, id)
@@ -181,4 +201,21 @@ func (r *PermissionRepository) FindAll(ctx context.Context) ([]model.Permission,
 	query := `SELECT * FROM permissions ORDER BY id ASC`
 	err := database.GetDB(ctx, r.db).SelectContext(ctx, &perms, query)
 	return perms, err
+}
+
+// CountByIDs returns how many of the given IDs exist (for assign-permissions validation).
+func (r *PermissionRepository) CountByIDs(ctx context.Context, ids []uint64) (int, error) {
+	if len(ids) == 0 {
+		return 0, nil
+	}
+	query, args, err := sqlx.In(`SELECT COUNT(*) FROM permissions WHERE id IN (?)`, ids)
+	if err != nil {
+		return 0, err
+	}
+	query = r.db.Rebind(query)
+	var count int
+	if err := database.GetDB(ctx, r.db).GetContext(ctx, &count, query, args...); err != nil {
+		return 0, err
+	}
+	return count, nil
 }

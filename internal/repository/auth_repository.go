@@ -28,13 +28,14 @@ func NewSessionRepository(db *sqlx.DB, redis *redis.Client) *SessionRepository {
 
 func (r *SessionRepository) Create(ctx context.Context, session *model.Session) error {
 	query := `
-		INSERT INTO sessions (user_id, token_hash, refresh_token_hash, ip_address, user_agent, device_id, expires_at, created_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
+		INSERT INTO sessions (user_id, token_hash, refresh_token_hash, jti, ip_address, user_agent, device_id, expires_at, created_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
 	`
 	res, err := database.GetDB(ctx, r.db).ExecContext(ctx, query,
 		session.UserID,
 		session.TokenHash,
 		session.RefreshTokenHash,
+		session.JTI,
 		session.IPAddress,
 		session.UserAgent,
 		session.DeviceID,
@@ -53,12 +54,13 @@ func (r *SessionRepository) Create(ctx context.Context, session *model.Session) 
 func (r *SessionRepository) Update(ctx context.Context, session *model.Session) error {
 	query := `
 		UPDATE sessions 
-		SET token_hash = ?, refresh_token_hash = ?, ip_address = ?, user_agent = ?, device_id = ?, expires_at = ?
+		SET token_hash = ?, refresh_token_hash = ?, jti = ?, ip_address = ?, user_agent = ?, device_id = ?, expires_at = ?
 		WHERE id = ?
 	`
 	_, err := database.GetDB(ctx, r.db).ExecContext(ctx, query,
 		session.TokenHash,
 		session.RefreshTokenHash,
+		session.JTI,
 		session.IPAddress,
 		session.UserAgent,
 		session.DeviceID,
@@ -104,6 +106,18 @@ func (r *SessionRepository) DeleteByUserID(ctx context.Context, userID uint64) e
 	query := `DELETE FROM sessions WHERE user_id = ?`
 	_, err := database.GetDB(ctx, r.db).ExecContext(ctx, query, userID)
 	return err
+}
+
+// InvalidateUserSessions xóa mọi session MySQL của user và set Redis revoke epoch
+// (access JWT phát hành trước mốc epoch sẽ bị từ chối). Gọi ngoài MySQL transaction.
+func (r *SessionRepository) InvalidateUserSessions(ctx context.Context, userID uint64, ttl time.Duration) error {
+	if err := r.DeleteByUserID(ctx, userID); err != nil {
+		return fmt.Errorf("DeleteByUserID: %w", err)
+	}
+	if err := r.RevokeAllUserTokens(ctx, userID, ttl); err != nil {
+		return fmt.Errorf("RevokeAllUserTokens: %w", err)
+	}
+	return nil
 }
 
 func (r *SessionRepository) AddToBlacklist(ctx context.Context, jti string, ttl time.Duration) error {
@@ -208,6 +222,19 @@ func (r *SessionRepository) FindActiveSessionsByUserID(ctx context.Context, user
 	return sessions, err
 }
 
+func (r *SessionRepository) FindByIDAndUserID(ctx context.Context, id, userID uint64) (*model.Session, error) {
+	var session model.Session
+	query := `SELECT * FROM sessions WHERE id = ? AND user_id = ? LIMIT 1`
+	err := database.GetDB(ctx, r.db).GetContext(ctx, &session, query, id, userID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &session, nil
+}
+
 func (r *SessionRepository) DeleteByIDAndUserID(ctx context.Context, id, userID uint64) error {
 	query := `DELETE FROM sessions WHERE id = ? AND user_id = ?`
 	_, err := database.GetDB(ctx, r.db).ExecContext(ctx, query, id, userID)
@@ -223,8 +250,8 @@ func NewDeviceRepository(db *sqlx.DB) *DeviceRepository {
 }
 
 func (r *DeviceRepository) FindOrCreate(ctx context.Context, d *model.Device) error {
-	queryFind := `SELECT *FROM devices WHERE user_id = ? AND os = ? AND browser = ? LIMIT 1`
-	var existing model.Device
+	// Schema: device_name 255 (full UA), os/browser 50, ip 45
+	clampDeviceFields(d)
 
 	osVal, browserVal := "", ""
 	if d.OS != nil {
@@ -234,15 +261,16 @@ func (r *DeviceRepository) FindOrCreate(ctx context.Context, d *model.Device) er
 		browserVal = *d.Browser
 	}
 
+	queryFind := `SELECT * FROM devices WHERE user_id = ? AND os = ? AND browser = ? LIMIT 1`
+	var existing model.Device
 	err := database.GetDB(ctx, r.db).GetContext(ctx, &existing, queryFind, d.UserID, osVal, browserVal)
 	if err == nil {
 		d.ID = existing.ID
-		queryUpdate := `UPDATE devices SET last_active_at = NOW(), ip_address = ? WHERE id = ?`
-		_, _ = database.GetDB(ctx, r.db).ExecContext(ctx, queryUpdate, d.IPAddress, d.ID)
+		queryUpdate := `UPDATE devices SET last_active_at = NOW(), ip_address = ?, device_name = COALESCE(?, device_name) WHERE id = ?`
+		_, _ = database.GetDB(ctx, r.db).ExecContext(ctx, queryUpdate, d.IPAddress, d.DeviceName, d.ID)
 		return nil
 	}
 	if !errors.Is(err, sql.ErrNoRows) {
-
 		return err
 	}
 
@@ -253,11 +281,45 @@ func (r *DeviceRepository) FindOrCreate(ctx context.Context, d *model.Device) er
 	res, err := database.GetDB(ctx, r.db).ExecContext(ctx, queryInsert,
 		d.UserID, d.DeviceName, d.DeviceType, d.OS, d.Browser, d.IPAddress)
 	if err != nil {
-		return err
+		return fmt.Errorf("DeviceRepository.FindOrCreate insert: %w", err)
 	}
 	id, _ := res.LastInsertId()
 	d.ID = uint64(id)
 	return nil
+}
+
+func clampDeviceFields(d *model.Device) {
+	if d.DeviceName != nil {
+		s := clampRunes(*d.DeviceName, 255)
+		d.DeviceName = &s
+	}
+	if d.DeviceType != nil {
+		s := clampRunes(*d.DeviceType, 50)
+		d.DeviceType = &s
+	}
+	if d.OS != nil {
+		s := clampRunes(*d.OS, 50)
+		d.OS = &s
+	}
+	if d.Browser != nil {
+		s := clampRunes(*d.Browser, 50)
+		d.Browser = &s
+	}
+	if d.IPAddress != nil {
+		s := clampRunes(*d.IPAddress, 45)
+		d.IPAddress = &s
+	}
+}
+
+func clampRunes(s string, max int) string {
+	if max <= 0 {
+		return s
+	}
+	r := []rune(s)
+	if len(r) <= max {
+		return s
+	}
+	return string(r[:max])
 }
 
 func (r *DeviceRepository) FindByUserID(ctx context.Context, userID uint64) ([]model.Device, error) {
@@ -292,28 +354,13 @@ func (r *OTPRepository) Create(ctx context.Context, userID uint64, code string, 
 func (r *OTPRepository) getLatestValidCode(ctx context.Context, userID uint64, otpType string, forUpdate bool) (*model.OTPCode, error) {
 	var otp model.OTPCode
 	now := time.Now().UTC()
-
-	if forUpdate {
-		query := `
-			SELECT * FROM otp_codes 
-			WHERE user_id = ? AND type = ? AND is_used = false AND expires_at > ? 
-			ORDER BY created_at DESC LIMIT 1 FOR UPDATE
-		`
-		err := database.GetDB(ctx, r.db).GetContext(ctx, &otp, query, userID, otpType, now)
-		if err != nil {
-			if errors.Is(err, sql.ErrNoRows) {
-				return nil, nil
-			}
-			return nil, err
-		}
-		return &otp, nil
-	}
-
 	query := `
 		SELECT * FROM otp_codes 
 		WHERE user_id = ? AND type = ? AND is_used = false AND expires_at > ? 
-		ORDER BY created_at DESC LIMIT 1
-	`
+		ORDER BY created_at DESC LIMIT 1`
+	if forUpdate {
+		query += ` FOR UPDATE`
+	}
 	err := database.GetDB(ctx, r.db).GetContext(ctx, &otp, query, userID, otpType, now)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

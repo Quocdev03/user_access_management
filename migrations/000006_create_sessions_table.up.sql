@@ -3,6 +3,7 @@ CREATE TABLE IF NOT EXISTS `sessions` (
     `user_id`            BIGINT UNSIGNED NOT NULL,
     `token_hash`         VARCHAR(255) NOT NULL,
     `refresh_token_hash` VARCHAR(255) NOT NULL,
+    `jti`                VARCHAR(36)  NULL DEFAULT NULL,
     `ip_address`         VARCHAR(45)  NULL DEFAULT NULL,
     `user_agent`         TEXT         NULL DEFAULT NULL,
     `device_id`          BIGINT UNSIGNED NULL DEFAULT NULL,
@@ -13,6 +14,7 @@ CREATE TABLE IF NOT EXISTS `sessions` (
     UNIQUE KEY `uk_sessions_token_hash` (`token_hash`),
     UNIQUE KEY `uk_sessions_refresh_token_hash` (`refresh_token_hash`),
     INDEX `idx_sessions_user_id` (`user_id`),
+    INDEX `idx_sessions_jti` (`jti`),
     INDEX `idx_sessions_expires_at` (`expires_at`),
 
     CONSTRAINT `fk_sessions_user_id`

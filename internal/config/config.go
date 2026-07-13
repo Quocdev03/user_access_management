@@ -24,18 +24,20 @@ type Config struct {
 
 // AppConfig định nghĩa các thông số cơ bản để chạy ứng dụng (Môi trường, Cổng, URL frontend).
 type AppConfig struct {
-	Env         string
-	Port        string
-	FrontendURL string
+	Env            string
+	Port           string
+	FrontendURL    string
+	TrustedProxies []string
 }
 
 // DatabaseConfig định nghĩa thông số kết nối tới cơ sở dữ liệu (MySQL).
 type DatabaseConfig struct {
-	Host     string `validate:"required"`
-	Port     string `validate:"required"`
-	Name     string `validate:"required"`
-	User     string `validate:"required"`
-	Password string `validate:"required"`
+	Host          string `validate:"required"`
+	Port          string `validate:"required"`
+	Name          string `validate:"required"`
+	User          string `validate:"required"`
+	Password      string `validate:"required"`
+	TLSSkipVerify bool
 }
 
 // RedisConfig định nghĩa thông số kết nối tới Redis (dùng cho Session, Rate Limit).
@@ -69,6 +71,7 @@ type SecurityConfig struct {
 	LockDuration      time.Duration
 	OTPExpiry         time.Duration
 	OTPMaxAttempts    int
+	OTPPepper         string
 }
 
 // Load khởi tạo và nạp cấu hình từ file .env tại đường dẫn chỉ định hoặc lấy trực tiếp từ biến môi trường.
@@ -90,16 +93,18 @@ func Load(path string) (*Config, error) {
 
 	cfg := &Config{
 		App: AppConfig{
-			Env:         viper.GetString("APP_ENV"),
-			Port:        viper.GetString("APP_PORT"),
-			FrontendURL: viper.GetString("APP_FRONTEND_URL"),
+			Env:            viper.GetString("APP_ENV"),
+			Port:           viper.GetString("APP_PORT"),
+			FrontendURL:    viper.GetString("APP_FRONTEND_URL"),
+			TrustedProxies: splitCSV(viper.GetString("TRUSTED_PROXIES")),
 		},
 		Database: DatabaseConfig{
-			Host:     viper.GetString("DB_HOST"),
-			Port:     viper.GetString("DB_PORT"),
-			Name:     viper.GetString("DB_NAME"),
-			User:     viper.GetString("DB_USER"),
-			Password: viper.GetString("DB_PASSWORD"),
+			Host:          viper.GetString("DB_HOST"),
+			Port:          viper.GetString("DB_PORT"),
+			Name:          viper.GetString("DB_NAME"),
+			User:          viper.GetString("DB_USER"),
+			Password:      viper.GetString("DB_PASSWORD"),
+			TLSSkipVerify: viper.GetBool("DB_TLS_SKIP_VERIFY"),
 		},
 		Redis: RedisConfig{
 			Host:     viper.GetString("REDIS_HOST"),
@@ -125,7 +130,18 @@ func Load(path string) (*Config, error) {
 			LockDuration:      viper.GetDuration("LOCK_DURATION"),
 			OTPExpiry:         viper.GetDuration("OTP_EXPIRY"),
 			OTPMaxAttempts:    viper.GetInt("OTP_MAX_ATTEMPTS"),
+			OTPPepper:         viper.GetString("OTP_PEPPER"),
 		},
+	}
+
+	if cfg.Security.OTPPepper == "" {
+		cfg.Security.OTPPepper = cfg.JWT.Secret
+	}
+	if cfg.Security.MaxFailedAttempts <= 0 {
+		cfg.Security.MaxFailedAttempts = 5
+	}
+	if cfg.Security.OTPMaxAttempts <= 0 {
+		cfg.Security.OTPMaxAttempts = 5
 	}
 
 	validate := validator.New()
@@ -143,4 +159,19 @@ func Load(path string) (*Config, error) {
 	}
 
 	return cfg, nil
+}
+
+func splitCSV(s string) []string {
+	if strings.TrimSpace(s) == "" {
+		return nil
+	}
+	parts := strings.Split(s, ",")
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if p != "" {
+			out = append(out, p)
+		}
+	}
+	return out
 }

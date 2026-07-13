@@ -195,18 +195,19 @@ func (h *AdminHandler) ChangeUserStatus(ctx *gin.Context) {
 // @Failure 400 {object} response.Response
 // @Failure 401 {object} response.Response
 // @Failure 403 {object} response.Response
-// @Router /admin/users/{id}/reset-password [post]
+// @Router /admin/users/{id}/password/reset [post]
 func (h *AdminHandler) ResetPassword(ctx *gin.Context) {
 	targetID, err := parseTargetID(ctx)
 	if err != nil {
 		response.Error(ctx, err)
+		return
 	}
 
-	claím := ctx.MustGet("tokenClaims").(*jwt.Claims)
+	claims := ctx.MustGet("tokenClaims").(*jwt.Claims)
 
 	err = h.adminUserService.ResetUserPassword(
 		ctx.Request.Context(),
-		claím.UserID,
+		claims.UserID,
 		targetID,
 		ctx.ClientIP(),
 		ctx.Request.UserAgent(),
@@ -237,6 +238,7 @@ func (h *AdminHandler) NotifyUser(ctx *gin.Context) {
 	targetID, err := parseTargetID(ctx)
 	if err != nil {
 		response.Error(ctx, err)
+		return
 	}
 	claims := ctx.MustGet("tokenClaims").(*jwt.Claims)
 	req, ok := validator.BindAndValidate[dto.AdminNotifyRequest](ctx)
@@ -365,7 +367,7 @@ func (h *AdminHandler) DeleteRole(c *gin.Context) {
 // @Failure 400 {object} response.Response
 // @Failure 401 {object} response.Response
 // @Failure 403 {object} response.Response
-// @Router /admin/roles/{id}/permissions [post]
+// @Router /admin/roles/{id}/permissions [put]
 func (h *AdminHandler) AssignPermissions(c *gin.Context) {
 	id, _ := strconv.ParseUint(c.Param("id"), 10, 64)
 	req, ok := validator.BindAndValidate[dto.AssignPermissionsRequest](c)

@@ -25,6 +25,12 @@ func Setup(db *sqlx.DB, redisClient *redis.Client, logger *zap.Logger, cfg *conf
 	r.Use(gin.Recovery())
 	r.Use(gin.Logger())
 
+	if len(cfg.App.TrustedProxies) > 0 {
+		_ = r.SetTrustedProxies(cfg.App.TrustedProxies)
+	} else {
+		_ = r.SetTrustedProxies(nil)
+	}
+
 	r.Use(middleware.CORSMiddleware(cfg))
 
 	userRepo := repository.NewUserRepository(db)
@@ -38,9 +44,9 @@ func Setup(db *sqlx.DB, redisClient *redis.Client, logger *zap.Logger, cfg *conf
 	mailService := service.NewMailService(cfg, logger)
 	txManager := database.NewTxManager(db)
 
-	otpService := service.NewOTPService(otpRepo, mailService, logger)
+	otpService := service.NewOTPService(otpRepo, mailService, logger, cfg)
 
-	authService := service.NewAuthService(userRepo, otpService, roleRepo, sessionRepo, auditLogRepo, txManager, cfg, logger)
+	authService := service.NewAuthService(userRepo, otpService, roleRepo, sessionRepo, deviceRepo, auditLogRepo, txManager, cfg, logger)
 	passwordService := service.NewPasswordService(userRepo, sessionRepo, passwordRepo, mailService, txManager, cfg, logger)
 	userService := service.NewUserService(
 		userRepo,
@@ -54,8 +60,8 @@ func Setup(db *sqlx.DB, redisClient *redis.Client, logger *zap.Logger, cfg *conf
 		cfg,
 		logger,
 	)
-	adminUserService := service.NewAdminUserService(userRepo, roleRepo, sessionRepo, auditLogRepo, mailService, txManager, logger)
-	adminRoleService := service.NewAdminRoleService(roleRepo, permissionRepo, sessionRepo, txManager, logger)
+	adminUserService := service.NewAdminUserService(userRepo, roleRepo, sessionRepo, auditLogRepo, mailService, txManager, cfg, logger)
+	adminRoleService := service.NewAdminRoleService(roleRepo, permissionRepo, sessionRepo, txManager, cfg, logger)
 	adminAuditLogService := service.NewAdminAuditLogService(auditLogRepo, logger)
 
 	authHandler := handler.NewAuthHandler(authService, passwordService)
@@ -73,8 +79,11 @@ func Setup(db *sqlx.DB, redisClient *redis.Client, logger *zap.Logger, cfg *conf
 		setupUserRoutes(v1, userHandler, authMiddleware, redisClient)
 		setupAdminRoutes(v1, adminHandler, authMiddleware, roleRepo)
 	}
+	r.Static("/uploads", "./uploads")
 	r.StaticFile("/", "./ui_test/index.html")
-	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	if cfg.App.Env != "production" {
+		r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	}
 
 	return r
 }

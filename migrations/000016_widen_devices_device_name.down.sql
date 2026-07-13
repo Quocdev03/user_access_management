@@ -1,0 +1,2 @@
+ALTER TABLE `devices`
+    MODIFY COLUMN `device_name` VARCHAR(100) NULL DEFAULT NULL;

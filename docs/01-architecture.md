@@ -12,9 +12,9 @@
 
 ### Nguyên tắc thiết kế
 
-- **Tách biệt trách nhiệm**: Mỗi tầng có vai trò riêng biệt, không phụ thuộc chéo.
-- **Dependency Inversion**: Tầng trên không phụ thuộc tầng dưới, mà phụ thuộc vào interface.
-- **Đơn hướng**: Luồng phụ thuộc chỉ đi từ ngoài vào trong (Handler → Service → Repository).
+- **Tách biệt trách nhiệm**: Mỗi tầng một vai trò; không nhảy cóc, không gọi ngược.
+- **Đơn hướng**: `Handler → Service → Repository` (DI bằng concrete struct; không bắt buộc interface trừ khi có ≥2 implementation — xem `AGENTS.md`).
+- **Source of truth**: endpoint/UC → `03-use-cases.md`; schema/Redis → `02-database-design.md`.
 
 ---
 
@@ -70,9 +70,9 @@ sequenceDiagram
     participant DB as MySQL/Redis
 
     C->>MW: HTTP Request
-    MW->>MW: Logger → Recovery → CORS
-    MW->>MW: Auth (JWT) → RBAC → RateLimit
-    MW->>H: Request đã xác thực
+    MW->>MW: Logger → Recovery → CORS → RateLimit (global)
+    MW->>MW: Auth (JWT) → RBAC/Permission (khi route yêu cầu)
+    MW->>H: Request đã qua middleware
     H->>H: Bind & Validate input
     H->>S: Gọi Service (DTO)
     S->>S: Xử lý nghiệp vụ
@@ -99,10 +99,10 @@ Request → Logger → Recovery → CORS → RateLimit → Auth (JWT) → RBAC/P
 | **Logger**     | Ghi log mỗi request (method, path, status, latency) |
 | **Recovery**   | Bắt panic, trả 500 thay vì crash server             |
 | **CORS**       | Cho phép cross-origin requests                      |
-| **RateLimit**  | Giới hạn số request/phút bằng Redis (Cơ chế Fail-Closed, xử lý bằng Lua Script chống Race Condition) |
-| **Auth (JWT)** | Xác thực access token, kiểm tra Global Revocation Epoch qua Redis (Fail-Closed), inject user info vào context |
-| **RBAC**       | Kiểm tra role của user có quyền truy cập endpoint (Fail-Closed)   |
-| **Permission** | Kiểm tra permission cụ thể                          |
+| **RateLimit**  | Redis counter + soft ban theo IP (fail-closed nếu Redis lỗi) |
+| **Auth (JWT)** | Parse access token; blacklist `jti` + `user_revoked_epoch` (fail-closed); inject claims |
+| **RBAC**       | `RequireRole` trên claim roles (admin routes) |
+| **Permission** | Load permission từ DB theo user (admin bypass role `admin`) |
 
 ---
 

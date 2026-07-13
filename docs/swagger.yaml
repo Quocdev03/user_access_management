@@ -1,6 +1,6 @@
 basePath: /api/v1
 definitions:
-  dto.AdminChangeStatusRequest:
+  github_com_quocdev03_user-access-management_internal_dto.AdminChangeStatusRequest:
     properties:
       status:
         enum:
@@ -11,7 +11,7 @@ definitions:
     required:
     - status
     type: object
-  dto.AdminNotifyRequest:
+  github_com_quocdev03_user-access-management_internal_dto.AdminNotifyRequest:
     properties:
       message:
         maxLength: 5000
@@ -23,7 +23,7 @@ definitions:
     - message
     - subject
     type: object
-  dto.AdminUpdateUserRequest:
+  github_com_quocdev03_user-access-management_internal_dto.AdminUpdateUserRequest:
     properties:
       avatar_url:
         type: string
@@ -42,7 +42,7 @@ definitions:
         minLength: 9
         type: string
     type: object
-  dto.AssignPermissionsRequest:
+  github_com_quocdev03_user-access-management_internal_dto.AssignPermissionsRequest:
     properties:
       permission_ids:
         items:
@@ -51,14 +51,14 @@ definitions:
     required:
     - permission_ids
     type: object
-  dto.AssignRoleRequest:
+  github_com_quocdev03_user-access-management_internal_dto.AssignRoleRequest:
     properties:
       role_id:
         type: integer
     required:
     - role_id
     type: object
-  dto.ChangePasswordRequest:
+  github_com_quocdev03_user-access-management_internal_dto.ChangePasswordRequest:
     properties:
       new_password:
         minLength: 8
@@ -69,7 +69,7 @@ definitions:
     - new_password
     - old_password
     type: object
-  dto.CreateRoleRequest:
+  github_com_quocdev03_user-access-management_internal_dto.CreateRoleRequest:
     properties:
       description:
         maxLength: 255
@@ -80,7 +80,7 @@ definitions:
     required:
     - name
     type: object
-  dto.DeviceResponse:
+  github_com_quocdev03_user-access-management_internal_dto.DeviceResponse:
     properties:
       browser:
         type: string
@@ -97,7 +97,7 @@ definitions:
       os:
         type: string
     type: object
-  dto.ForceChangePasswordRequest:
+  github_com_quocdev03_user-access-management_internal_dto.ForceChangePasswordRequest:
     properties:
       email:
         type: string
@@ -111,14 +111,14 @@ definitions:
     - new_password
     - temp_password
     type: object
-  dto.ForgotPasswordRequest:
+  github_com_quocdev03_user-access-management_internal_dto.ForgotPasswordRequest:
     properties:
       email:
         type: string
     required:
     - email
     type: object
-  dto.LoginRequest:
+  github_com_quocdev03_user-access-management_internal_dto.LoginRequest:
     properties:
       email:
         type: string
@@ -128,16 +128,16 @@ definitions:
     - email
     - password
     type: object
-  dto.LoginResponse:
+  github_com_quocdev03_user-access-management_internal_dto.LoginResponse:
     properties:
       access_token:
         type: string
       refresh_token:
         type: string
       user:
-        $ref: '#/definitions/dto.UserInfoResponse'
+        $ref: '#/definitions/github_com_quocdev03_user-access-management_internal_dto.UserInfoResponse'
     type: object
-  dto.PermissionResponse:
+  github_com_quocdev03_user-access-management_internal_dto.PermissionResponse:
     properties:
       action:
         type: string
@@ -150,14 +150,21 @@ definitions:
       resource:
         type: string
     type: object
-  dto.RefreshTokenRequest:
+  github_com_quocdev03_user-access-management_internal_dto.RefreshTokenRequest:
     properties:
       refresh_token:
         type: string
     required:
     - refresh_token
     type: object
-  dto.RegisterRequest:
+  github_com_quocdev03_user-access-management_internal_dto.RefreshTokenResponse:
+    properties:
+      access_token:
+        type: string
+      refresh_token:
+        type: string
+    type: object
+  github_com_quocdev03_user-access-management_internal_dto.RegisterRequest:
     properties:
       date_of_birth:
         type: string
@@ -184,7 +191,7 @@ definitions:
     - phone
     - username
     type: object
-  dto.RegisterResponse:
+  github_com_quocdev03_user-access-management_internal_dto.RegisterResponse:
     properties:
       email:
         type: string
@@ -195,7 +202,7 @@ definitions:
       username:
         type: string
     type: object
-  dto.RequestEmailChangeRequest:
+  github_com_quocdev03_user-access-management_internal_dto.RequestEmailChangeRequest:
     properties:
       current_password:
         type: string
@@ -205,14 +212,14 @@ definitions:
     - current_password
     - new_email
     type: object
-  dto.ResendVerificationEmailRequest:
+  github_com_quocdev03_user-access-management_internal_dto.ResendVerificationEmailRequest:
     properties:
       email:
         type: string
     required:
     - email
     type: object
-  dto.ResetPasswordRequest:
+  github_com_quocdev03_user-access-management_internal_dto.ResetPasswordRequest:
     properties:
       new_password:
         minLength: 8
@@ -223,7 +230,7 @@ definitions:
     - new_password
     - token
     type: object
-  dto.RoleResponse:
+  github_com_quocdev03_user-access-management_internal_dto.RoleResponse:
     properties:
       created_at:
         type: string
@@ -235,10 +242,10 @@ definitions:
         type: string
       permissions:
         items:
-          $ref: '#/definitions/dto.PermissionResponse'
+          $ref: '#/definitions/github_com_quocdev03_user-access-management_internal_dto.PermissionResponse'
         type: array
     type: object
-  dto.SessionResponse:
+  github_com_quocdev03_user-access-management_internal_dto.SessionResponse:
     properties:
       created_at:
         type: string
@@ -255,7 +262,7 @@ definitions:
       user_agent:
         type: string
     type: object
-  dto.UpdateProfileRequest:
+  github_com_quocdev03_user-access-management_internal_dto.UpdateProfileRequest:
     properties:
       date_of_birth:
         type: string
@@ -266,7 +273,7 @@ definitions:
         maxLength: 20
         type: string
     type: object
-  dto.UpdateRoleRequest:
+  github_com_quocdev03_user-access-management_internal_dto.UpdateRoleRequest:
     properties:
       description:
         maxLength: 255
@@ -277,12 +284,12 @@ definitions:
     required:
     - name
     type: object
-  dto.UploadAvatarResponse:
+  github_com_quocdev03_user-access-management_internal_dto.UploadAvatarResponse:
     properties:
       avatar_url:
         type: string
     type: object
-  dto.UserInfoResponse:
+  github_com_quocdev03_user-access-management_internal_dto.UserInfoResponse:
     properties:
       email:
         type: string
@@ -293,7 +300,7 @@ definitions:
       username:
         type: string
     type: object
-  dto.UserProfileResponse:
+  github_com_quocdev03_user-access-management_internal_dto.UserProfileResponse:
     properties:
       avatar_url:
         type: string
@@ -320,7 +327,7 @@ definitions:
       username:
         type: string
     type: object
-  dto.VerifyEmailChangeRequest:
+  github_com_quocdev03_user-access-management_internal_dto.VerifyEmailChangeRequest:
     properties:
       new_otp:
         type: string
@@ -330,7 +337,7 @@ definitions:
     - new_otp
     - old_otp
     type: object
-  dto.VerifyEmailRequest:
+  github_com_quocdev03_user-access-management_internal_dto.VerifyEmailRequest:
     properties:
       email:
         type: string
@@ -340,7 +347,7 @@ definitions:
     - email
     - otp
     type: object
-  response.Response:
+  github_com_quocdev03_user-access-management_pkg_response.Response:
     properties:
       data: {}
       error: {}
@@ -392,15 +399,15 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
         "403":
           description: Forbidden
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
       security:
       - BearerAuth: []
       summary: Xuất Audit Logs
@@ -418,21 +425,21 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/response.Response'
+            - $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
             - properties:
                 data:
                   items:
-                    $ref: '#/definitions/dto.RoleResponse'
+                    $ref: '#/definitions/github_com_quocdev03_user-access-management_internal_dto.RoleResponse'
                   type: array
               type: object
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
         "403":
           description: Forbidden
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
       security:
       - BearerAuth: []
       summary: Lấy danh sách Roles
@@ -448,7 +455,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/dto.CreateRoleRequest'
+          $ref: '#/definitions/github_com_quocdev03_user-access-management_internal_dto.CreateRoleRequest'
       produces:
       - application/json
       responses:
@@ -456,23 +463,23 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/response.Response'
+            - $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/dto.RoleResponse'
+                  $ref: '#/definitions/github_com_quocdev03_user-access-management_internal_dto.RoleResponse'
               type: object
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
         "403":
           description: Forbidden
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
       security:
       - BearerAuth: []
       summary: Tạo Role mới
@@ -495,19 +502,19 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
         "403":
           description: Forbidden
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
       security:
       - BearerAuth: []
       summary: Xóa Role
@@ -528,33 +535,33 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/dto.UpdateRoleRequest'
+          $ref: '#/definitions/github_com_quocdev03_user-access-management_internal_dto.UpdateRoleRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
         "403":
           description: Forbidden
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
       security:
       - BearerAuth: []
       summary: Cập nhật Role
       tags:
       - Admin - Roles
   /admin/roles/{id}/permissions:
-    post:
+    put:
       consumes:
       - application/json
       description: Phân quyền (permissions) cho một role
@@ -569,26 +576,26 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/dto.AssignPermissionsRequest'
+          $ref: '#/definitions/github_com_quocdev03_user-access-management_internal_dto.AssignPermissionsRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
         "403":
           description: Forbidden
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
       security:
       - BearerAuth: []
       summary: Gán Permissions cho Role
@@ -632,25 +639,25 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/response.Response'
+            - $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
             - properties:
                 data:
                   items:
-                    $ref: '#/definitions/dto.UserProfileResponse'
+                    $ref: '#/definitions/github_com_quocdev03_user-access-management_internal_dto.UserProfileResponse'
                   type: array
               type: object
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
         "403":
           description: Forbidden
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
       security:
       - BearerAuth: []
       summary: Lấy danh sách người dùng
@@ -674,23 +681,23 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/response.Response'
+            - $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/dto.UserProfileResponse'
+                  $ref: '#/definitions/github_com_quocdev03_user-access-management_internal_dto.UserProfileResponse'
               type: object
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
         "403":
           description: Forbidden
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
       security:
       - BearerAuth: []
       summary: Xem chi tiết người dùng
@@ -711,26 +718,26 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/dto.AdminUpdateUserRequest'
+          $ref: '#/definitions/github_com_quocdev03_user-access-management_internal_dto.AdminUpdateUserRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
         "403":
           description: Forbidden
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
       security:
       - BearerAuth: []
       summary: Cập nhật thông tin người dùng
@@ -752,32 +759,32 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/dto.AdminNotifyRequest'
+          $ref: '#/definitions/github_com_quocdev03_user-access-management_internal_dto.AdminNotifyRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
         "403":
           description: Forbidden
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
       security:
       - BearerAuth: []
       summary: Gửi thông báo cho người dùng
       tags:
       - Admin - Users
-  /admin/users/{id}/reset-password:
+  /admin/users/{id}/password/reset:
     post:
       consumes:
       - application/json
@@ -794,19 +801,19 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
         "403":
           description: Forbidden
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
       security:
       - BearerAuth: []
       summary: Đặt lại mật khẩu người dùng
@@ -828,26 +835,26 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/dto.AssignRoleRequest'
+          $ref: '#/definitions/github_com_quocdev03_user-access-management_internal_dto.AssignRoleRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
         "403":
           description: Forbidden
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
       security:
       - BearerAuth: []
       summary: Gán Role cho User
@@ -875,19 +882,19 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
         "403":
           description: Forbidden
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
       security:
       - BearerAuth: []
       summary: Gỡ Role khỏi User
@@ -909,115 +916,89 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/dto.AdminChangeStatusRequest'
+          $ref: '#/definitions/github_com_quocdev03_user-access-management_internal_dto.AdminChangeStatusRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
         "403":
           description: Forbidden
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
       security:
       - BearerAuth: []
       summary: Thay đổi trạng thái người dùng
       tags:
       - Admin - Users
-  /auth/change-password:
+  /auth/email/resend:
     post:
       consumes:
       - application/json
-      description: Đổi mật khẩu tài khoản
+      description: Yêu cầu gửi lại email chứa OTP xác thực tài khoản
       parameters:
-      - description: Thông tin đổi mật khẩu
+      - description: Thông tin yêu cầu
         in: body
         name: request
         required: true
         schema:
-          $ref: '#/definitions/dto.ChangePasswordRequest'
+          $ref: '#/definitions/github_com_quocdev03_user-access-management_internal_dto.ResendVerificationEmailRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/response.Response'
-        "401":
-          description: Unauthorized
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
+        "500":
+          description: Internal Server Error
           schema:
-            $ref: '#/definitions/response.Response'
-      security:
-      - BearerAuth: []
-      summary: Đổi mật khẩu
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
+      summary: Gửi lại OTP xác thực
       tags:
       - Authentication
-  /auth/force-change-password:
+  /auth/email/verify:
     post:
       consumes:
       - application/json
-      description: Đổi mật khẩu (dành cho người dùng bị reset pass từ admin)
+      description: Xác thực tài khoản qua email
       parameters:
-      - description: Thông tin mật khẩu mới
+      - description: OTP xác thực
         in: body
         name: request
         required: true
         schema:
-          $ref: '#/definitions/dto.ForceChangePasswordRequest'
+          $ref: '#/definitions/github_com_quocdev03_user-access-management_internal_dto.VerifyEmailRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/response.Response'
-      security:
-      - BearerAuth: []
-      summary: Đổi mật khẩu bắt buộc
-      tags:
-      - Authentication
-  /auth/forgot-password:
-    post:
-      consumes:
-      - application/json
-      description: Yêu cầu đặt lại mật khẩu bằng cách gửi email có chứa OTP
-      parameters:
-      - description: Email đã đăng ký
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/dto.ForgotPasswordRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
+        "500":
+          description: Internal Server Error
           schema:
-            $ref: '#/definitions/response.Response'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/response.Response'
-      summary: Quên mật khẩu
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
+      summary: Xác thực email
       tags:
       - Authentication
   /auth/login:
@@ -1031,7 +1012,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/dto.LoginRequest'
+          $ref: '#/definitions/github_com_quocdev03_user-access-management_internal_dto.LoginRequest'
       produces:
       - application/json
       responses:
@@ -1039,23 +1020,23 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/response.Response'
+            - $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/dto.LoginResponse'
+                  $ref: '#/definitions/github_com_quocdev03_user-access-management_internal_dto.LoginResponse'
               type: object
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
       summary: Đăng nhập
       tags:
       - Authentication
@@ -1070,11 +1051,11 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
       security:
       - BearerAuth: []
       summary: Đăng xuất
@@ -1091,49 +1072,125 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
       security:
       - BearerAuth: []
       summary: Đăng xuất khỏi tất cả thiết bị
       tags:
       - Authentication
-  /auth/refresh:
+  /auth/password/change:
     post:
       consumes:
       - application/json
-      description: Cấp lại Access Token mới dựa trên Refresh Token
+      description: Đổi mật khẩu tài khoản
       parameters:
-      - description: Refresh Token
+      - description: Thông tin đổi mật khẩu
         in: body
         name: request
         required: true
         schema:
-          $ref: '#/definitions/dto.RefreshTokenRequest'
+          $ref: '#/definitions/github_com_quocdev03_user-access-management_internal_dto.ChangePasswordRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            allOf:
-            - $ref: '#/definitions/response.Response'
-            - properties:
-                data:
-                  $ref: '#/definitions/dto.LoginResponse'
-              type: object
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.Response'
-      summary: Làm mới Access Token
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
+      security:
+      - BearerAuth: []
+      summary: Đổi mật khẩu
+      tags:
+      - Authentication
+  /auth/password/force-change:
+    post:
+      consumes:
+      - application/json
+      description: Đổi mật khẩu khi must_change_password (email + temp + new). Không
+        cần Bearer.
+      parameters:
+      - description: Email, mật khẩu tạm, mật khẩu mới
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_quocdev03_user-access-management_internal_dto.ForceChangePasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
+      summary: Đổi mật khẩu bắt buộc
+      tags:
+      - Authentication
+  /auth/password/forgot:
+    post:
+      consumes:
+      - application/json
+      description: Yêu cầu đặt lại mật khẩu — gửi email chứa link/token (không OTP)
+      parameters:
+      - description: Email đã đăng ký
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_quocdev03_user-access-management_internal_dto.ForgotPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
+      summary: Quên mật khẩu
+      tags:
+      - Authentication
+  /auth/password/reset:
+    post:
+      consumes:
+      - application/json
+      description: Đặt lại mật khẩu bằng token từ email
+      parameters:
+      - description: Token + mật khẩu mới
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_quocdev03_user-access-management_internal_dto.ResetPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
+      summary: Đặt lại mật khẩu
       tags:
       - Authentication
   /auth/register:
@@ -1147,7 +1204,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/dto.RegisterRequest'
+          $ref: '#/definitions/github_com_quocdev03_user-access-management_internal_dto.RegisterRequest'
       produces:
       - application/json
       responses:
@@ -1155,106 +1212,55 @@ paths:
           description: Created
           schema:
             allOf:
-            - $ref: '#/definitions/response.Response'
+            - $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/dto.RegisterResponse'
+                  $ref: '#/definitions/github_com_quocdev03_user-access-management_internal_dto.RegisterResponse'
               type: object
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
       summary: Đăng ký tài khoản mới
       tags:
       - Authentication
-  /auth/resend-verification-email:
+  /auth/token/refresh:
     post:
       consumes:
       - application/json
-      description: Yêu cầu gửi lại email chứa OTP xác thực tài khoản
+      description: Cấp lại Access Token mới dựa trên Refresh Token
       parameters:
-      - description: Thông tin yêu cầu
+      - description: Refresh Token
         in: body
         name: request
         required: true
         schema:
-          $ref: '#/definitions/dto.ResendVerificationEmailRequest'
+          $ref: '#/definitions/github_com_quocdev03_user-access-management_internal_dto.RefreshTokenRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.Response'
+            allOf:
+            - $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_quocdev03_user-access-management_internal_dto.RefreshTokenResponse'
+              type: object
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/response.Response'
-        "500":
-          description: Internal Server Error
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
+        "401":
+          description: Unauthorized
           schema:
-            $ref: '#/definitions/response.Response'
-      summary: Gửi lại OTP xác thực
-      tags:
-      - Authentication
-  /auth/reset-password:
-    post:
-      consumes:
-      - application/json
-      description: Đặt lại mật khẩu bằng OTP
-      parameters:
-      - description: Thông tin đặt lại mật khẩu
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/dto.ResetPasswordRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/response.Response'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/response.Response'
-      summary: Đặt lại mật khẩu
-      tags:
-      - Authentication
-  /auth/verify-email:
-    post:
-      consumes:
-      - application/json
-      description: Xác thực tài khoản qua email
-      parameters:
-      - description: OTP xác thực
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/dto.VerifyEmailRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/response.Response'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/response.Response'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/response.Response'
-      summary: Xác thực email
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
+      summary: Làm mới Access Token
       tags:
       - Authentication
   /users/me:
@@ -1269,21 +1275,21 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/response.Response'
+            - $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/dto.UserProfileResponse'
+                  $ref: '#/definitions/github_com_quocdev03_user-access-management_internal_dto.UserProfileResponse'
               type: object
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
       security:
       - BearerAuth: []
       summary: Lấy thông tin cá nhân
       tags:
       - Users
-    put:
+    patch:
       consumes:
       - application/json
       description: Cập nhật thông tin hồ sơ của người dùng hiện tại
@@ -1293,22 +1299,22 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/dto.UpdateProfileRequest'
+          $ref: '#/definitions/github_com_quocdev03_user-access-management_internal_dto.UpdateProfileRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
       security:
       - BearerAuth: []
       summary: Cập nhật hồ sơ
@@ -1325,11 +1331,11 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
       security:
       - BearerAuth: []
       summary: Xóa ảnh đại diện
@@ -1352,19 +1358,19 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/response.Response'
+            - $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/dto.UploadAvatarResponse'
+                  $ref: '#/definitions/github_com_quocdev03_user-access-management_internal_dto.UploadAvatarResponse'
               type: object
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
       security:
       - BearerAuth: []
       summary: Tải lên ảnh đại diện
@@ -1382,23 +1388,23 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/response.Response'
+            - $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
             - properties:
                 data:
                   items:
-                    $ref: '#/definitions/dto.DeviceResponse'
+                    $ref: '#/definitions/github_com_quocdev03_user-access-management_internal_dto.DeviceResponse'
                   type: array
               type: object
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
       security:
       - BearerAuth: []
       summary: Lấy danh sách thiết bị
       tags:
       - Users
-  /users/me/email/request:
+  /users/me/email/change-request:
     post:
       consumes:
       - application/json
@@ -1409,28 +1415,28 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/dto.RequestEmailChangeRequest'
+          $ref: '#/definitions/github_com_quocdev03_user-access-management_internal_dto.RequestEmailChangeRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
       security:
       - BearerAuth: []
       summary: Yêu cầu đổi email
       tags:
       - Users
-  /users/me/email/resend-otp:
+  /users/me/email/resend:
     post:
       consumes:
       - application/json
@@ -1441,11 +1447,11 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
       security:
       - BearerAuth: []
       summary: Gửi lại OTP đổi email
@@ -1462,22 +1468,22 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/dto.VerifyEmailChangeRequest'
+          $ref: '#/definitions/github_com_quocdev03_user-access-management_internal_dto.VerifyEmailChangeRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
       security:
       - BearerAuth: []
       summary: Xác thực đổi email
@@ -1495,17 +1501,17 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/response.Response'
+            - $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
             - properties:
                 data:
                   items:
-                    $ref: '#/definitions/dto.SessionResponse'
+                    $ref: '#/definitions/github_com_quocdev03_user-access-management_internal_dto.SessionResponse'
                   type: array
               type: object
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
       security:
       - BearerAuth: []
       summary: Lấy danh sách phiên đăng nhập
@@ -1528,11 +1534,11 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response'
       security:
       - BearerAuth: []
       summary: Xóa phiên đăng nhập

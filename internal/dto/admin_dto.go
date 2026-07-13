@@ -36,21 +36,21 @@ type AdminListUsersResponse struct {
 }
 
 type AdminUpdateUserRequest struct {
-	FullName      *string `json:"full_name" validate:"omitempty,min=2,max=100"`
-	Phone         *string `json:"phone" validate:"omitempty,min=9,max=20"`
-	Email         *string `json:"email" validate:"omitempty,email"`
+	FullName      *string `json:"full_name" binding:"omitempty,min=2,max=100"`
+	Phone         *string `json:"phone" binding:"omitempty,min=9,max=20"`
+	Email         *string `json:"email" binding:"omitempty,email"`
 	EmailVerified *bool   `json:"email_verified"`
-	DateOfBirth   *string `json:"date_of_birth" validate:"omitempty,datetime=2006-01-02"`
-	AvatarURL     *string `json:"avatar_url" validate:"omitempty,url"`
+	DateOfBirth   *string `json:"date_of_birth" binding:"omitempty,datetime=2006-01-02"`
+	AvatarURL     *string `json:"avatar_url" binding:"omitempty,url"`
 }
 
 type AdminChangeStatusRequest struct {
-	Status string `json:"status" validate:"required,oneof=active inactive locked"`
+	Status string `json:"status" binding:"required,oneof=active inactive locked"`
 }
 
 type AdminNotifyRequest struct {
-	Subject string `json:"subject" validate:"required,max=200"`
-	Message string `json:"message" validate:"required,max=5000"`
+	Subject string `json:"subject" binding:"required,max=200"`
+	Message string `json:"message" binding:"required,max=5000"`
 }
 
 

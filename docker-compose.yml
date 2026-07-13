@@ -35,7 +35,9 @@ services:
     image: axllent/mailpit
     ports:
       - "8025:8025" # Web UI
-      - "1025:1025" # SMTP
+      # Host 1026 → container 1025. Tránh bug Docker Desktop Windows:
+      # port 1025 accept TCP nhưng không nhận SMTP banner (mail silent fail).
+      - "1026:1025" # SMTP (app local: SMTP_PORT=1026)
     restart: unless-stopped
 
 

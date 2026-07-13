@@ -68,7 +68,7 @@ func (h *UserHandler) GetProfile(c *gin.Context) {
 // @Success 200 {object} response.Response
 // @Failure 400 {object} response.Response
 // @Failure 401 {object} response.Response
-// @Router /users/me [put]
+// @Router /users/me [patch]
 func (h *UserHandler) UpdateProfile(c *gin.Context) {
 	userID, ok := getUserID(c)
 	if !ok {
@@ -98,7 +98,7 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 // @Success 200 {object} response.Response
 // @Failure 400 {object} response.Response
 // @Failure 401 {object} response.Response
-// @Router /users/me/email/request [post]
+// @Router /users/me/email/change-request [post]
 func (h *UserHandler) RequestEmailChange(c *gin.Context) {
 	userID, ok := getUserID(c)
 	if !ok {
@@ -292,7 +292,7 @@ func (h *UserHandler) GetDevices(c *gin.Context) {
 // @Security BearerAuth
 // @Success 200 {object} response.Response
 // @Failure 401 {object} response.Response
-// @Router /users/me/email/resend-otp [post]
+// @Router /users/me/email/resend [post]
 func (h *UserHandler) ResendChangeEmailOTP(c *gin.Context) {
 	userID, ok := getUserID(c)
 	if !ok {

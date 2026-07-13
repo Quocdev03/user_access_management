@@ -23,7 +23,8 @@ func ConnectMySQL(cfg config.DatabaseConfig) (*sqlx.DB, error) {
 		AllowNativePasswords: true,
 	}
 
-	if cfg.Host != "localhost" && cfg.Host != "mysql" {
+	// TLS skip-verify chỉ khi bật tường minh (dev/self-signed). Production: để trống + CA hệ thống.
+	if cfg.TLSSkipVerify {
 		mysqlCfg.TLSConfig = "skip-verify"
 	}
 

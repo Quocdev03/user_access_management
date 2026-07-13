@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/quocdev03/user-access-management/internal/config"
 	"github.com/quocdev03/user-access-management/internal/constant"
 	"github.com/quocdev03/user-access-management/internal/dto"
 	"github.com/quocdev03/user-access-management/internal/model"
@@ -24,6 +25,7 @@ type AdminUserService struct {
 	auditLogRepo *repository.AuditLogRepository
 	mailService  *MailService
 	txManager    *database.TxManager
+	cfg          *config.Config
 	logger       *zap.Logger
 }
 
@@ -34,6 +36,7 @@ func NewAdminUserService(
 	auditLogRepo *repository.AuditLogRepository,
 	mailService *MailService,
 	txManager *database.TxManager,
+	cfg *config.Config,
 	logger *zap.Logger,
 ) *AdminUserService {
 	return &AdminUserService{
@@ -43,13 +46,14 @@ func NewAdminUserService(
 		auditLogRepo: auditLogRepo,
 		mailService:  mailService,
 		txManager:    txManager,
+		cfg:          cfg,
 		logger:       logger,
 	}
 }
 
 func (s *AdminUserService) logAudit(ctx context.Context, adminID uint64, action, resourceID, ip, ua, status string) {
 	resource := "users"
-	_ = s.auditLogRepo.Create(ctx, &model.AuditLog{
+	if err := s.auditLogRepo.Create(ctx, &model.AuditLog{
 		UserID:     &adminID,
 		Action:     action,
 		Resource:   &resource,
@@ -57,7 +61,9 @@ func (s *AdminUserService) logAudit(ctx context.Context, adminID uint64, action,
 		IPAddress:  &ip,
 		UserAgent:  &ua,
 		Status:     status,
-	})
+	}); err != nil {
+		s.logger.Warn("Không thể ghi audit log", zap.String("action", action), zap.Error(err))
+	}
 }
 
 func (s *AdminUserService) ListUsers(ctx context.Context, req dto.AdminListUsersRequest) (*dto.AdminListUsersResponse, error) {
@@ -76,7 +82,7 @@ func (s *AdminUserService) ListUsers(ctx context.Context, req dto.AdminListUsers
 		req.Email,
 		req.Status,
 		req.Role,
-		req.Page,
+		req.PerPage,
 		offset,
 		req.SortBy,
 		req.SortOrder,
@@ -232,8 +238,8 @@ func (s *AdminUserService) UpdateUser(
 	}
 
 	if needsRevokeSession {
-		if err := s.sessionRepo.RevokeAllUserTokens(ctx, targetID, 7*24*time.Hour); err != nil {
-			s.logger.Warn("không thể revoke token redis sau update user", zap.Error(err), zap.Uint64("userID", targetID))
+		if err := s.sessionRepo.InvalidateUserSessions(ctx, targetID, s.cfg.JWT.RefreshExpiry); err != nil {
+			s.logger.Warn("không thể invalidate sessions sau update user", zap.Error(err), zap.Uint64("userID", targetID))
 		}
 	}
 
@@ -261,11 +267,6 @@ func (s *AdminUserService) ChangeUserStatus(
 		}
 
 		user.Status = constant.UserStatus(req.Status)
-		if user.Status == constant.StatusLocked || user.Status == constant.StatusInactive {
-			if err := s.sessionRepo.DeleteByUserID(txCtx, targetID); err != nil {
-				s.logger.Warn("không thể xoá session khi đổi trạng thái user", zap.Error(err), zap.Uint64("userID", targetID))
-			}
-		}
 		return s.userRepo.UpdateUser(txCtx, user)
 	})
 
@@ -274,9 +275,9 @@ func (s *AdminUserService) ChangeUserStatus(
 		return err
 	}
 
-	if req.Status == string(constant.StatusLocked) {
-		if err := s.sessionRepo.RevokeAllUserTokens(ctx, targetID, 7*24*time.Hour); err != nil {
-			s.logger.Warn("không thể revoke token redis khi lock user", zap.Error(err), zap.Uint64("userID", targetID))
+	if req.Status == string(constant.StatusLocked) || req.Status == string(constant.StatusInactive) {
+		if err := s.sessionRepo.InvalidateUserSessions(ctx, targetID, s.cfg.JWT.RefreshExpiry); err != nil {
+			s.logger.Warn("không thể invalidate sessions khi đổi trạng thái user", zap.Error(err), zap.Uint64("userID", targetID))
 		}
 	}
 
@@ -316,14 +317,7 @@ func (s *AdminUserService) ResetUserPassword(
 		uForUpdate.PasswordHash = hashedPass
 		uForUpdate.MustChangePassword = true
 
-		if err := s.userRepo.UpdateUser(txCtx, uForUpdate); err != nil {
-			return err
-		}
-
-		if err := s.sessionRepo.DeleteByUserID(txCtx, targetID); err != nil {
-			s.logger.Warn("không thể xóa sessions khi reset password", zap.Error(err), zap.Uint64("userID", targetID))
-		}
-		return nil
+		return s.userRepo.UpdateUser(txCtx, uForUpdate)
 	})
 
 	if err != nil {
@@ -331,8 +325,8 @@ func (s *AdminUserService) ResetUserPassword(
 		return err
 	}
 
-	if err := s.sessionRepo.RevokeAllUserTokens(ctx, targetID, 7*24*time.Hour); err != nil {
-		s.logger.Warn("không thể revoke token redis khi reset password", zap.Error(err), zap.Uint64("userID", targetID))
+	if err := s.sessionRepo.InvalidateUserSessions(ctx, targetID, s.cfg.JWT.RefreshExpiry); err != nil {
+		s.logger.Warn("không thể invalidate sessions khi reset password", zap.Error(err), zap.Uint64("userID", targetID))
 	}
 	s.logAudit(ctx, adminID, "ADMIN_RESET_PASSWORD", fmt.Sprint(targetID), ip, ua, "success")
 
@@ -376,6 +370,7 @@ type AdminRoleService struct {
 	permissionRepo *repository.PermissionRepository
 	sessionRepo    *repository.SessionRepository
 	txManager      *database.TxManager
+	cfg            *config.Config
 	logger         *zap.Logger
 }
 
@@ -384,6 +379,7 @@ func NewAdminRoleService(
 	permissionRepo *repository.PermissionRepository,
 	sessionRepo *repository.SessionRepository,
 	txManager *database.TxManager,
+	cfg *config.Config,
 	logger *zap.Logger,
 ) *AdminRoleService {
 	return &AdminRoleService{
@@ -391,6 +387,7 @@ func NewAdminRoleService(
 		permissionRepo: permissionRepo,
 		sessionRepo:    sessionRepo,
 		txManager:      txManager,
+		cfg:            cfg,
 		logger:         logger,
 	}
 }
@@ -429,37 +426,69 @@ func (s *AdminRoleService) UpdateRole(ctx context.Context, id uint64, req dto.Up
 }
 
 func (s *AdminRoleService) DeleteRole(ctx context.Context, id uint64) error {
+	role, err := s.roleRepo.FindByID(ctx, id)
+	if err != nil {
+		return fmt.Errorf("roleRepo.FindByID: %w", err)
+	}
+	if role == nil {
+		return apperror.ErrNotFound
+	}
+
+	switch role.Name {
+	case constant.RoleAdmin, constant.RoleModerator, constant.RoleUser:
+		return apperror.ErrBadRequest.WithMessage("Không thể xóa role hệ thống")
+	}
+
+	count, err := s.roleRepo.CountUsersByRoleID(ctx, id)
+	if err != nil {
+		return fmt.Errorf("roleRepo.CountUsersByRoleID: %w", err)
+	}
+	if count > 0 {
+		return apperror.ErrBadRequest.WithMessage("Không thể xóa role đang được gán cho người dùng")
+	}
+
 	return s.roleRepo.Delete(ctx, id)
 }
 
 func (s *AdminRoleService) AssignPermissions(ctx context.Context, roleID uint64, req dto.AssignPermissionsRequest) error {
+	if len(req.PermissionIDs) > 0 {
+		count, err := s.permissionRepo.CountByIDs(ctx, req.PermissionIDs)
+		if err != nil {
+			return fmt.Errorf("permissionRepo.CountByIDs: %w", err)
+		}
+		if count != len(req.PermissionIDs) {
+			return apperror.ErrBadRequest.WithMessage("Một hoặc nhiều permission_id không tồn tại")
+		}
+	}
 	return s.txManager.RunInTx(ctx, func(txCtx context.Context) error {
 		return s.roleRepo.AssignPermissions(txCtx, roleID, req.PermissionIDs)
 	})
 }
 
 func (s *AdminRoleService) AssignUserRole(ctx context.Context, userID uint64, req dto.AssignRoleRequest) error {
-	return s.txManager.RunInTx(ctx, func(txCtx context.Context) error {
-		if err := s.roleRepo.AssignRoleToUser(txCtx, userID, req.RoleID); err != nil {
-			return err
-		}
-		if err := s.sessionRepo.DeleteByUserID(txCtx, userID); err != nil {
-			return fmt.Errorf("sessionRepo.DeleteByUserID: %w", err)
-		}
-		return nil
+	err := s.txManager.RunInTx(ctx, func(txCtx context.Context) error {
+		return s.roleRepo.AssignRoleToUser(txCtx, userID, req.RoleID)
 	})
+	if err != nil {
+		return err
+	}
+	if err := s.sessionRepo.InvalidateUserSessions(ctx, userID, s.cfg.JWT.RefreshExpiry); err != nil {
+		return fmt.Errorf("sessionRepo.InvalidateUserSessions: %w", err)
+	}
+	return nil
 }
 
 func (s *AdminRoleService) RemoveUserRole(ctx context.Context, userID, roleID uint64) error {
-	return s.txManager.RunInTx(ctx, func(txCtx context.Context) error {
-		if err := s.roleRepo.RemoveRoleFromUser(txCtx, userID, roleID); err != nil {
-			return err
-		}
-		if err := s.sessionRepo.DeleteByUserID(txCtx, userID); err != nil {
-			return fmt.Errorf("sessionRepo.DeleteByUserID: %w", err)
-		}
-		return nil
+	err := s.txManager.RunInTx(ctx, func(txCtx context.Context) error {
+		return s.roleRepo.RemoveRoleFromUser(txCtx, userID, roleID)
 	})
+	if err != nil {
+		return err
+	}
+	if err := s.sessionRepo.InvalidateUserSessions(ctx, userID, s.cfg.JWT.RefreshExpiry); err != nil {
+		return fmt.Errorf("sessionRepo.InvalidateUserSessions: %w", err)
+	}
+	return nil
 }
 
 type AdminAuditLogService struct {

@@ -88,8 +88,12 @@ func main() {
 	r := router.Setup(db, redisClient, logr, cfg)
 
 	srv := &http.Server{
-		Addr:    fmt.Sprintf(":%s", cfg.App.Port),
-		Handler: r,
+		Addr:              fmt.Sprintf(":%s", cfg.App.Port),
+		Handler:           r,
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      60 * time.Second,
+		IdleTimeout:       120 * time.Second,
 	}
 
 	go func() {

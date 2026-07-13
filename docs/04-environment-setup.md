@@ -29,62 +29,41 @@ git clone <repository-url>
 cd user_access_management
 ```
 
-### Bước 2: Tạo file cấu hình
+### Bước 2: Tạo file cấu hình theo môi trường
+
+| File (trong repo) | Dùng khi |
+|-------------------|----------|
+| `.env.example` | Local + Docker Compose (`DB_HOST=mysql`, Mailpit) |
+| `.env.local.example` | App chạy host, MySQL/Redis `localhost` |
+| `.env.production.example` | Render + Aiven + Resend (placeholder, không secret) |
+| `uam-api.env` | Export Render cá nhân — **gitignored**, paste lên Dashboard |
 
 ```bash
+# Docker compose local
 cp .env.example .env
+
+# Hoặc app trên host
+cp .env.local.example .env
 ```
 
-Chỉnh sửa file `.env` theo môi trường:
+**Production (Render):** copy từ `.env.production.example` → điền secret Aiven/Resend/JWT → dán Environment trên Render.  
+Bắt buộc: `DB_TLS_SKIP_VERIFY=true` (Aiven), `APP_ENV=production`, Redis URL `redis://...`, Resend `SMTP_PORT=587` (không dùng 2525).
 
-```env
-# Server
-APP_ENV=development
-APP_PORT=8080
+### Mail local (Mailpit)
 
-# Database
-DB_HOST=mysql
-DB_PORT=3306
-DB_NAME=uam_db
-DB_USER=uam_user
-DB_PASSWORD=uam_password
-DB_ROOT_PASSWORD=root_password
-
-# Redis
-REDIS_HOST=redis
-REDIS_PORT=6379
-REDIS_PASSWORD=
-
-# JWT
-JWT_SECRET=your-secret-key-change-this
-JWT_ACCESS_EXPIRY=15m
-JWT_REFRESH_EXPIRY=168h
-
-# Mail (SMTP) - Mặc định dùng Mailpit (127.0.0.1:1025) cho dev
-# Để dùng Resend gửi mail thật, hãy thay thế bằng:
-# SMTP_HOST=smtp.resend.com
-# SMTP_PORT=587
-# SMTP_USER=resend
-# SMTP_PASSWORD=YOUR_API_KEY
-# SMTP_FROM=noreply@YOUR_DOMAIN.com
-SMTP_HOST=127.0.0.1
-SMTP_PORT=1025
-SMTP_USER=
-SMTP_PASSWORD=
-SMTP_FROM=noreply@localhost
-
-# Rate Limiting
-RATE_LIMIT_REQUESTS=100
-RATE_LIMIT_WINDOW=1m
-
-# Account Lock
-MAX_FAILED_ATTEMPTS=10
-LOCK_DURATION=15m
-
-# OTP
-OTP_EXPIRY=5m
-OTP_MAX_ATTEMPTS=5
+```bash
+docker compose up -d mailpit   # hoặc: docker compose up -d
+# .env (app chạy trên host Windows):
+#   SMTP_HOST=127.0.0.1
+#   SMTP_PORT=1026          # map docker 1026:1025 (tránh bug port 1025)
+# Inbox UI:
+#   http://localhost:8025
 ```
+
+**Lưu ý Windows Docker Desktop:** publish host port `1025` đôi khi accept TCP nhưng **không** trả SMTP banner → mail silent fail. Compose map **`1026:1025`**.
+
+Log start: `Mail: plain SMTP (Mailpit/local)`.  
+Nếu SMTP vẫn lỗi: log `FALLBACK OTP (dev)` in OTP ra console (chỉ khi send fail).
 
 ### Bước 3: Khởi chạy
 
@@ -118,9 +97,11 @@ curl http://localhost:8080/health
 # Mở trình duyệt: http://localhost:8080/swagger/index.html
 ```
 
-> **Tài khoản Super Admin:** Sau khi chạy `migrate-up` thành công, hệ thống đã tự động tạo tài khoản có quyền Admin cao nhất để bạn test ngay.
-> - Username: `admin_quocdev`
-> - Mật khẩu: `Quocdev@2026`
+> **Tài khoản Super Admin (local bootstrap):** Sau migrate, seed tạo admin local.
+> - **Email (dùng để login):** `admin@localhost.local`
+> - Username: `admin_local`
+> - Password: `LocalDev@ChangeMe1`
+> - Login API = **email + password** (không dùng username).
 
 ---
 

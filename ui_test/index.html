@@ -455,7 +455,7 @@
                             onclick="selectEndpoint('forgot-pwd')"
                             data-method="POST"
                             data-path="/api/v1/auth/password/forgot"
-                            data-desc="Yêu cầu link / mã khôi phục mật khẩu qua email."
+                            data-desc="Gửi email chứa link/token đặt lại mật khẩu (không OTP)."
                             data-uc="UC-07"
                             data-uc-name="Self-Service Password Recovery"
                             class="sidebar-item pl-3 pr-2 py-1.5 rounded-lg text-xs flex items-center justify-between cursor-pointer text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-all"
@@ -471,7 +471,7 @@
                             onclick="selectEndpoint('reset-pwd')"
                             data-method="POST"
                             data-path="/api/v1/auth/password/reset"
-                            data-desc="Đặt lại mật khẩu mới bằng mã xác thực từ email."
+                            data-desc="Đặt mật khẩu mới bằng token từ email (body: token + new_password)."
                             data-uc="UC-07"
                             data-uc-name="Self-Service Password Recovery"
                             class="sidebar-item pl-3 pr-2 py-1.5 rounded-lg text-xs flex items-center justify-between cursor-pointer text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-all"
@@ -487,7 +487,7 @@
                             onclick="selectEndpoint('force-change-pwd')"
                             data-method="POST"
                             data-path="/api/v1/auth/password/force-change"
-                            data-desc="Đổi mật khẩu tạm thời khi admin chỉ định."
+                            data-desc="Đổi pass khi must_change_password (email + temp_password + new_password). Không cần Bearer."
                             data-uc="UC-40"
                             data-uc-name="Enforce Administrative Password Policy"
                             class="sidebar-item pl-3 pr-2 py-1.5 rounded-lg text-xs flex items-center justify-between cursor-pointer text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-all"
@@ -668,6 +668,54 @@
                             <span
                                 class="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/10"
                                 >POST</span
+                            >
+                        </div>
+                        <div
+                            id="nav-sessions"
+                            onclick="selectEndpoint('sessions')"
+                            data-method="GET"
+                            data-path="/api/v1/users/me/sessions"
+                            data-desc="Danh sách phiên đăng nhập đang active."
+                            data-uc="UC-20"
+                            data-uc-name="Session Management"
+                            class="sidebar-item pl-3 pr-2 py-1.5 rounded-lg text-xs flex items-center justify-between cursor-pointer text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-all"
+                        >
+                            <span>Danh sách session</span>
+                            <span
+                                class="text-[9px] font-bold text-sky-400 bg-sky-500/10 px-1.5 py-0.5 rounded border border-sky-500/10"
+                                >GET</span
+                            >
+                        </div>
+                        <div
+                            id="nav-revoke-session"
+                            onclick="selectEndpoint('revoke-session')"
+                            data-method="DELETE"
+                            data-path="/api/v1/users/me/sessions/:id"
+                            data-desc="Thu hồi 1 session (blacklist jti + xóa MySQL)."
+                            data-uc="UC-20"
+                            data-uc-name="Session Management"
+                            class="sidebar-item pl-3 pr-2 py-1.5 rounded-lg text-xs flex items-center justify-between cursor-pointer text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-all"
+                        >
+                            <span>Thu hồi session</span>
+                            <span
+                                class="text-[9px] font-bold text-rose-400 bg-rose-500/10 px-1.5 py-0.5 rounded border border-rose-500/10"
+                                >DEL</span
+                            >
+                        </div>
+                        <div
+                            id="nav-devices"
+                            onclick="selectEndpoint('devices')"
+                            data-method="GET"
+                            data-path="/api/v1/users/me/devices"
+                            data-desc="Danh sách thiết bị đã login (device tracking)."
+                            data-uc="UC-19"
+                            data-uc-name="Device Tracking"
+                            class="sidebar-item pl-3 pr-2 py-1.5 rounded-lg text-xs flex items-center justify-between cursor-pointer text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-all"
+                        >
+                            <span>Danh sách thiết bị</span>
+                            <span
+                                class="text-[9px] font-bold text-sky-400 bg-sky-500/10 px-1.5 py-0.5 rounded border border-sky-500/10"
+                                >GET</span
                             >
                         </div>
                     </div>
@@ -868,6 +916,22 @@
                             <span
                                 class="text-[9px] font-bold text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/10"
                                 >PUT</span
+                            >
+                        </div>
+                        <div
+                            id="nav-ad-delete-role"
+                            onclick="selectEndpoint('ad-delete-role')"
+                            data-method="DELETE"
+                            data-path="/api/v1/admin/roles/:id"
+                            data-desc="Xóa role (chặn system roles và role đang được gán)."
+                            data-uc="UC-32"
+                            data-uc-name="RBAC Authorization Roles & Permissions Directory"
+                            class="sidebar-item pl-3 pr-2 py-1.5 rounded-lg text-xs flex items-center justify-between cursor-pointer text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-all flex-shrink-0"
+                        >
+                            <span>Xóa vai trò</span>
+                            <span
+                                class="text-[9px] font-bold text-rose-400 bg-rose-500/10 px-1.5 py-0.5 rounded border border-rose-500/10"
+                                >DEL</span
                             >
                         </div>
                         <div
@@ -1368,8 +1432,8 @@
                                 <h4
                                     class="text-xs font-semibold text-[var(--text-secondary)]"
                                 >
-                                    Base Account: quocdt2003@gmail.com -
-                                    Quocdev@2026
+                                    Base Account: admin@localhost.local -
+                                    LocalDev@ChangeMe1
                                 </h4>
                                 <div class="space-y-2">
                                     <div class="flex items-center gap-2">
@@ -2234,6 +2298,151 @@
                         </div>
                     </div>
 
+                    <!-- Sessions / Devices -->
+                    <div
+                        id="form-sessions"
+                        class="endpoint-form hidden space-y-4"
+                    >
+                        <div
+                            class="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl p-5 space-y-4"
+                        >
+                            <h3 class="font-medium text-[var(--text-primary)]">
+                                GET /api/v1/users/me/sessions
+                            </h3>
+                            <div class="space-y-1">
+                                <label
+                                    class="text-xs font-semibold text-[var(--text-secondary)]"
+                                    >Access Token *</label
+                                >
+                                <input
+                                    id="sessions-token"
+                                    type="text"
+                                    placeholder="Bearer token..."
+                                    class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs font-mono text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                />
+                            </div>
+                            <button
+                                type="button"
+                                onclick="
+                                    handleRequest(
+                                        'sessions',
+                                        'GET',
+                                        '/api/v1/users/me/sessions',
+                                        null,
+                                        getVal('sessions-token'),
+                                    )
+                                "
+                                class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5"
+                            >
+                                <i data-lucide="play" class="w-3.5 h-3.5"></i>
+                                Lấy danh sách
+                            </button>
+                            <div id="res-sessions" class="out hidden"></div>
+                        </div>
+                    </div>
+
+                    <div
+                        id="form-revoke-session"
+                        class="endpoint-form hidden space-y-4"
+                    >
+                        <div
+                            class="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl p-5 space-y-4"
+                        >
+                            <h3 class="font-medium text-[var(--text-primary)]">
+                                DELETE /api/v1/users/me/sessions/:id
+                            </h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="space-y-1">
+                                    <label
+                                        class="text-xs font-semibold text-[var(--text-secondary)]"
+                                        >Access Token *</label
+                                    >
+                                    <input
+                                        id="revoke-session-token"
+                                        type="text"
+                                        placeholder="Bearer token..."
+                                        class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs font-mono text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                    />
+                                </div>
+                                <div class="space-y-1">
+                                    <label
+                                        class="text-xs font-semibold text-[var(--text-secondary)]"
+                                        >Session ID *</label
+                                    >
+                                    <input
+                                        id="revoke-session-id"
+                                        type="text"
+                                        placeholder="1"
+                                        class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                    />
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onclick="
+                                    handleRequest(
+                                        'revoke-session',
+                                        'DELETE',
+                                        '/api/v1/users/me/sessions/' +
+                                            getVal('revoke-session-id'),
+                                        null,
+                                        getVal('revoke-session-token'),
+                                    )
+                                "
+                                class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5"
+                            >
+                                <i data-lucide="play" class="w-3.5 h-3.5"></i>
+                                Thu hồi
+                            </button>
+                            <div
+                                id="res-revoke-session"
+                                class="out hidden"
+                            ></div>
+                        </div>
+                    </div>
+
+                    <div
+                        id="form-devices"
+                        class="endpoint-form hidden space-y-4"
+                    >
+                        <div
+                            class="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl p-5 space-y-4"
+                        >
+                            <h3 class="font-medium text-[var(--text-primary)]">
+                                GET /api/v1/users/me/devices
+                            </h3>
+                            <div class="space-y-1">
+                                <label
+                                    class="text-xs font-semibold text-[var(--text-secondary)]"
+                                    >Access Token *</label
+                                >
+                                <input
+                                    id="devices-token"
+                                    type="text"
+                                    placeholder="Bearer token..."
+                                    class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs font-mono text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                />
+                            </div>
+                            <button
+                                type="button"
+                                onclick="
+                                    handleRequest(
+                                        'devices',
+                                        'GET',
+                                        '/api/v1/users/me/devices',
+                                        null,
+                                        getVal('devices-token'),
+                                    )
+                                "
+                                class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5"
+                            >
+                                <i data-lucide="play" class="w-3.5 h-3.5"></i>
+                                Lấy danh sách
+                            </button>
+                            <div id="res-devices" class="out hidden"></div>
+                        </div>
+                    </div>
+
                     <!-- 21. Admin List Users Form -->
                     <div
                         id="form-ad-list"
@@ -2995,6 +3204,71 @@
                         </div>
                     </div>
 
+                    <!-- Admin Delete Role -->
+                    <div
+                        id="form-ad-delete-role"
+                        class="endpoint-form hidden space-y-4"
+                    >
+                        <div
+                            class="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl p-5 space-y-4"
+                        >
+                            <h3 class="font-medium text-[var(--text-primary)]">
+                                DELETE /api/v1/admin/roles/:id
+                            </h3>
+                            <p class="text-xs text-[var(--text-muted)]">
+                                Không xóa được role hệ thống
+                                (admin/moderator/user) hoặc role đang gán user.
+                            </p>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="space-y-1">
+                                    <label
+                                        class="text-xs font-semibold text-[var(--text-secondary)]"
+                                        >Token Admin *</label
+                                    >
+                                    <input
+                                        id="ad-delete-role-token"
+                                        type="text"
+                                        placeholder="Token Admin..."
+                                        class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs font-mono text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                    />
+                                </div>
+                                <div class="space-y-1">
+                                    <label
+                                        class="text-xs font-semibold text-[var(--text-secondary)]"
+                                        >Role ID *</label
+                                    >
+                                    <input
+                                        id="ad-delete-role-id"
+                                        type="text"
+                                        placeholder="4"
+                                        class="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-xs text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                    />
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onclick="
+                                    handleRequest(
+                                        'ad-delete-role',
+                                        'DELETE',
+                                        '/api/v1/admin/roles/' +
+                                            getVal('ad-delete-role-id'),
+                                        null,
+                                        getVal('ad-delete-role-token'),
+                                    )
+                                "
+                                class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5"
+                            >
+                                <i data-lucide="play" class="w-3.5 h-3.5"></i>
+                                Xóa role
+                            </button>
+                            <div
+                                id="res-ad-delete-role"
+                                class="out hidden"
+                            ></div>
+                        </div>
+                    </div>
+
                     <!-- 30. Admin Assign Permissions Form -->
                     <div
                         id="form-ad-assign-perm"
@@ -3579,6 +3853,9 @@ Send a request to see the response content here.</pre
                     "req-email-token",
                     "re-email-resend-token",
                     "v-email-token",
+                    "sessions-token",
+                    "revoke-session-token",
+                    "devices-token",
                     "ad-list-token",
                     "ad-get-token",
                     "ad-put-token",
@@ -3588,6 +3865,7 @@ Send a request to see the response content here.</pre
                     "ad-list-role-token",
                     "ad-create-role-token",
                     "ad-update-role-token",
+                    "ad-delete-role-token",
                     "ad-assign-perm-token",
                     "ad-assign-role-token",
                     "ad-remove-role-token",
@@ -3668,13 +3946,24 @@ Send a request to see the response content here.</pre
                     localEl.textContent = "running…";
                 }
 
-                const headers = { "Content-Type": "application/json" };
+                const headers = {};
+                if (
+                    body &&
+                    typeof body === "object" &&
+                    Object.keys(body).length > 0
+                ) {
+                    headers["Content-Type"] = "application/json";
+                }
                 if (explicitToken)
                     headers["Authorization"] = `Bearer ${explicitToken}`;
 
                 try {
                     const options = { method, headers };
-                    if (body && Object.keys(body).length > 0)
+                    if (
+                        body &&
+                        typeof body === "object" &&
+                        Object.keys(body).length > 0
+                    )
                         options.body = JSON.stringify(body);
 
                     const response = await fetch(BASE_URL + path, options);
@@ -3752,6 +4041,15 @@ Send a request to see the response content here.</pre
                             res.data.data.access_token;
                         document.getElementById("v-email-token").value =
                             res.data.data.access_token;
+                        [
+                            "sessions-token",
+                            "revoke-session-token",
+                            "devices-token",
+                            "ad-delete-role-token",
+                        ].forEach((id) => {
+                            const el = document.getElementById(id);
+                            if (el) el.value = res.data.data.access_token;
+                        });
                         if (document.getElementById("ad-list-token"))
                             document.getElementById("ad-list-token").value =
                                 res.data.data.access_token;
@@ -3843,6 +4141,15 @@ Send a request to see the response content here.</pre
                             res.data.data.access_token;
                         document.getElementById("v-email-token").value =
                             res.data.data.access_token;
+                        [
+                            "sessions-token",
+                            "revoke-session-token",
+                            "devices-token",
+                            "ad-delete-role-token",
+                        ].forEach((id) => {
+                            const el = document.getElementById(id);
+                            if (el) el.value = res.data.data.access_token;
+                        });
                         if (document.getElementById("ad-list-token"))
                             document.getElementById("ad-list-token").value =
                                 res.data.data.access_token;

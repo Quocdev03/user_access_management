@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"strings"
 	"time"
 
 	"go.uber.org/zap"
@@ -23,17 +24,12 @@ import (
 	"github.com/quocdev03/user-access-management/pkg/jwt"
 )
 
-const (
-	maxFailedAttempts = 5
-	lockDuration      = 30 * time.Minute
-	otpExpiry         = 5 * time.Minute
-)
-
 type AuthService struct {
 	userRepo     *repository.UserRepository
 	otpService   *OTPService
 	roleRepo     *repository.RoleRepository
 	sessionRepo  *repository.SessionRepository
+	deviceRepo   *repository.DeviceRepository
 	auditLogRepo *repository.AuditLogRepository
 	txManager    *database.TxManager
 	cfg          *config.Config
@@ -45,6 +41,7 @@ func NewAuthService(
 	otpService *OTPService,
 	roleRepo *repository.RoleRepository,
 	sessionRepo *repository.SessionRepository,
+	deviceRepo *repository.DeviceRepository,
 	auditLogRepo *repository.AuditLogRepository,
 	txManager *database.TxManager,
 	cfg *config.Config,
@@ -55,6 +52,7 @@ func NewAuthService(
 		otpService:   otpService,
 		roleRepo:     roleRepo,
 		sessionRepo:  sessionRepo,
+		deviceRepo:   deviceRepo,
 		auditLogRepo: auditLogRepo,
 		txManager:    txManager,
 		cfg:          cfg,
@@ -62,8 +60,52 @@ func NewAuthService(
 	}
 }
 
-func (s *AuthService) generateTokenPair(userID uint64, roles []string) (string, string, error) {
-	accessToken, _, err := jwt.GenerateToken(
+func clampRequestMeta(ipAddress, userAgent string) (string, string) {
+	if len(ipAddress) > 45 {
+		ipAddress = ipAddress[:45]
+	}
+	if len(userAgent) > 500 {
+		userAgent = userAgent[:500]
+	}
+	return ipAddress, userAgent
+}
+
+// parseUserAgent: nhận diện thô OS/browser để lưu devices (không cần lib UA parser).
+func parseUserAgent(ua string) (osName, browser string) {
+	u := strings.ToLower(ua)
+	switch {
+	case strings.Contains(u, "windows"):
+		osName = "Windows"
+	case strings.Contains(u, "mac os") || strings.Contains(u, "macintosh"):
+		osName = "macOS"
+	case strings.Contains(u, "android"):
+		osName = "Android"
+	case strings.Contains(u, "iphone") || strings.Contains(u, "ipad") || strings.Contains(u, "ios"):
+		osName = "iOS"
+	case strings.Contains(u, "linux"):
+		osName = "Linux"
+	default:
+		osName = "Unknown"
+	}
+	switch {
+	case strings.Contains(u, "edg/"):
+		browser = "Edge"
+	case strings.Contains(u, "chrome/") && !strings.Contains(u, "edg/"):
+		browser = "Chrome"
+	case strings.Contains(u, "firefox/"):
+		browser = "Firefox"
+	case strings.Contains(u, "safari/") && !strings.Contains(u, "chrome/"):
+		browser = "Safari"
+	case strings.Contains(u, "powershell"):
+		browser = "PowerShell"
+	default:
+		browser = "Unknown"
+	}
+	return osName, browser
+}
+
+func (s *AuthService) generateTokenPair(userID uint64, roles []string) (accessToken, refreshToken, accessJTI string, err error) {
+	accessToken, accessJTI, err = jwt.GenerateToken(
 		userID,
 		roles,
 		constant.TokenTypeAccess,
@@ -71,10 +113,10 @@ func (s *AuthService) generateTokenPair(userID uint64, roles []string) (string, 
 		s.cfg.JWT.Secret,
 	)
 	if err != nil {
-		return "", "", fmt.Errorf("generate access token: %w", err)
+		return "", "", "", fmt.Errorf("generate access token: %w", err)
 	}
 
-	refreshToken, _, err := jwt.GenerateToken(
+	refreshToken, _, err = jwt.GenerateToken(
 		userID,
 		roles,
 		constant.TokenTypeRefresh,
@@ -82,18 +124,14 @@ func (s *AuthService) generateTokenPair(userID uint64, roles []string) (string, 
 		s.cfg.JWT.Secret,
 	)
 	if err != nil {
-		return "", "", fmt.Errorf("generate refresh token: %w", err)
+		return "", "", "", fmt.Errorf("generate refresh token: %w", err)
 	}
 
-	return accessToken, refreshToken, nil
+	return accessToken, refreshToken, accessJTI, nil
 }
 
 func (s *AuthService) Register(ctx context.Context, req dto.RegisterRequest) (*dto.RegisterResponse, error) {
-	if len(req.Password) > 72 {
-		return nil, apperror.ErrValidationError.WithMessage("Mật khẩu không được vượt quá 72 ký tự")
-	}
-
-	if err := hash.ValidatePasswordComplexity(req.Password); err != nil {
+	if err := hash.ValidateNewPassword(req.Password); err != nil {
 		return nil, apperror.ErrValidationError.WithMessage(err.Error())
 	}
 
@@ -144,7 +182,7 @@ func (s *AuthService) Register(ctx context.Context, req dto.RegisterRequest) (*d
 			user.ID,
 			user.Email,
 			constant.OTPTypeEmailVerification,
-			time.Now().UTC().Add(otpExpiry),
+			time.Now().UTC().Add(s.cfg.Security.OTPExpiry),
 		)
 		if err != nil {
 			return err
@@ -174,8 +212,9 @@ func (s *AuthService) VerifyEmail(ctx context.Context, req dto.VerifyEmailReques
 		return fmt.Errorf("userRepo.FindByEmail: %w", err)
 	}
 	if user == nil {
-		_ = hash.CheckPassword("dummy", "$2a$10$wK1WwzT8rVd3/xJ.8fU8K.R1.D.Fw1N98XzL3U.FwzT8rVd3/xJ.O")
-		return apperror.ErrEmailNotFound
+		_ = hash.CheckPassword("dummy-password", hash.DummyPasswordHash)
+		// Không lộ email chưa đăng ký (giống forgot-password).
+		return apperror.ErrOTPInvalid
 	}
 
 	if user.EmailVerified {
@@ -231,7 +270,7 @@ func (s *AuthService) ResendVerificationEmail(ctx context.Context, req dto.Resen
 		user.ID,
 		user.Email,
 		constant.OTPTypeEmailVerification,
-		time.Now().UTC().Add(otpExpiry),
+		time.Now().UTC().Add(s.cfg.Security.OTPExpiry),
 	)
 	if err != nil {
 		return err
@@ -243,20 +282,14 @@ func (s *AuthService) ResendVerificationEmail(ctx context.Context, req dto.Resen
 }
 
 func (s *AuthService) Login(ctx context.Context, req dto.LoginRequest, ipAddress, userAgent string) (*dto.LoginResponse, error) {
-	if len(ipAddress) > 45 {
-		ipAddress = ipAddress[:45]
-	}
-	if len(userAgent) > 500 {
-		userAgent = userAgent[:500]
-	}
-
+	ipAddress, userAgent = clampRequestMeta(ipAddress, userAgent)
 
 	user, err := s.userRepo.FindByEmail(ctx, req.Email)
 	if err != nil {
 		return nil, fmt.Errorf("userRepo.FindByEmail: %w", err)
 	}
 	if user == nil {
-		_ = hash.CheckPassword("dummy", "$2a$10$wK1WwzT8rVd3/xJ.8fU8K.R1.D.Fw1N98XzL3U.FwzT8rVd3/xJ.O")
+		_ = hash.CheckPassword("dummy-password", hash.DummyPasswordHash)
 		return nil, apperror.ErrInvalidCredentials
 	}
 
@@ -266,7 +299,7 @@ func (s *AuthService) Login(ctx context.Context, req dto.LoginRequest, ipAddress
 
 	if !hash.CheckPassword(req.Password, user.PasswordHash) {
 		s.logAudit(ctx, user.ID, "LOGIN", ipAddress, userAgent, "failure")
-		return nil, handleFailedLogin(ctx, s.userRepo, s.logger, user)
+		return nil, handleFailedLogin(ctx, s.userRepo, s.logger, user, s.cfg.Security.MaxFailedAttempts, s.cfg.Security.LockDuration)
 	}
 
 	if user.MustChangePassword {
@@ -335,18 +368,40 @@ func (s *AuthService) grantTokensAndSession(ctx context.Context, user *model.Use
 			roles = []string{constant.RoleUser}
 		}
 
-		accessToken, refreshToken, err = s.generateTokenPair(user.ID, roles)
+		var accessJTI string
+		accessToken, refreshToken, accessJTI, err = s.generateTokenPair(user.ID, roles)
 		if err != nil {
 			return err
 		}
 
+		var deviceID *uint64
+		osName, browserName := parseUserAgent(userAgent)
+		device := &model.Device{
+			UserID:    user.ID,
+			IPAddress: &ipAddress,
+			OS:        &osName,
+			Browser:   &browserName,
+		}
+		if userAgent != "" {
+			ua := userAgent
+			device.DeviceName = &ua
+		}
+		if err := s.deviceRepo.FindOrCreate(txCtx, device); err != nil {
+			s.logger.Warn("Không thể ghi device tracking", zap.Error(err), zap.Uint64("user_id", user.ID))
+		} else if device.ID > 0 {
+			deviceID = &device.ID
+		}
+
+		jti := accessJTI
 		sessionExpiresAt := time.Now().Add(s.cfg.JWT.RefreshExpiry)
 		session := &model.Session{
 			UserID:           user.ID,
 			TokenHash:        hash.SHA256(accessToken),
 			RefreshTokenHash: hash.SHA256(refreshToken),
+			JTI:              &jti,
 			IPAddress:        &ipAddress,
 			UserAgent:        &userAgent,
+			DeviceID:         deviceID,
 			ExpiresAt:        sessionExpiresAt,
 		}
 
@@ -376,12 +431,7 @@ func (s *AuthService) grantTokensAndSession(ctx context.Context, user *model.Use
 }
 
 func (s *AuthService) Refresh(ctx context.Context, req dto.RefreshTokenRequest, ipAddress, userAgent string) (*dto.RefreshTokenResponse, error) {
-	if len(ipAddress) > 45 {
-		ipAddress = ipAddress[:45]
-	}
-	if len(userAgent) > 500 {
-		userAgent = userAgent[:500]
-	}
+	ipAddress, userAgent = clampRequestMeta(ipAddress, userAgent)
 
 	claims, err := jwt.ParseToken(req.RefreshToken, s.cfg.JWT.Secret)
 	if err != nil {
@@ -394,6 +444,7 @@ func (s *AuthService) Refresh(ctx context.Context, req dto.RefreshTokenRequest, 
 
 	refreshHash := hash.SHA256(req.RefreshToken)
 	var res *dto.RefreshTokenResponse
+	var oldAccessJTI string
 
 	isRevoked, err := s.sessionRepo.IsRefreshTokenRevoked(ctx, refreshHash)
 	if err != nil {
@@ -401,8 +452,7 @@ func (s *AuthService) Refresh(ctx context.Context, req dto.RefreshTokenRequest, 
 	}
 	if isRevoked {
 		s.logger.Warn("Phát hiện Token Reuse (Refresh Token bị đánh cắp)", zap.Uint64("user_id", claims.UserID))
-		_ = s.sessionRepo.DeleteByUserID(ctx, claims.UserID)
-		_ = s.sessionRepo.RevokeAllUserTokens(ctx, claims.UserID, s.cfg.JWT.RefreshExpiry)
+		_ = s.sessionRepo.InvalidateUserSessions(ctx, claims.UserID, s.cfg.JWT.RefreshExpiry)
 		return nil, apperror.ErrTokenReuse
 	}
 
@@ -438,13 +488,19 @@ func (s *AuthService) Refresh(ctx context.Context, req dto.RefreshTokenRequest, 
 			roles = []string{constant.RoleUser}
 		}
 
-		newAccessToken, newRefreshToken, err := s.generateTokenPair(claims.UserID, roles)
+		if session.JTI != nil {
+			oldAccessJTI = *session.JTI
+		}
+
+		newAccessToken, newRefreshToken, newAccessJTI, err := s.generateTokenPair(claims.UserID, roles)
 		if err != nil {
 			return err
 		}
 
+		jti := newAccessJTI
 		session.TokenHash = hash.SHA256(newAccessToken)
 		session.RefreshTokenHash = hash.SHA256(newRefreshToken)
+		session.JTI = &jti
 		session.IPAddress = &ipAddress
 		session.UserAgent = &userAgent
 		session.ExpiresAt = time.Now().Add(s.cfg.JWT.RefreshExpiry)
@@ -471,6 +527,11 @@ func (s *AuthService) Refresh(ctx context.Context, req dto.RefreshTokenRequest, 
 			s.logger.Warn("Không thể đưa refresh token cũ vào blacklist", zap.Error(err))
 		}
 	}
+	if oldAccessJTI != "" {
+		if err := s.sessionRepo.AddToBlacklist(ctx, oldAccessJTI, s.cfg.JWT.AccessExpiry); err != nil {
+			s.logger.Warn("Không thể blacklist access token cũ sau refresh", zap.String("jti", oldAccessJTI), zap.Error(err))
+		}
+	}
 
 	return res, nil
 }
@@ -495,22 +556,27 @@ func (s *AuthService) Logout(ctx context.Context, rawToken string, claims *jwt.C
 }
 
 func (s *AuthService) LogoutAll(ctx context.Context, userID uint64) error {
-	if err := s.sessionRepo.DeleteByUserID(ctx, userID); err != nil {
+	if err := s.sessionRepo.InvalidateUserSessions(ctx, userID, s.cfg.JWT.RefreshExpiry); err != nil {
 		s.logger.Error("Không thể thu hồi session khi LogoutAll", zap.Error(err))
 		return fmt.Errorf("không thể thu hồi phiên đăng nhập: %w", err)
 	}
-
-	_ = s.sessionRepo.RevokeAllUserTokens(ctx, userID, s.cfg.JWT.RefreshExpiry)
 
 	s.logger.Info("Đã đăng xuất khỏi tất cả thiết bị", zap.Uint64("user_id", userID))
 	return nil
 }
 
-func handleFailedLogin(ctx context.Context, userRepo *repository.UserRepository, logger *zap.Logger, user *model.User) error {
+func handleFailedLogin(
+	ctx context.Context,
+	userRepo *repository.UserRepository,
+	logger *zap.Logger,
+	user *model.User,
+	maxAttempts int,
+	lockDur time.Duration,
+) error {
 	attempts, _ := userRepo.IncrementFailedLogins(ctx, user.ID)
 
-	if attempts >= maxFailedAttempts {
-		lockedUntil := time.Now().UTC().Add(lockDuration)
+	if attempts >= maxAttempts {
+		lockedUntil := time.Now().UTC().Add(lockDur)
 		if err := userRepo.LockAccount(ctx, user.ID, lockedUntil, attempts); err != nil {
 			logger.Error("Không thể khóa tài khoản", zap.Error(err))
 			return apperror.ErrInvalidCredentials
@@ -520,7 +586,11 @@ func handleFailedLogin(ctx context.Context, userRepo *repository.UserRepository,
 			zap.String("email", user.Email),
 			zap.Int("failed_attempts", attempts),
 		)
-		return apperror.ErrAccountLocked.WithMessage(fmt.Sprintf("Tài khoản bị khóa %d phút do nhập sai mật khẩu %d lần", int(lockDuration.Minutes()), maxFailedAttempts))
+		return apperror.ErrAccountLocked.WithMessage(fmt.Sprintf(
+			"Tài khoản bị khóa %d phút do nhập sai mật khẩu %d lần",
+			int(lockDur.Minutes()),
+			maxAttempts,
+		))
 	}
 	return apperror.ErrInvalidCredentials
 }
@@ -592,19 +662,20 @@ func (s *PasswordService) ForgotPassword(ctx context.Context, req dto.ForgotPass
 	go func() {
 		if err := s.mailService.SendPasswordResetEmail(user.Email, token); err != nil {
 			s.logger.Error("Lỗi khi gửi email khôi phục mật khẩu", zap.Error(err))
+			s.logger.Warn("FALLBACK reset token (dev) — chỉ dùng khi SMTP lỗi",
+				zap.String("email", user.Email),
+				zap.String("token", token),
+			)
 		}
 	}()
 
-	s.logger.Info("Đã gửi email khôi phục mật khẩu", zap.String("email", user.Email))
+	s.logger.Info("Yêu cầu khôi phục mật khẩu đã xử lý (mail async)", zap.String("email", user.Email))
 	return nil
 }
 
 func (s *PasswordService) ResetPassword(ctx context.Context, req dto.ResetPasswordRequest) error {
-	if err := hash.ValidatePasswordComplexity(req.NewPassword); err != nil {
+	if err := hash.ValidateNewPassword(req.NewPassword); err != nil {
 		return apperror.ErrValidationError.WithMessage(err.Error())
-	}
-	if len([]byte(req.NewPassword)) > 72 {
-		return apperror.ErrValidationError.WithMessage("Mật khẩu không được vượt quá 72 ký tự")
 	}
 
 	tokenHash := hash.SHA256(req.Token)
@@ -631,11 +702,6 @@ func (s *PasswordService) ResetPassword(ctx context.Context, req dto.ResetPasswo
 			s.logger.Warn("Không thể InvalidateAllUserTokens trong reset password", zap.Error(err))
 		}
 
-		if err := s.sessionRepo.DeleteByUserID(txCtx, resetToken.UserID); err != nil {
-			s.logger.Error("Không thể thu hồi session khi reset password", zap.Error(err))
-			return fmt.Errorf("không thể thu hồi phiên đăng nhập: %w", err)
-		}
-
 		user, err := s.userRepo.FindByIDForUpdate(txCtx, resetToken.UserID)
 		if err != nil {
 			return fmt.Errorf("userRepo.FindByIDForUpdate: %w", err)
@@ -658,19 +724,17 @@ func (s *PasswordService) ResetPassword(ctx context.Context, req dto.ResetPasswo
 		return err
 	}
 
-	_ = s.sessionRepo.RevokeAllUserTokens(ctx, resetToken.UserID, s.cfg.JWT.RefreshExpiry)
+	if err := s.sessionRepo.InvalidateUserSessions(ctx, resetToken.UserID, s.cfg.JWT.RefreshExpiry); err != nil {
+		s.logger.Warn("Không thể invalidate sessions sau reset password", zap.Error(err))
+	}
 
 	s.logger.Info("Người dùng đã khôi phục mật khẩu thành công", zap.Uint64("user_id", resetToken.UserID))
 	return nil
 }
 
 func (s *PasswordService) ChangePassword(ctx context.Context, userID uint64, req dto.ChangePasswordRequest) error {
-
-	if err := hash.ValidatePasswordComplexity(req.NewPassword); err != nil {
+	if err := hash.ValidateNewPassword(req.NewPassword); err != nil {
 		return apperror.ErrValidationError.WithMessage(err.Error())
-	}
-	if len([]byte(req.NewPassword)) > 72 {
-		return apperror.ErrValidationError.WithMessage("Mật khẩu không được vượt quá 72 ký tự")
 	}
 
 	user, err := s.userRepo.FindByID(ctx, userID)
@@ -692,7 +756,7 @@ func (s *PasswordService) ChangePassword(ctx context.Context, userID uint64, req
 	}
 
 	if !hash.CheckPassword(req.OldPassword, user.PasswordHash) {
-		return handleFailedLogin(ctx, s.userRepo, s.logger, user)
+		return handleFailedLogin(ctx, s.userRepo, s.logger, user, s.cfg.Security.MaxFailedAttempts, s.cfg.Security.LockDuration)
 	}
 
 	hashedPassword, err := hash.HashPassword(req.NewPassword)
@@ -701,11 +765,6 @@ func (s *PasswordService) ChangePassword(ctx context.Context, userID uint64, req
 	}
 
 	err = s.txManager.RunInTx(ctx, func(txCtx context.Context) error {
-		if err := s.sessionRepo.DeleteByUserID(txCtx, userID); err != nil {
-			s.logger.Error("Không thể thu hồi session khi đổi password", zap.Error(err))
-			return fmt.Errorf("không thể thu hồi phiên đăng nhập: %w", err)
-		}
-
 		userForUpdate, err := s.userRepo.FindByIDForUpdate(txCtx, userID)
 		if err != nil {
 			return fmt.Errorf("userRepo.FindByIDForUpdate: %w", err)
@@ -730,18 +789,17 @@ func (s *PasswordService) ChangePassword(ctx context.Context, userID uint64, req
 		return err
 	}
 
-	_ = s.sessionRepo.RevokeAllUserTokens(ctx, userID, s.cfg.JWT.RefreshExpiry)
+	if err := s.sessionRepo.InvalidateUserSessions(ctx, userID, s.cfg.JWT.RefreshExpiry); err != nil {
+		s.logger.Warn("Không thể invalidate sessions sau change password", zap.Error(err))
+	}
 
 	s.logger.Info("Người dùng đã đổi mật khẩu thành công", zap.Uint64("user_id", userID))
 	return nil
 }
 
 func (s *PasswordService) ForceChangePassword(ctx context.Context, req dto.ForceChangePasswordRequest) error {
-	if err := hash.ValidatePasswordComplexity(req.NewPassword); err != nil {
+	if err := hash.ValidateNewPassword(req.NewPassword); err != nil {
 		return apperror.ErrValidationError.WithMessage(err.Error())
-	}
-	if len([]byte(req.NewPassword)) > 72 {
-		return apperror.ErrValidationError.WithMessage("Mật khẩu không được vượt quá 72 ký tự")
 	}
 
 	user, err := s.userRepo.FindByEmail(ctx, req.Email)
@@ -749,8 +807,7 @@ func (s *PasswordService) ForceChangePassword(ctx context.Context, req dto.Force
 		return fmt.Errorf("userRepo.FindByEmail: %w", err)
 	}
 	if user == nil {
-		// Ngăn lộ email
-		_ = hash.CheckPassword("dummy", "$2a$10$wK1WwzT8rVd3/xJ.8fU8K.R1.D.Fw1N98XzL3U.FwzT8rVd3/xJ.O")
+		_ = hash.CheckPassword("dummy-password", hash.DummyPasswordHash)
 		return apperror.ErrInvalidCredentials
 	}
 
@@ -772,9 +829,7 @@ func (s *PasswordService) ForceChangePassword(ctx context.Context, req dto.Force
 	}
 
 	if !hash.CheckPassword(req.TempPassword, user.PasswordHash) {
-		// Sử dụng hàm logic handleFailedLogin tương tự nhưng vì hàm đó import auth_service logic
-		// Mình sẽ trực tiếp tăng attempts
-		return apperror.ErrInvalidCredentials
+		return handleFailedLogin(ctx, s.userRepo, s.logger, user, s.cfg.Security.MaxFailedAttempts, s.cfg.Security.LockDuration)
 	}
 
 	hashedPassword, err := hash.HashPassword(req.NewPassword)
@@ -783,11 +838,6 @@ func (s *PasswordService) ForceChangePassword(ctx context.Context, req dto.Force
 	}
 
 	err = s.txManager.RunInTx(ctx, func(txCtx context.Context) error {
-		if err := s.sessionRepo.DeleteByUserID(txCtx, user.ID); err != nil {
-			s.logger.Error("Không thể thu hồi session khi đổi password", zap.Error(err))
-			return fmt.Errorf("không thể thu hồi phiên đăng nhập: %w", err)
-		}
-
 		userForUpdate, err := s.userRepo.FindByIDForUpdate(txCtx, user.ID)
 		if err != nil {
 			return fmt.Errorf("userRepo.FindByIDForUpdate: %w", err)
@@ -812,25 +862,29 @@ func (s *PasswordService) ForceChangePassword(ctx context.Context, req dto.Force
 		return err
 	}
 
-	_ = s.sessionRepo.RevokeAllUserTokens(ctx, user.ID, s.cfg.JWT.RefreshExpiry)
+	if err := s.sessionRepo.InvalidateUserSessions(ctx, user.ID, s.cfg.JWT.RefreshExpiry); err != nil {
+		s.logger.Warn("Không thể invalidate sessions sau force change password", zap.Error(err))
+	}
 
 	s.logger.Info("Người dùng đã force đổi mật khẩu thành công", zap.Uint64("user_id", user.ID))
 	return nil
 }
 
-const maxOTPAttempts = 5
-
 type OTPService struct {
 	otpRepo     *repository.OTPRepository
 	mailService *MailService
 	logger      *zap.Logger
+	pepper      string
+	maxAttempts int
 }
 
-func NewOTPService(otpRepo *repository.OTPRepository, mailService *MailService, logger *zap.Logger) *OTPService {
+func NewOTPService(otpRepo *repository.OTPRepository, mailService *MailService, logger *zap.Logger, cfg *config.Config) *OTPService {
 	return &OTPService{
 		otpRepo:     otpRepo,
 		mailService: mailService,
 		logger:      logger,
+		pepper:      cfg.Security.OTPPepper,
+		maxAttempts: cfg.Security.OTPMaxAttempts,
 	}
 }
 
@@ -854,22 +908,27 @@ func (s *OTPService) CreateAndSendOTP(
 		return nil, err
 	}
 
-	if err := s.otpRepo.Create(ctx, userID, otp, otpType, expiresAt); err != nil {
+	codeHash := hash.HashOTP(otp, s.pepper)
+	if err := s.otpRepo.Create(ctx, userID, codeHash, otpType, expiresAt); err != nil {
 		return nil, fmt.Errorf("otpRepo.Create: %w", err)
 	}
 
 	sendFunc := func() {
 		if err := s.mailService.SendVerificationEmail(email, otp); err != nil {
 			s.logger.Error("Không thể gửi email OTP", zap.String("email", email), zap.Error(err))
+			// Local/dev: mail fail vẫn cho test tiếp (Docker SMTP port hay gãy trên Windows).
+			s.logger.Warn("FALLBACK OTP (dev) — chỉ dùng khi SMTP lỗi",
+				zap.String("email", email),
+				zap.String("otp", otp),
+			)
 		}
 	}
 
 	return sendFunc, nil
 }
 
-// VerifyOTP kiểm tra mã OTP đầu vào.
-// Lưu ý: Nếu được gọi bên trong một database transaction, biến ctx truyền vào phải là txCtx
-// để đảm bảo row level lock (FOR UPDATE) hoạt động đúng trên cùng một kết nối.
+// VerifyOTP kiểm tra mã OTP đầu vào (so sánh hash constant-time).
+// Nếu gọi trong transaction, truyền txCtx để FOR UPDATE đúng connection.
 func (s *OTPService) VerifyOTP(ctx context.Context, userID uint64, otpType string, inputCode string) error {
 	otpCode, err := s.otpRepo.GetLatestValidCodeForUpdate(ctx, userID, otpType)
 	if err != nil {
@@ -879,16 +938,17 @@ func (s *OTPService) VerifyOTP(ctx context.Context, userID uint64, otpType strin
 		return apperror.ErrOTPExpired
 	}
 
-	if otpCode.Attempts >= maxOTPAttempts {
+	if otpCode.Attempts >= s.maxAttempts {
 		return apperror.ErrOTPMaxAttempts
 	}
 
-	if subtle.ConstantTimeCompare([]byte(otpCode.Code), []byte(inputCode)) != 1 {
+	inputHash := hash.HashOTP(inputCode, s.pepper)
+	if subtle.ConstantTimeCompare([]byte(otpCode.Code), []byte(inputHash)) != 1 {
 		attempts, err := s.otpRepo.IncrementAttempts(ctx, otpCode.ID)
 		if err != nil {
 			return fmt.Errorf("otpRepo.IncrementAttempts: %w", err)
 		}
-		if attempts >= maxOTPAttempts {
+		if attempts >= s.maxAttempts {
 			return apperror.ErrOTPMaxAttempts
 		}
 		return apperror.ErrOTPInvalid

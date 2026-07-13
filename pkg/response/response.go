@@ -51,13 +51,17 @@ func Error(c *gin.Context, err error) {
 		return
 	}
 
+	errBody := gin.H{
+		"code":    "INTERNAL_ERROR",
+		"message": "Đã xảy ra lỗi hệ thống",
+	}
+	// Chỉ lộ chi tiết nội bộ ngoài production (tránh leak SQL/path).
+	if gin.Mode() != gin.ReleaseMode {
+		errBody["details"] = err.Error()
+	}
 	c.JSON(http.StatusInternalServerError, Response{
 		Success: false,
-		Error: gin.H{
-			"code":    "INTERNAL_ERROR",
-			"message": "Đã xảy ra lỗi hệ thống",
-			"details": err.Error(), // Trong môi trường production, có thể ẩn đi
-		},
+		Error:   errBody,
 	})
 }
 

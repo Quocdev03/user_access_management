@@ -73,19 +73,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     }
                 }
@@ -115,7 +115,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.Response"
+                                    "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                                 },
                                 {
                                     "type": "object",
@@ -123,7 +123,7 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/dto.RoleResponse"
+                                                "$ref": "#/definitions/github_com_quocdev03_user-access-management_internal_dto.RoleResponse"
                                             }
                                         }
                                     }
@@ -134,13 +134,13 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     }
                 }
@@ -169,7 +169,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.CreateRoleRequest"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_internal_dto.CreateRoleRequest"
                         }
                     }
                 ],
@@ -179,13 +179,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.Response"
+                                    "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/dto.RoleResponse"
+                                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_internal_dto.RoleResponse"
                                         }
                                     }
                                 }
@@ -195,19 +195,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     }
                 }
@@ -245,7 +245,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.UpdateRoleRequest"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_internal_dto.UpdateRoleRequest"
                         }
                     }
                 ],
@@ -253,25 +253,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     }
                 }
@@ -306,32 +306,32 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     }
                 }
             }
         },
         "/admin/roles/{id}/permissions": {
-            "post": {
+            "put": {
                 "security": [
                     {
                         "BearerAuth": []
@@ -362,7 +362,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.AssignPermissionsRequest"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_internal_dto.AssignPermissionsRequest"
                         }
                     }
                 ],
@@ -370,25 +370,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     }
                 }
@@ -456,7 +456,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.Response"
+                                    "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                                 },
                                 {
                                     "type": "object",
@@ -464,7 +464,7 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/dto.UserProfileResponse"
+                                                "$ref": "#/definitions/github_com_quocdev03_user-access-management_internal_dto.UserProfileResponse"
                                             }
                                         }
                                     }
@@ -475,19 +475,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     }
                 }
@@ -526,13 +526,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.Response"
+                                    "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/dto.UserProfileResponse"
+                                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_internal_dto.UserProfileResponse"
                                         }
                                     }
                                 }
@@ -542,19 +542,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     }
                 }
@@ -590,7 +590,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.AdminUpdateUserRequest"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_internal_dto.AdminUpdateUserRequest"
                         }
                     }
                 ],
@@ -598,25 +598,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     }
                 }
@@ -654,7 +654,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.AdminNotifyRequest"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_internal_dto.AdminNotifyRequest"
                         }
                     }
                 ],
@@ -662,31 +662,31 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     }
                 }
             }
         },
-        "/admin/users/{id}/reset-password": {
+        "/admin/users/{id}/password/reset": {
             "post": {
                 "security": [
                     {
@@ -717,25 +717,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     }
                 }
@@ -773,7 +773,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.AssignRoleRequest"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_internal_dto.AssignRoleRequest"
                         }
                     }
                 ],
@@ -781,25 +781,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     }
                 }
@@ -843,25 +843,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     }
                 }
@@ -899,7 +899,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.AdminChangeStatusRequest"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_internal_dto.AdminChangeStatusRequest"
                         }
                     }
                 ],
@@ -907,38 +907,33 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     }
                 }
             }
         },
-        "/auth/change-password": {
+        "/auth/email/resend": {
             "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Đổi mật khẩu tài khoản",
+                "description": "Yêu cầu gửi lại email chứa OTP xác thực tài khoản",
                 "consumes": [
                     "application/json"
                 ],
@@ -948,15 +943,15 @@ const docTemplate = `{
                 "tags": [
                     "Authentication"
                 ],
-                "summary": "Đổi mật khẩu",
+                "summary": "Gửi lại OTP xác thực",
                 "parameters": [
                     {
-                        "description": "Thông tin đổi mật khẩu",
+                        "description": "Thông tin yêu cầu",
                         "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.ChangePasswordRequest"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_internal_dto.ResendVerificationEmailRequest"
                         }
                     }
                 ],
@@ -964,32 +959,27 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     },
-                    "401": {
-                        "description": "Unauthorized",
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     }
                 }
             }
         },
-        "/auth/force-change-password": {
+        "/auth/email/verify": {
             "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Đổi mật khẩu (dành cho người dùng bị reset pass từ admin)",
+                "description": "Xác thực tài khoản qua email",
                 "consumes": [
                     "application/json"
                 ],
@@ -999,15 +989,15 @@ const docTemplate = `{
                 "tags": [
                     "Authentication"
                 ],
-                "summary": "Đổi mật khẩu bắt buộc",
+                "summary": "Xác thực email",
                 "parameters": [
                     {
-                        "description": "Thông tin mật khẩu mới",
+                        "description": "OTP xác thực",
                         "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.ForceChangePasswordRequest"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_internal_dto.VerifyEmailRequest"
                         }
                     }
                 ],
@@ -1015,53 +1005,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
-                        }
-                    }
-                }
-            }
-        },
-        "/auth/forgot-password": {
-            "post": {
-                "description": "Yêu cầu đặt lại mật khẩu bằng cách gửi email có chứa OTP",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Authentication"
-                ],
-                "summary": "Quên mật khẩu",
-                "parameters": [
-                    {
-                        "description": "Email đã đăng ký",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/dto.ForgotPasswordRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     },
-                    "400": {
-                        "description": "Bad Request",
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     }
                 }
@@ -1087,7 +1043,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.LoginRequest"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_internal_dto.LoginRequest"
                         }
                     }
                 ],
@@ -1097,13 +1053,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.Response"
+                                    "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/dto.LoginResponse"
+                                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_internal_dto.LoginResponse"
                                         }
                                     }
                                 }
@@ -1113,19 +1069,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     }
                 }
@@ -1153,13 +1109,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     }
                 }
@@ -1187,21 +1143,26 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     }
                 }
             }
         },
-        "/auth/refresh": {
+        "/auth/password/change": {
             "post": {
-                "description": "Cấp lại Access Token mới dựa trên Refresh Token",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Đổi mật khẩu tài khoản",
                 "consumes": [
                     "application/json"
                 ],
@@ -1211,15 +1172,15 @@ const docTemplate = `{
                 "tags": [
                     "Authentication"
                 ],
-                "summary": "Làm mới Access Token",
+                "summary": "Đổi mật khẩu",
                 "parameters": [
                     {
-                        "description": "Refresh Token",
+                        "description": "Thông tin đổi mật khẩu",
                         "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.RefreshTokenRequest"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_internal_dto.ChangePasswordRequest"
                         }
                     }
                 ],
@@ -1227,31 +1188,139 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/response.Response"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/dto.LoginResponse"
-                                        }
-                                    }
-                                }
-                            ]
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/password/force-change": {
+            "post": {
+                "description": "Đổi mật khẩu khi must_change_password (email + temp + new). Không cần Bearer.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Đổi mật khẩu bắt buộc",
+                "parameters": [
+                    {
+                        "description": "Email, mật khẩu tạm, mật khẩu mới",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_internal_dto.ForceChangePasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/password/forgot": {
+            "post": {
+                "description": "Yêu cầu đặt lại mật khẩu — gửi email chứa link/token (không OTP)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Quên mật khẩu",
+                "parameters": [
+                    {
+                        "description": "Email đã đăng ký",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_internal_dto.ForgotPasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/password/reset": {
+            "post": {
+                "description": "Đặt lại mật khẩu bằng token từ email",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Đặt lại mật khẩu",
+                "parameters": [
+                    {
+                        "description": "Token + mật khẩu mới",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_internal_dto.ResetPasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     }
                 }
@@ -1277,7 +1346,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.RegisterRequest"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_internal_dto.RegisterRequest"
                         }
                     }
                 ],
@@ -1287,13 +1356,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.Response"
+                                    "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/dto.RegisterResponse"
+                                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_internal_dto.RegisterResponse"
                                         }
                                     }
                                 }
@@ -1303,21 +1372,21 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     }
                 }
             }
         },
-        "/auth/resend-verification-email": {
+        "/auth/token/refresh": {
             "post": {
-                "description": "Yêu cầu gửi lại email chứa OTP xác thực tài khoản",
+                "description": "Cấp lại Access Token mới dựa trên Refresh Token",
                 "consumes": [
                     "application/json"
                 ],
@@ -1327,15 +1396,15 @@ const docTemplate = `{
                 "tags": [
                     "Authentication"
                 ],
-                "summary": "Gửi lại OTP xác thực",
+                "summary": "Làm mới Access Token",
                 "parameters": [
                     {
-                        "description": "Thông tin yêu cầu",
+                        "description": "Refresh Token",
                         "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.ResendVerificationEmailRequest"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_internal_dto.RefreshTokenRequest"
                         }
                     }
                 ],
@@ -1343,105 +1412,31 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_internal_dto.RefreshTokenResponse"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     },
-                    "500": {
-                        "description": "Internal Server Error",
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
-                        }
-                    }
-                }
-            }
-        },
-        "/auth/reset-password": {
-            "post": {
-                "description": "Đặt lại mật khẩu bằng OTP",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Authentication"
-                ],
-                "summary": "Đặt lại mật khẩu",
-                "parameters": [
-                    {
-                        "description": "Thông tin đặt lại mật khẩu",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/dto.ResetPasswordRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/response.Response"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/response.Response"
-                        }
-                    }
-                }
-            }
-        },
-        "/auth/verify-email": {
-            "post": {
-                "description": "Xác thực tài khoản qua email",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Authentication"
-                ],
-                "summary": "Xác thực email",
-                "parameters": [
-                    {
-                        "description": "OTP xác thực",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/dto.VerifyEmailRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/response.Response"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/response.Response"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     }
                 }
@@ -1471,13 +1466,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.Response"
+                                    "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/dto.UserProfileResponse"
+                                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_internal_dto.UserProfileResponse"
                                         }
                                     }
                                 }
@@ -1487,12 +1482,12 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     }
                 }
             },
-            "put": {
+            "patch": {
                 "security": [
                     {
                         "BearerAuth": []
@@ -1516,7 +1511,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.UpdateProfileRequest"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_internal_dto.UpdateProfileRequest"
                         }
                     }
                 ],
@@ -1524,19 +1519,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     }
                 }
@@ -1575,13 +1570,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.Response"
+                                    "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/dto.UploadAvatarResponse"
+                                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_internal_dto.UploadAvatarResponse"
                                         }
                                     }
                                 }
@@ -1591,13 +1586,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     }
                 }
@@ -1623,13 +1618,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     }
                 }
@@ -1659,7 +1654,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.Response"
+                                    "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                                 },
                                 {
                                     "type": "object",
@@ -1667,7 +1662,7 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/dto.DeviceResponse"
+                                                "$ref": "#/definitions/github_com_quocdev03_user-access-management_internal_dto.DeviceResponse"
                                             }
                                         }
                                     }
@@ -1678,13 +1673,13 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     }
                 }
             }
         },
-        "/users/me/email/request": {
+        "/users/me/email/change-request": {
             "post": {
                 "security": [
                     {
@@ -1709,7 +1704,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.RequestEmailChangeRequest"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_internal_dto.RequestEmailChangeRequest"
                         }
                     }
                 ],
@@ -1717,25 +1712,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     }
                 }
             }
         },
-        "/users/me/email/resend-otp": {
+        "/users/me/email/resend": {
             "post": {
                 "security": [
                     {
@@ -1757,13 +1752,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     }
                 }
@@ -1794,7 +1789,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.VerifyEmailChangeRequest"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_internal_dto.VerifyEmailChangeRequest"
                         }
                     }
                 ],
@@ -1802,19 +1797,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     }
                 }
@@ -1844,7 +1839,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.Response"
+                                    "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                                 },
                                 {
                                     "type": "object",
@@ -1852,7 +1847,7 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/dto.SessionResponse"
+                                                "$ref": "#/definitions/github_com_quocdev03_user-access-management_internal_dto.SessionResponse"
                                             }
                                         }
                                     }
@@ -1863,7 +1858,7 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     }
                 }
@@ -1900,13 +1895,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/github_com_quocdev03_user-access-management_pkg_response.Response"
                         }
                     }
                 }
@@ -1914,7 +1909,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "dto.AdminChangeStatusRequest": {
+        "github_com_quocdev03_user-access-management_internal_dto.AdminChangeStatusRequest": {
             "type": "object",
             "required": [
                 "status"
@@ -1930,7 +1925,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.AdminNotifyRequest": {
+        "github_com_quocdev03_user-access-management_internal_dto.AdminNotifyRequest": {
             "type": "object",
             "required": [
                 "message",
@@ -1947,7 +1942,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.AdminUpdateUserRequest": {
+        "github_com_quocdev03_user-access-management_internal_dto.AdminUpdateUserRequest": {
             "type": "object",
             "properties": {
                 "avatar_url": {
@@ -1974,7 +1969,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.AssignPermissionsRequest": {
+        "github_com_quocdev03_user-access-management_internal_dto.AssignPermissionsRequest": {
             "type": "object",
             "required": [
                 "permission_ids"
@@ -1988,7 +1983,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.AssignRoleRequest": {
+        "github_com_quocdev03_user-access-management_internal_dto.AssignRoleRequest": {
             "type": "object",
             "required": [
                 "role_id"
@@ -1999,7 +1994,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.ChangePasswordRequest": {
+        "github_com_quocdev03_user-access-management_internal_dto.ChangePasswordRequest": {
             "type": "object",
             "required": [
                 "new_password",
@@ -2015,7 +2010,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.CreateRoleRequest": {
+        "github_com_quocdev03_user-access-management_internal_dto.CreateRoleRequest": {
             "type": "object",
             "required": [
                 "name"
@@ -2031,7 +2026,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.DeviceResponse": {
+        "github_com_quocdev03_user-access-management_internal_dto.DeviceResponse": {
             "type": "object",
             "properties": {
                 "browser": {
@@ -2057,7 +2052,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.ForceChangePasswordRequest": {
+        "github_com_quocdev03_user-access-management_internal_dto.ForceChangePasswordRequest": {
             "type": "object",
             "required": [
                 "email",
@@ -2077,7 +2072,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.ForgotPasswordRequest": {
+        "github_com_quocdev03_user-access-management_internal_dto.ForgotPasswordRequest": {
             "type": "object",
             "required": [
                 "email"
@@ -2088,7 +2083,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.LoginRequest": {
+        "github_com_quocdev03_user-access-management_internal_dto.LoginRequest": {
             "type": "object",
             "required": [
                 "email",
@@ -2103,7 +2098,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.LoginResponse": {
+        "github_com_quocdev03_user-access-management_internal_dto.LoginResponse": {
             "type": "object",
             "properties": {
                 "access_token": {
@@ -2113,11 +2108,11 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "user": {
-                    "$ref": "#/definitions/dto.UserInfoResponse"
+                    "$ref": "#/definitions/github_com_quocdev03_user-access-management_internal_dto.UserInfoResponse"
                 }
             }
         },
-        "dto.PermissionResponse": {
+        "github_com_quocdev03_user-access-management_internal_dto.PermissionResponse": {
             "type": "object",
             "properties": {
                 "action": {
@@ -2137,7 +2132,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.RefreshTokenRequest": {
+        "github_com_quocdev03_user-access-management_internal_dto.RefreshTokenRequest": {
             "type": "object",
             "required": [
                 "refresh_token"
@@ -2148,7 +2143,18 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.RegisterRequest": {
+        "github_com_quocdev03_user-access-management_internal_dto.RefreshTokenResponse": {
+            "type": "object",
+            "properties": {
+                "access_token": {
+                    "type": "string"
+                },
+                "refresh_token": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_quocdev03_user-access-management_internal_dto.RegisterRequest": {
             "type": "object",
             "required": [
                 "date_of_birth",
@@ -2184,7 +2190,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.RegisterResponse": {
+        "github_com_quocdev03_user-access-management_internal_dto.RegisterResponse": {
             "type": "object",
             "properties": {
                 "email": {
@@ -2201,7 +2207,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.RequestEmailChangeRequest": {
+        "github_com_quocdev03_user-access-management_internal_dto.RequestEmailChangeRequest": {
             "type": "object",
             "required": [
                 "current_password",
@@ -2216,7 +2222,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.ResendVerificationEmailRequest": {
+        "github_com_quocdev03_user-access-management_internal_dto.ResendVerificationEmailRequest": {
             "type": "object",
             "required": [
                 "email"
@@ -2227,7 +2233,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.ResetPasswordRequest": {
+        "github_com_quocdev03_user-access-management_internal_dto.ResetPasswordRequest": {
             "type": "object",
             "required": [
                 "new_password",
@@ -2243,7 +2249,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.RoleResponse": {
+        "github_com_quocdev03_user-access-management_internal_dto.RoleResponse": {
             "type": "object",
             "properties": {
                 "created_at": {
@@ -2261,12 +2267,12 @@ const docTemplate = `{
                 "permissions": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/dto.PermissionResponse"
+                        "$ref": "#/definitions/github_com_quocdev03_user-access-management_internal_dto.PermissionResponse"
                     }
                 }
             }
         },
-        "dto.SessionResponse": {
+        "github_com_quocdev03_user-access-management_internal_dto.SessionResponse": {
             "type": "object",
             "properties": {
                 "created_at": {
@@ -2292,7 +2298,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.UpdateProfileRequest": {
+        "github_com_quocdev03_user-access-management_internal_dto.UpdateProfileRequest": {
             "type": "object",
             "properties": {
                 "date_of_birth": {
@@ -2308,7 +2314,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.UpdateRoleRequest": {
+        "github_com_quocdev03_user-access-management_internal_dto.UpdateRoleRequest": {
             "type": "object",
             "required": [
                 "name"
@@ -2324,7 +2330,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.UploadAvatarResponse": {
+        "github_com_quocdev03_user-access-management_internal_dto.UploadAvatarResponse": {
             "type": "object",
             "properties": {
                 "avatar_url": {
@@ -2332,7 +2338,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.UserInfoResponse": {
+        "github_com_quocdev03_user-access-management_internal_dto.UserInfoResponse": {
             "type": "object",
             "properties": {
                 "email": {
@@ -2349,7 +2355,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.UserProfileResponse": {
+        "github_com_quocdev03_user-access-management_internal_dto.UserProfileResponse": {
             "type": "object",
             "properties": {
                 "avatar_url": {
@@ -2390,7 +2396,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.VerifyEmailChangeRequest": {
+        "github_com_quocdev03_user-access-management_internal_dto.VerifyEmailChangeRequest": {
             "type": "object",
             "required": [
                 "new_otp",
@@ -2405,7 +2411,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.VerifyEmailRequest": {
+        "github_com_quocdev03_user-access-management_internal_dto.VerifyEmailRequest": {
             "type": "object",
             "required": [
                 "email",
@@ -2420,7 +2426,7 @@ const docTemplate = `{
                 }
             }
         },
-        "response.Response": {
+        "github_com_quocdev03_user-access-management_pkg_response.Response": {
             "type": "object",
             "properties": {
                 "data": {},

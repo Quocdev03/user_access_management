@@ -1,6 +1,31 @@
 # UAM — Tiến độ triển khai
 
-> Cập nhật lần cuối: 2026-06-29
+> Cập nhật lần cuối: 2026-07-13
+
+---
+
+## ✅ Audit remediation (2026-07-13) — Approach B
+
+Đã xử lý theo `codebase-audit-report.md` (sửa tại nguồn, gộp helper, xóa dead/secret):
+
+| Hạng mục | Thay đổi chính |
+|----------|----------------|
+| Secrets | Xóa `superadmin_credentials.txt`, `database.sql`; seed `admin_local` + force change password |
+| P0 bugs | Pagination `PerPage`, handler `return`, admin DTO `binding:` |
+| Sessions | `InvalidateUserSessions` (MySQL + Redis epoch); role/status/password/email dùng helper |
+| JTI | Cột `sessions.jti`; blacklist khi logout session / refresh; login lưu jti |
+| OTP | Hash SHA-256(+pepper) at rest; cột `code` VARCHAR(64) |
+| Security | HTML escape notify, hide 500 details in release, swagger non-prod, TLS skip-verify flag, trusted proxies, mock mail no body |
+| Config | `MaxFailedAttempts` / `OTPExpiry` / `OTPMaxAttempts` / `OTPPepper` wiring |
+| Feature | Device tracking on login; static `/uploads`; server timeouts; system role delete guard |
+| Dedup | `ValidateNewPassword`, `HashOTP`, `clampRequestMeta`, OTP query gộp |
+| Tests | `pkg/hash` unit tests (password + OTP hash + dummy bcrypt) |
+
+**Ops còn lại (ngoài code):** rotate JWT/SMTP/DB secrets trên máy dev nếu từng lộ; recreate DB để apply schema mới.
+
+### Docs cleanup (2026-07-13)
+- Xóa docs dư/lệch; còn 4 file đánh số lại: `01-architecture`, `02-database-design`, `03-use-cases`, `04-environment-setup` + swagger generated.
+- Map: `AGENTS.md` + `README.md` trỏ `docs/01`…`04`.
 
 ---
 

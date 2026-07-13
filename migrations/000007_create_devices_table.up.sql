@@ -1,7 +1,7 @@
 CREATE TABLE IF NOT EXISTS `devices` (
     `id`             BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     `user_id`        BIGINT UNSIGNED NOT NULL,
-    `device_name`    VARCHAR(100) NULL DEFAULT NULL,
+    `device_name`    VARCHAR(255) NULL DEFAULT NULL,
     `device_type`    VARCHAR(50)  NULL DEFAULT NULL,
     `os`             VARCHAR(50)  NULL DEFAULT NULL,
     `browser`        VARCHAR(50)  NULL DEFAULT NULL,

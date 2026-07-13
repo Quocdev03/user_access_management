@@ -22,14 +22,22 @@ const (
 
 const allChars = lowerChars + upperChars + numberChars + specialChars
 
+// DummyPasswordHash is a real bcrypt hash of "dummy-password" for timing equalization
+// when a user/email does not exist (must be a valid bcrypt string).
+const DummyPasswordHash = "$2a$10$IPzDZM5LbI2XJynYGwn0tepKOFLr0HNzTD6PCPRUzeu3yWfDZGk.G"
+
 func SHA256(data string) string {
 	h := sha256.New()
 	h.Write([]byte(data))
 	return hex.EncodeToString(h.Sum(nil))
 }
 
-func HashPassword(password string) (string, error) {
+// HashOTP returns SHA-256 hex of otp+pepper for storage (never store OTP plaintext).
+func HashOTP(otp, pepper string) string {
+	return SHA256(otp + pepper)
+}
 
+func HashPassword(password string) (string, error) {
 	if len([]byte(password)) > 72 {
 		return "", errors.New("mật khẩu vượt quá giới hạn 72 bytes của bcrypt")
 	}
@@ -72,9 +80,20 @@ func ValidatePasswordComplexity(password string) error {
 	}
 
 	if !hasUpper || !hasLower || !hasNumber || !hasSpecial {
-		return errors.New("mật khẩu phải chứa ít nhất 1 chữ hoa, 1 chữ thường, 1 số và 1 ký tự đặc biệt")
+		return errors.New("mật khẩu phải có ít nhất 1 chữ hoa, 1 chữ thường, 1 số và 1 ký tự đặc biệt")
 	}
 
+	return nil
+}
+
+// ValidateNewPassword checks complexity and bcrypt's 72-byte limit.
+func ValidateNewPassword(password string) error {
+	if err := ValidatePasswordComplexity(password); err != nil {
+		return err
+	}
+	if len([]byte(password)) > 72 {
+		return errors.New("mật khẩu không được vượt quá 72 ký tự")
+	}
 	return nil
 }
 

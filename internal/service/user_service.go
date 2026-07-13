@@ -86,7 +86,24 @@ func (s *UserService) GetSessions(ctx context.Context, userID uint64, currentTok
 }
 
 func (s *UserService) RevokeSession(ctx context.Context, userID, sessionID uint64) error {
-	return s.sessionRepo.DeleteByIDAndUserID(ctx, sessionID, userID)
+	session, err := s.sessionRepo.FindByIDAndUserID(ctx, sessionID, userID)
+	if err != nil {
+		return fmt.Errorf("sessionRepo.FindByIDAndUserID: %w", err)
+	}
+	if session == nil {
+		return apperror.ErrNotFound
+	}
+
+	if session.JTI != nil && *session.JTI != "" {
+		if err := s.sessionRepo.AddToBlacklist(ctx, *session.JTI, s.cfg.JWT.AccessExpiry); err != nil {
+			s.logger.Warn("Không thể blacklist jti khi revoke session", zap.String("jti", *session.JTI), zap.Error(err))
+		}
+	}
+
+	if err := s.sessionRepo.DeleteByIDAndUserID(ctx, sessionID, userID); err != nil {
+		return fmt.Errorf("sessionRepo.DeleteByIDAndUserID: %w", err)
+	}
+	return nil
 }
 
 func (s *UserService) GetDevices(ctx context.Context, userID uint64) ([]dto.DeviceResponse, error) {
@@ -215,10 +232,6 @@ func (s *UserService) RequestEmailChange(ctx context.Context, userID uint64, req
 			return err
 		}
 
-		if err := s.sessionRepo.SetEmailChangePending(txCtx, userID, req.NewEmail, 15*time.Minute); err != nil {
-			return fmt.Errorf("sessionRepo.SetEmailChangePending: %w", err)
-		}
-
 		sendEmailOld = fnOld
 		sendEmailNew = fnNew
 		return nil
@@ -226,6 +239,11 @@ func (s *UserService) RequestEmailChange(ctx context.Context, userID uint64, req
 
 	if err != nil {
 		return err
+	}
+
+	// Redis ngoài MySQL transaction (guideline project).
+	if err := s.sessionRepo.SetEmailChangePending(ctx, userID, req.NewEmail, 15*time.Minute); err != nil {
+		return fmt.Errorf("sessionRepo.SetEmailChangePending: %w", err)
 	}
 
 	go sendEmailOld()
@@ -268,10 +286,6 @@ func (s *UserService) VerifyEmailChange(ctx context.Context, userID uint64, req 
 			return fmt.Errorf("userRepo.UpdateUser: %w", err)
 		}
 
-		if err := s.sessionRepo.DeleteByUserID(txCtx, userID); err != nil {
-			return fmt.Errorf("sessionRepo.DeleteByUserID: %w", err)
-		}
-
 		return nil
 	})
 
@@ -279,7 +293,9 @@ func (s *UserService) VerifyEmailChange(ctx context.Context, userID uint64, req 
 		return err
 	}
 
-	_ = s.sessionRepo.RevokeAllUserTokens(ctx, userID, s.cfg.JWT.RefreshExpiry)
+	if err := s.sessionRepo.InvalidateUserSessions(ctx, userID, s.cfg.JWT.RefreshExpiry); err != nil {
+		s.logger.Warn("Không thể invalidate sessions sau đổi email", zap.Error(err))
+	}
 
 	_ = s.sessionRepo.DeleteEmailChangePending(ctx, userID)
 

@@ -61,7 +61,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 // @Success 200 {object} response.Response
 // @Failure 400 {object} response.Response
 // @Failure 500 {object} response.Response
-// @Router /auth/verify-email [post]
+// @Router /auth/email/verify [post]
 func (h *AuthHandler) VerifyEmail(c *gin.Context) {
 	req, ok := validator.BindAndValidate[dto.VerifyEmailRequest](c)
 	if !ok {
@@ -87,7 +87,7 @@ func (h *AuthHandler) VerifyEmail(c *gin.Context) {
 // @Success 200 {object} response.Response
 // @Failure 400 {object} response.Response
 // @Failure 500 {object} response.Response
-// @Router /auth/resend-verification-email [post]
+// @Router /auth/email/resend [post]
 func (h *AuthHandler) ResendVerificationEmail(c *gin.Context) {
 	req, ok := validator.BindAndValidate[dto.ResendVerificationEmailRequest](c)
 	if !ok {
@@ -137,10 +137,10 @@ func (h *AuthHandler) Login(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param request body dto.RefreshTokenRequest true "Refresh Token"
-// @Success 200 {object} response.Response{data=dto.LoginResponse}
+// @Success 200 {object} response.Response{data=dto.RefreshTokenResponse}
 // @Failure 400 {object} response.Response
 // @Failure 401 {object} response.Response
-// @Router /auth/refresh [post]
+// @Router /auth/token/refresh [post]
 func (h *AuthHandler) RefreshToken(c *gin.Context) {
 	req, ok := validator.BindAndValidate[dto.RefreshTokenRequest](c)
 	if !ok {
@@ -203,14 +203,14 @@ func (h *AuthHandler) LogoutAll(c *gin.Context) {
 
 
 // @Summary Quên mật khẩu
-// @Description Yêu cầu đặt lại mật khẩu bằng cách gửi email có chứa OTP
+// @Description Yêu cầu đặt lại mật khẩu — gửi email chứa link/token (không OTP)
 // @Tags Authentication
 // @Accept json
 // @Produce json
 // @Param request body dto.ForgotPasswordRequest true "Email đã đăng ký"
 // @Success 200 {object} response.Response
 // @Failure 400 {object} response.Response
-// @Router /auth/forgot-password [post]
+// @Router /auth/password/forgot [post]
 func (h *AuthHandler) ForgotPassword(c *gin.Context) {
 	req, ok := validator.BindAndValidate[dto.ForgotPasswordRequest](c)
 	if !ok {
@@ -228,14 +228,14 @@ func (h *AuthHandler) ForgotPassword(c *gin.Context) {
 
 
 // @Summary Đặt lại mật khẩu
-// @Description Đặt lại mật khẩu bằng OTP
+// @Description Đặt lại mật khẩu bằng token từ email
 // @Tags Authentication
 // @Accept json
 // @Produce json
-// @Param request body dto.ResetPasswordRequest true "Thông tin đặt lại mật khẩu"
+// @Param request body dto.ResetPasswordRequest true "Token + mật khẩu mới"
 // @Success 200 {object} response.Response
 // @Failure 400 {object} response.Response
-// @Router /auth/reset-password [post]
+// @Router /auth/password/reset [post]
 func (h *AuthHandler) ResetPassword(c *gin.Context) {
 	req, ok := validator.BindAndValidate[dto.ResetPasswordRequest](c)
 	if !ok {
@@ -262,7 +262,7 @@ func (h *AuthHandler) ResetPassword(c *gin.Context) {
 // @Success 200 {object} response.Response
 // @Failure 400 {object} response.Response
 // @Failure 401 {object} response.Response
-// @Router /auth/change-password [post]
+// @Router /auth/password/change [post]
 func (h *AuthHandler) ChangePassword(c *gin.Context) {
 	req, ok := validator.BindAndValidate[dto.ChangePasswordRequest](c)
 	if !ok {
@@ -280,15 +280,14 @@ func (h *AuthHandler) ChangePassword(c *gin.Context) {
 }
 
 // @Summary Đổi mật khẩu bắt buộc
-// @Description Đổi mật khẩu (dành cho người dùng bị reset pass từ admin)
+// @Description Đổi mật khẩu khi must_change_password (email + temp + new). Không cần Bearer.
 // @Tags Authentication
 // @Accept json
 // @Produce json
-// @Security BearerAuth
-// @Param request body dto.ForceChangePasswordRequest true "Thông tin mật khẩu mới"
+// @Param request body dto.ForceChangePasswordRequest true "Email, mật khẩu tạm, mật khẩu mới"
 // @Success 200 {object} response.Response
 // @Failure 400 {object} response.Response
-// @Router /auth/force-change-password [post]
+// @Router /auth/password/force-change [post]
 func (h *AuthHandler) ForceChangePassword(c *gin.Context) {
 	req, ok := validator.BindAndValidate[dto.ForceChangePasswordRequest](c)
 	if !ok {
