@@ -1,21 +1,23 @@
 package service
 
 import (
-	"crypto/tls"
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"html"
+	"io"
 	"net"
+	"net/http"
 	"net/smtp"
 	"strings"
 	"time"
 
 	"go.uber.org/zap"
-	"gopkg.in/gomail.v2"
 
 	"github.com/quocdev03/user-access-management/internal/config"
 )
 
-// MailSender abstraction: mock (no host) | plain local (Mailpit) | gomail (Resend…).
+// MailSender abstraction: plain local (Mailpit) | Resend HTTP API.
 type MailSender interface {
 	SendEmail(to, subject, body string) error
 }
@@ -35,23 +37,18 @@ func NewMailService(cfg *config.Config, logger *zap.Logger) *MailService {
 	var sender MailSender
 	switch {
 	case host == "":
-		logger.Warn("SMTP_HOST trống — mock mail (không deliver)")
-		sender = &mockMail{logger: logger}
-	case isLocalMail(host, cfg.Mail.Port):
+		logger.Warn("SMTP_HOST trống — mail sẽ chỉ được log, không gửi thật")
+		sender = &logOnlyMail{logger: logger}
+	case host == "smtp.resend.com":
+		logger.Info("Mail via Resend HTTP API", zap.String("from", from))
+		sender = &resendHTTPMail{apiKey: cfg.Mail.Password, from: from, logger: logger}
+	default:
+		// Mailpit hoặc bất kỳ plain SMTP local nào
 		logger.Info("Mail local/Mailpit",
 			zap.String("host", host),
 			zap.Int("port", cfg.Mail.Port),
-			zap.String("inbox", "http://localhost:8025"),
 		)
 		sender = &localMail{host: host, port: cfg.Mail.Port, from: from, logger: logger}
-	default:
-		d := gomail.NewDialer(host, cfg.Mail.Port, cfg.Mail.User, cfg.Mail.Password)
-		if cfg.Mail.Port == 465 || cfg.Mail.Port == 2465 {
-			d.SSL = true
-		}
-		d.TLSConfig = &tls.Config{ServerName: host, MinVersion: tls.VersionTLS12}
-		logger.Info("Mail SMTP remote", zap.String("host", host), zap.Int("port", cfg.Mail.Port))
-		sender = &remoteMail{dialer: d, from: from, logger: logger}
 	}
 
 	return &MailService{sender: sender, cfg: cfg}
@@ -128,14 +125,15 @@ func (s *MailService) SendAdminNotification(to, subject, message string) error {
 
 // --- transport ---
 
-type mockMail struct{ logger *zap.Logger }
+// logOnlyMail: fallback khi SMTP_HOST trống — chỉ log, không gửi thật.
+type logOnlyMail struct{ logger *zap.Logger }
 
-func (s *mockMail) SendEmail(to, subject, body string) error {
-	s.logger.Info("[MOCK MAIL]", zap.String("to", to), zap.String("subject", subject), zap.Int("body_len", len(body)))
+func (s *logOnlyMail) SendEmail(to, subject, _ string) error {
+	s.logger.Info("[LOG ONLY MAIL — không gửi thật]", zap.String("to", to), zap.String("subject", subject))
 	return nil
 }
 
-// localMail: plain SMTP (no STARTTLS) for Mailpit. Host port 1026 on Windows Docker.
+// localMail: plain SMTP (no STARTTLS) cho Mailpit. Host port 1026 trên Windows Docker.
 type localMail struct {
 	host, from string
 	port       int
@@ -183,34 +181,52 @@ func (s *localMail) SendEmail(to, subject, body string) error {
 	return nil
 }
 
-type remoteMail struct {
-	dialer *gomail.Dialer
+// resendHTTPMail gửi email qua Resend REST API (HTTPS port 443).
+// Dùng cho production trên PaaS (Render, Railway…) nơi outbound SMTP bị chặn.
+type resendHTTPMail struct {
+	apiKey string
 	from   string
 	logger *zap.Logger
 }
 
-func (s *remoteMail) SendEmail(to, subject, body string) error {
-	m := gomail.NewMessage()
-	m.SetHeader("From", s.from)
-	m.SetHeader("To", to)
-	m.SetHeader("Subject", subject)
-	m.SetBody("text/html", body)
-	if err := s.dialer.DialAndSend(m); err != nil {
-		s.logger.Error("SMTP remote failed", zap.String("to", to), zap.Error(err))
-		return fmt.Errorf("failed to send email: %w", err)
+func (s *resendHTTPMail) SendEmail(to, subject, body string) error {
+	payload := map[string]interface{}{
+		"from":    s.from,
+		"to":     []string{to},
+		"subject": subject,
+		"html":    body,
 	}
-	s.logger.Info("Mail sent (remote)", zap.String("to", to), zap.String("subject", subject))
+	jsonBody, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("marshal resend payload: %w", err)
+	}
+
+	req, err := http.NewRequest(http.MethodPost, "https://api.resend.com/emails", bytes.NewReader(jsonBody))
+	if err != nil {
+		return fmt.Errorf("create resend request: %w", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+s.apiKey)
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{Timeout: 15 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		s.logger.Error("Resend HTTP API failed", zap.String("to", to), zap.Error(err))
+		return fmt.Errorf("resend API call: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		respBody, _ := io.ReadAll(resp.Body)
+		s.logger.Error("Resend API error",
+			zap.Int("status", resp.StatusCode),
+			zap.String("to", to),
+			zap.String("response", string(respBody)),
+		)
+		return fmt.Errorf("resend API status %d: %s", resp.StatusCode, string(respBody))
+	}
+
+	s.logger.Info("Mail sent (Resend API)", zap.String("to", to), zap.String("subject", subject))
 	return nil
 }
 
-func isLocalMail(host string, port int) bool {
-	if port == 1025 || port == 1026 {
-		return true
-	}
-	switch strings.ToLower(strings.TrimSpace(host)) {
-	case "127.0.0.1", "localhost", "mailpit", "::1":
-		return true
-	default:
-		return false
-	}
-}

@@ -307,7 +307,7 @@ make docker-down
 
 Mặc định, môi trường phát triển (development) sử dụng **Mailpit** (chạy trong Docker qua port `1025` và giao diện web port `8025`) để bắt tất cả email gửi đi mà không làm phiền người dùng thật.
 
-Khi bạn cần kiểm thử tính năng với email thật hoặc đưa ứng dụng lên Production, chúng tôi khuyên dùng [Resend](https://resend.com) làm SMTP Server.
+Khi bạn cần kiểm thử tính năng với email thật hoặc đưa ứng dụng lên Production, chúng tôi khuyên dùng [Resend](https://resend.com) làm Email Provider.
 
 ### Các bước cấu hình:
 
@@ -327,3 +327,4 @@ SMTP_FROM=noreply@yourdomain.com
 - Username của Resend luôn là `resend`.
 - `SMTP_FROM` phải là email kết thúc bằng tên miền bạn đã verify (nếu bạn chưa verify tên miền, Resend Sandbox Mode chỉ cho phép gửi từ `onboarding@resend.dev` tới địa chỉ email đăng ký tài khoản của bạn).
 - Khởi động lại server (`make dev` hoặc restart docker) để ứng dụng nhận file cấu hình mới.
+- **Render Free Tier:** Render chặn mọi outbound SMTP port (25/465/587/2525). Hệ thống tự động detect `SMTP_HOST=smtp.resend.com` và chuyển sang gọi **Resend HTTP API** (HTTPS port 443) để bypass firewall. Không cần thay đổi cấu hình — chỉ cần đảm bảo `SMTP_PASSWORD` chứa API Key hợp lệ.
