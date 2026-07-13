@@ -9,8 +9,10 @@ import (
 	"fmt"
 	"math/big"
 	"strings"
+	"sync"
 	"time"
 
+	"github.com/ua-parser/uap-go/uaparser"
 	"go.uber.org/zap"
 
 	"github.com/quocdev03/user-access-management/internal/config"
@@ -23,6 +25,11 @@ import (
 	"github.com/quocdev03/user-access-management/pkg/hash"
 	"github.com/quocdev03/user-access-management/pkg/jwt"
 )
+
+// uaParser: uap-go (regexes nhúng sẵn). Lazy init — parse chính xác hơn heuristic strings.Contains.
+var uaParser = sync.OnceValue(func() *uaparser.Parser {
+	return uaparser.NewFromSaved()
+})
 
 type AuthService struct {
 	userRepo     *repository.UserRepository
@@ -70,38 +77,60 @@ func clampRequestMeta(ipAddress, userAgent string) (string, string) {
 	return ipAddress, userAgent
 }
 
-// parseUserAgent: nhận diện thô OS/browser để lưu devices (không cần lib UA parser).
-func parseUserAgent(ua string) (osName, browser string) {
-	u := strings.ToLower(ua)
-	switch {
-	case strings.Contains(u, "windows"):
-		osName = "Windows"
-	case strings.Contains(u, "mac os") || strings.Contains(u, "macintosh"):
-		osName = "macOS"
-	case strings.Contains(u, "android"):
-		osName = "Android"
-	case strings.Contains(u, "iphone") || strings.Contains(u, "ipad") || strings.Contains(u, "ios"):
-		osName = "iOS"
-	case strings.Contains(u, "linux"):
-		osName = "Linux"
-	default:
-		osName = "Unknown"
+// parseUserAgent dùng ua-parser/uap-go. Trả về os, browser, device_type (mobile|tablet|desktop).
+func parseUserAgent(ua string) (osName, browser, deviceType string) {
+	if strings.TrimSpace(ua) == "" {
+		return "Unknown", "Unknown", "desktop"
 	}
-	switch {
-	case strings.Contains(u, "edg/"):
-		browser = "Edge"
-	case strings.Contains(u, "chrome/") && !strings.Contains(u, "edg/"):
-		browser = "Chrome"
-	case strings.Contains(u, "firefox/"):
-		browser = "Firefox"
-	case strings.Contains(u, "safari/") && !strings.Contains(u, "chrome/"):
-		browser = "Safari"
-	case strings.Contains(u, "powershell"):
-		browser = "PowerShell"
-	default:
-		browser = "Unknown"
+	c := uaParser().Parse(ua)
+
+	osName = "Unknown"
+	if c.Os != nil && c.Os.Family != "" {
+		osName = c.Os.Family
+		if c.Os.Major != "" {
+			osName = c.Os.ToString() // e.g. "Windows 10"
+		}
 	}
-	return osName, browser
+
+	browser = "Unknown"
+	if c.UserAgent != nil && c.UserAgent.Family != "" {
+		browser = c.UserAgent.Family
+		if c.UserAgent.Major != "" {
+			browser = c.UserAgent.ToString() // e.g. "Chrome 149.0.0"
+		}
+	}
+
+	deviceType = mapDeviceType(c)
+	return osName, browser, deviceType
+}
+
+func mapDeviceType(c *uaparser.Client) string {
+	if c == nil || c.Device == nil {
+		return "desktop"
+	}
+	fam := strings.TrimSpace(c.Device.Family)
+	if fam == "" || strings.EqualFold(fam, "Other") || strings.EqualFold(fam, "Spider") {
+		return "desktop"
+	}
+	lower := strings.ToLower(fam)
+	switch {
+	case strings.Contains(lower, "ipad"),
+		strings.Contains(lower, "tablet"),
+		strings.Contains(lower, "kindle"),
+		strings.Contains(lower, "playbook"):
+		return "tablet"
+	case strings.Contains(lower, "iphone"),
+		strings.Contains(lower, "phone"),
+		strings.Contains(lower, "mobile"),
+		strings.Contains(lower, "android"),
+		strings.Contains(lower, "ipod"),
+		strings.Contains(lower, "nokia"),
+		strings.Contains(lower, "blackberry"):
+		return "mobile"
+	default:
+		// Hầu hết Family cụ thể (Samsung SM-…, Pixel…) là mobile.
+		return "mobile"
+	}
 }
 
 func (s *AuthService) generateTokenPair(userID uint64, roles []string) (accessToken, refreshToken, accessJTI string, err error) {
@@ -330,9 +359,11 @@ func (s *AuthService) verifyUserStatus(ctx context.Context, user *model.User) er
 }
 
 func (s *AuthService) logAudit(ctx context.Context, userID uint64, action, ip, ua, status string) {
+	resource := "auth"
 	if err := s.auditLogRepo.Create(ctx, &model.AuditLog{
 		UserID:    &userID,
 		Action:    action,
+		Resource:  &resource,
 		IPAddress: &ip,
 		UserAgent: &ua,
 		Status:    status,
@@ -375,12 +406,13 @@ func (s *AuthService) grantTokensAndSession(ctx context.Context, user *model.Use
 		}
 
 		var deviceID *uint64
-		osName, browserName := parseUserAgent(userAgent)
+		osName, browserName, deviceType := parseUserAgent(userAgent)
 		device := &model.Device{
-			UserID:    user.ID,
-			IPAddress: &ipAddress,
-			OS:        &osName,
-			Browser:   &browserName,
+			UserID:     user.ID,
+			IPAddress:  &ipAddress,
+			OS:         &osName,
+			Browser:    &browserName,
+			DeviceType: &deviceType,
 		}
 		if userAgent != "" {
 			ua := userAgent

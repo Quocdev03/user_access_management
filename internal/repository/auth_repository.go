@@ -266,8 +266,8 @@ func (r *DeviceRepository) FindOrCreate(ctx context.Context, d *model.Device) er
 	err := database.GetDB(ctx, r.db).GetContext(ctx, &existing, queryFind, d.UserID, osVal, browserVal)
 	if err == nil {
 		d.ID = existing.ID
-		queryUpdate := `UPDATE devices SET last_active_at = NOW(), ip_address = ?, device_name = COALESCE(?, device_name) WHERE id = ?`
-		_, _ = database.GetDB(ctx, r.db).ExecContext(ctx, queryUpdate, d.IPAddress, d.DeviceName, d.ID)
+		queryUpdate := `UPDATE devices SET last_active_at = NOW(), ip_address = ?, device_name = COALESCE(?, device_name), device_type = COALESCE(?, device_type) WHERE id = ?`
+		_, _ = database.GetDB(ctx, r.db).ExecContext(ctx, queryUpdate, d.IPAddress, d.DeviceName, d.DeviceType, d.ID)
 		return nil
 	}
 	if !errors.Is(err, sql.ErrNoRows) {

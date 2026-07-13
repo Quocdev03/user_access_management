@@ -1,6 +1,34 @@
 # UAM — Tiến độ triển khai
 
-> Cập nhật lần cuối: 2026-07-13
+> Cập nhật lần cuối: 2026-07-14
+
+---
+
+## ✅ Follow-up sau audit (2026-07-13 → 2026-07-14)
+
+| Hạng mục | Thay đổi |
+|----------|----------|
+| **Admin seed (1 acc)** | Thống nhất toàn docs/README/env: email `admin@localhost.local`, password `LocalDev@ChangeMe1`, username DB `admin_local` (không dùng login). Bỏ wording force-change cho seed local. |
+| **Mail local** | Plain SMTP cho Mailpit; Docker map host **`1026:1025`** (bug Windows Docker port 1025 không trả SMTP banner). Remote Resend: port **587**. Fallback log OTP khi SMTP fail (dev). |
+| **Mail code** | Gọn `mail_service.go` (`mock` / `local` / `remote`); test `mail_service_test.go`. |
+| **Devices** | Ghi device lúc login; `device_name` **VARCHAR(255)** (migration `000016`); `device_type` mobile/tablet/desktop. |
+| **UA parser** | Thay heuristic bằng **`github.com/ua-parser/uap-go`** (`parseUserAgent` + tests). |
+| **Audit IP** | Login ghi `Resource=auth`. Production: mặc định trust proxy (`X-Forwarded-For`) khi `TRUSTED_PROXIES` trống — local vẫn thấy `::1` / `127.0.0.1` nếu test trên máy. |
+| **README** | Viết lại gọn (training project); không lặp kiến trúc/docs. |
+| **Env templates** | `.env.example`, `.env.local.example`, `.env.production.example`; gitignore secret exports. |
+| **UI test** | Sessions / devices / delete role; path API khớp router; hint seed admin. |
+| **Tooling** | `make swagger` / `make.cmd swagger` (+ install). |
+
+**Bootstrap admin (source of truth = `migrations/000012`):**
+
+```text
+email:    admin@localhost.local   ← POST /auth/login
+password: LocalDev@ChangeMe1
+username: admin_local             ← chỉ DB
+role:     admin
+```
+
+**Commits liên quan:** `0310d0a` (audit B + docs/mail/devices), `95f8fe6` (unify admin credentials docs).
 
 ---
 
@@ -21,10 +49,10 @@
 | Dedup | `ValidateNewPassword`, `HashOTP`, `clampRequestMeta`, OTP query gộp |
 | Tests | `pkg/hash` unit tests (password + OTP hash + dummy bcrypt) |
 
-**Ops còn lại (ngoài code):** rotate JWT/SMTP/DB secrets trên máy dev nếu từng lộ; recreate DB để apply schema mới.
+**Ops còn lại (ngoài code):** rotate JWT/SMTP/DB secrets nếu từng lộ; Render `DB_HOST` phải khớp Aiven Overview (DNS no such host = hostname sai/service xóa).
 
 ### Docs cleanup (2026-07-13)
-- Xóa docs dư/lệch; còn 4 file đánh số lại: `01-architecture`, `02-database-design`, `03-use-cases`, `04-environment-setup` + swagger generated.
+- Xóa docs dư/lệch; còn 4 file: `01-architecture`, `02-database-design`, `03-use-cases`, `04-environment-setup` + swagger generated.
 - Map: `AGENTS.md` + `README.md` trỏ `docs/01`…`04`.
 
 ---
@@ -41,7 +69,7 @@
 | `pkg/logger/logger.go` | Zap structured logger (dev/prod mode) |
 | `pkg/hash/password.go` | bcrypt hash + verify password |
 | `pkg/jwt/jwt.go` | JWT sinh, parse và xác thực token (HS256) |
-| `migrations/` | 15 file migration đầy đủ (users, roles, permissions, sessions, devices, otp_codes, audit_logs, seed data, password_reset, must_change_password, alter_otp) |
+| `migrations/` | 000001–000016 (users, RBAC, sessions+jti, devices, otp hash col, audit, seeds, must_change_password, notify perm, widen device_name) |
 
 ---
 

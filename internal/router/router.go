@@ -25,9 +25,15 @@ func Setup(db *sqlx.DB, redisClient *redis.Client, logger *zap.Logger, cfg *conf
 	r.Use(gin.Recovery())
 	r.Use(gin.Logger())
 
-	if len(cfg.App.TrustedProxies) > 0 {
+	// ClientIP: cần trust reverse proxy thì mới đọc X-Forwarded-For.
+	// Local: không trust (tránh spoof) → thấy 127.0.0.1 / ::1 khi test trên máy.
+	// Production PaaS (Render…): traffic chỉ qua edge; mặc định trust mọi proxy nếu chưa set TRUSTED_PROXIES.
+	switch {
+	case len(cfg.App.TrustedProxies) > 0:
 		_ = r.SetTrustedProxies(cfg.App.TrustedProxies)
-	} else {
+	case cfg.App.Env == "production":
+		_ = r.SetTrustedProxies([]string{"0.0.0.0/0", "::/0"})
+	default:
 		_ = r.SetTrustedProxies(nil)
 	}
 
