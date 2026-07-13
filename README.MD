@@ -50,13 +50,14 @@ go run ./cmd/server
 | Mailpit | `http://localhost:8025` |
 | Swagger | `http://localhost:8080/swagger/index.html` |
 
-**Admin seed (sau migrate):**
+**Admin seed (sau migrate) — chỉ có 1 acc:**
 
-| | |
-|--|--|
-| Email | `admin@localhost.local` |
-| Password | `LocalDev@ChangeMe1` |
-| Username | `admin_local` (login API dùng **email**, không dùng username) |
+```text
+Email:    admin@localhost.local
+password: LocalDev@ChangeMe1
+```
+
+Username trong DB là `admin_local` (không dùng để login). Role RBAC là `admin`.
 
 Env templates:
 

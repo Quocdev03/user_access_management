@@ -10,7 +10,7 @@
 
 | Hạng mục | Thay đổi chính |
 |----------|----------------|
-| Secrets | Xóa `superadmin_credentials.txt`, `database.sql`; seed `admin_local` + force change password |
+| Secrets | Xóa `superadmin_credentials.txt`, `database.sql`; seed `admin_local` / `admin@localhost.local` / `LocalDev@ChangeMe1` |
 | P0 bugs | Pagination `PerPage`, handler `return`, admin DTO `binding:` |
 | Sessions | `InvalidateUserSessions` (MySQL + Redis epoch); role/status/password/email dùng helper |
 | JTI | Cột `sessions.jti`; blacklist khi logout session / refresh; login lưu jti |

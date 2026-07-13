@@ -1,7 +1,12 @@
 -- =============================================================================
--- Seed: Super Admin Account (local bootstrap only)
--- Login: email admin@localhost.local / password LocalDev@ChangeMe1
--- (API login uses email, not username.) NEVER commit real prod credentials.
+-- Seed: ONE bootstrap admin (dev / first deploy only)
+--
+--   email:    admin@localhost.local   ← POST /auth/login uses email
+--   password: LocalDev@ChangeMe1
+--   username: admin_local             ← not used for login
+--   role:     admin (role_id = 1)
+--
+-- NEVER commit production credentials. Change password after first use.
 -- =============================================================================
 
 INSERT IGNORE INTO `users` (

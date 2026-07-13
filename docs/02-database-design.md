@@ -201,16 +201,17 @@ migrations/
 - **Không** sửa migration đã apply trên môi trường dùng chung — thêm version mới.
 - Local recreate OK: `docker compose down -v` rồi migrate lại.
 
-### Seed superadmin (local)
+### Seed admin bootstrap (migration 000012) — **một tài khoản duy nhất**
 
-| Field | Value |
-|-------|--------|
-| Username | `admin_local` |
-| Email | `admin@localhost.local` |
-| Password bootstrap | `LocalDev@ChangeMe1` |
-| Login | Email `admin@localhost.local` (API login dùng email, không phải username) |
+| Field | Value | Ghi chú |
+|-------|--------|---------|
+| **Email** | `admin@localhost.local` | **Dùng để login** (`POST /auth/login`) |
+| **Password** | `LocalDev@ChangeMe1` | bcrypt trong seed |
+| Username | `admin_local` | Chỉ định danh DB, **không** dùng login |
+| Role | `admin` (role_id=1) | Tên role RBAC, khác username |
+| Status | `active`, email verified | Login thẳng được |
 
-Đổi mật khẩu sau khi test. **Không** commit file credentials.
+Không còn `admin_quocdev` / file credentials. Đổi password sau khi test.
 
 ### Thứ tự FK
 

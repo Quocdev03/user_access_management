@@ -97,11 +97,12 @@ curl http://localhost:8080/health
 # Mở trình duyệt: http://localhost:8080/swagger/index.html
 ```
 
-> **Tài khoản Super Admin (local bootstrap):** Sau migrate, seed tạo admin local.
-> - **Email (dùng để login):** `admin@localhost.local`
-> - Username: `admin_local`
-> - Password: `LocalDev@ChangeMe1`
-> - Login API = **email + password** (không dùng username).
+> **Admin seed (1 tài khoản duy nhất, migration 000012):**
+> ```
+> email:    admin@localhost.local   ← dùng field này để login
+> password: LocalDev@ChangeMe1
+> ```
+> Username DB: `admin_local` | Role: `admin`. Không còn acc `admin_quocdev`.
 
 ---
 
